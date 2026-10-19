@@ -75,6 +75,7 @@ Reference project features we want to evaluate: Assist pipeline routing, convers
 - Does pressing the voice key deliver `KEYCODE_ASSIST`, an Assist intent, or an OEM/Google-only event?
 - Does `AudioRecord` see samples from the remote microphone or only built-in mic?
 - If remote audio is unavailable, test a practical fallback without breaking Google TV.
+- Test **native ⭐ customizable key** and **tvQuickActions / Button Mapper** to launch our assistant when firmware reserves the Google Assistant key. Button remapping does not itself give access to Bluetooth remote mic audio. See [Remote button fallback research and test matrix](REMOTE_BUTTON_FALLBACKS.md).
 - Record test results on the actual onn 4K Pro.
 
 ### Phase 1: minimum useful TV assistant
