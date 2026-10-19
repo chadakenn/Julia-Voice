@@ -45,6 +45,8 @@ The probe does **not** connect to Home Assistant, provide media player or announ
 6. Add optional on-demand dashboard viewer and richer multi-turn chat.
 7. Add advanced satellite features (wake word, dual pipelines, timers, Assist Satellite entity).
 
+**Research finding:** [Ava native Android satellite implementation and secure protocol choices](docs/AVA_RESEARCH.md) may allow us to reuse proven ESPHome voice/media player architecture. Hardware and security testing come before choosing the final transport.
+
 Details, acceptance criteria, architecture, privacy rules and tradeoffs: **[Project vision](docs/PROJECT_VISION.md)** and **[Media player, announcements & Frigate PiP design](docs/ANNOUNCEMENTS_AND_PIP.md)**.
 
 ## Security and attribution
