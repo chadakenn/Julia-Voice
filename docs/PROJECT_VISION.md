@@ -35,9 +35,19 @@ Reference project features we want to evaluate: Assist pipeline routing, convers
 - "Show the front door and garage": future multi-camera grid.
 - "Close the camera" / Back returns to the previous TV app.
 - Use Home Assistant camera entities and/or **Frigate / go2rtc** streams (prefer WebRTC for low latency; consider HLS/other device-compatible fallback and codec support). Do not expose go2rtc or RTSP credentials to the public.
-- Future: doorbell person detection can request a camera preview or announce, configurable and opt-in, with a cooldown.
+- **Automated Frigate PiP:** on a configured, filtered person detection at the front door, show a small temporary live camera overlay plus an optional spoken announcement. Use event-ID deduplication, cooldown, quiet hours and on/off controls; never show video just for generic motion. Press OK to expand, Back to close. Overlays over streaming/DRM apps require actual onn testing.
+- User-requested camera previews and opt-in proactive doorbell popups are both first-class capabilities. See [Media player / PiP specification](ANNOUNCEMENTS_AND_PIP.md).
 
-### 4. Dashboard only when asked
+### 4. Home Assistant media player, automation announcements, and proactive video
+
+- Expose the onn 4K Pro as a **dedicated Home Assistant `media_player` entity**, with device availability and implemented playback/volume capabilities, not merely an Android TV/Google Cast generic player.
+- Play spoken TTS and announcement chimes from HA scripts and automations, e.g. "The washer is done" or "Someone is at the front door". A native Android app and optional HA custom integration coordinate delivery and secure playback.
+- Prefer ducking other app audio (with Android audio focus) and restoring it; some streaming apps may not comply. Respect announcement toggle, quiet hours, volume, and no-wake-on-standby defaults.
+- Combine a Frigate doorbell announcement with a small live PiP camera popup that times out automatically. Provide controls to make it full screen, close it, or disable proactive video.
+- Avoid stale delayed alerts on reconnect; dedupe Frigate events and queue only where appropriate.
+- For full details and acceptance tests, see [Announcements and Frigate PiP](ANNOUNCEMENTS_AND_PIP.md).
+
+### 5. Dashboard only when asked
 
 - "Show my garage dashboard": open an allowlisted HA dashboard or view in a full-screen, TV-navigable screen; only when requested.
 - Back / "close dashboard" restores the TV app.
@@ -53,7 +63,7 @@ Reference project features we want to evaluate: Assist pipeline routing, convers
 - **UI:** an ephemeral overlay (assess `TYPE_APPLICATION_OVERLAY` / `SYSTEM_ALERT_WINDOW` availability and Android TV OEM restrictions); dedicated transparent activity or assistant window where supported. Test overlays on streaming/DRM apps: some content/system dialogs may block or obscure them.
 - **Camera playback:** native player or secure embedded view selected by stream type. Use Home Assistant camera pipeline or restricted Frigate/go2rtc path, ideally with short-lived authenticated URLs; test codec, latency, and audio.
 - **Actions:** explicit allowlisted commands/actions (`show_camera`, `show_dashboard`, `close_overlay`, etc.), mapped from trusted HA intents/events. Do not execute arbitrary speech-generated URLs, shell commands, or unrestricted Home Assistant service calls.
-- **Integrations:** MVP may start as an Assist WebSocket client. Later consider an optional HA integration for `assist_satellite`, `media_player`, announcements, and device registration (not guaranteed by a plain client).
+- **Integrations:** Start with a native Assist WebSocket client, then implement a dedicated HA custom integration exposing a real `media_player` for announcements, availability and supported playback controls; make `assist_satellite` optional later. A plain Assist client does not automatically create these entities. Communicate over a secured, reconnecting HA-to-TV channel.
 - **UX states:** idle -> listening -> processing -> responding -> idle, with camera/dashboard expanded states, Back/cancel/error handling, reconnection behavior.
 - **Accessibility/privacy:** user-controlled microphone activation, obvious mic indicators, optional local wake word, minimal logging, mute control, configurable display duration and volume ducking.
 
@@ -76,27 +86,29 @@ Reference project features we want to evaluate: Assist pipeline routing, convers
 - Dismissable, restores previous TV app and audio focus, reconnects after TV reboot.
 - No dashboard needed.
 
-### Phase 2: rich conversation and on-demand information
+### Phase 2: Home Assistant media player and proactive announcements
 
-- Multi-turn conversational chat panel.
-- Timer, notifications, home statuses, rich answer display, agent pipeline selection.
-- Optional spoken announcements, opt-in.
+- Add a HA custom integration exposing a dedicated TV `media_player` entity and capability reporting.
+- Play HA-generated TTS and chimes, starting with washer finished, with supported Android audio focus/ducking and quiet-hours options.
+- Handle device online/offline state, command acknowledgements, safe authentication, queueing and reconnects.
 
-### Phase 3: camera views
+### Phase 3: Frigate PiP and camera views
 
-- Secure Frigate/go2rtc + Home Assistant camera discovery.
-- Small camera overlay, full-screen camera player, voice controls, latency/error handling.
-- Future doorbell-triggered preview and multi-camera grid.
+- Secure Frigate/go2rtc + Home Assistant camera discovery and authorized low-latency playback.
+- Camera mini overlay and full-screen player for spoken requests.
+- Filtered Frigate front-door person events -> optional audio notice + temporary corner PiP, configurable timeout/cooldown/dedupe and back/expand interaction.
+- Test native PiP vs application overlay across video/DRM apps. Future multi-camera grid.
 
-### Phase 4: on-demand dashboards
+### Phase 4: rich conversation and on-demand dashboards
 
-- TV-friendly Home Assistant dashboard viewer when requested.
+- Multi-turn chat panel, timers, home status, rich answers and agent pipeline selection.
+- TV-friendly Home Assistant dashboard viewer only when requested.
 - Safe allowlist and close/return behavior.
 
 ### Phase 5: optional hands-free and advanced satellite behavior
 
 - Built-in omnidirectional mic / wake word (only if appropriate for normal TV audio).
-- Dual pipelines, satellite entities, media player, automations, contextual visual results.
+- Dual pipelines, optional `assist_satellite` entities, media playback expansion, contextual visual results.
 - Reliability and performance polishing.
 
 ## Definition of success
@@ -104,15 +116,17 @@ Reference project features we want to evaluate: Assist pipeline routing, convers
 1. With a streaming app playing, press the voice key (or a tested alternate button), speak, and receive a correct HA Assist answer with minimal disturbance.
 2. Confirm the command can control a permitted HA device.
 3. Request a Frigate camera by friendly name and see a live preview, then full screen; close and return to the previous content.
-4. Request a named HA dashboard; show it only on demand; Back returns to TV.
-5. Never put credentials in GitHub, never require a permanent kiosk/launcher, and always provide a reliable exit/recovery path.
+4. Trigger a washer-finished HA automation and hear TTS from the TV's dedicated `media_player`, without losing previous TV content.
+5. Trigger an allowed Frigate front-door person event and show a temporary live PiP plus optional TTS, with cooldown and Back/full-screen controls.
+6. Request a named HA dashboard; show it only on demand; Back returns to TV.
+7. Never put credentials in GitHub, never require a permanent kiosk/launcher, and always provide a reliable exit/recovery path.
 
 ## Explicit current limitations / decisions pending
 
 - **Unknown:** Can this firmware route the actual onn voice remote button *and remote mic audio* to an app we control?
 - **Unknown:** Does the system permit an overlay on top of all desired TV/DRM apps? Provide an activity-based fallback where necessary.
 - **Unknown:** Which Frigate/go2rtc camera transport is fastest and reliably decoded by the onn box?
-- **Not yet implemented:** Assist connection, audio streaming, overlay, cameras, dashboards, media focus. The current APK is ONLY a microphone/key diagnostic.
+- **Not yet implemented:** Assist connection, HA media-player entity, audio streaming, announcements, app overlay, Frigate PiP, cameras, dashboards or media focus. The current APK is ONLY a microphone/key diagnostic.
 - **Licensing:** Voice Satellite is AGPL-3.0. We can learn from documented behavior and APIs, but must review licensing obligations before copying or incorporating any of its source.
 - **No root / no firmware replacement** for initial work; do not promise every OEM limitation can be bypassed.
 
