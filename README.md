@@ -27,7 +27,11 @@ Inspired by [Voice Satellite](https://github.com/jxlarrea/voice-satellite-card-i
 2. Download the `onn-tv-voice-probe-debug` artifact and extract `app-debug.apk`.
 3. Install it on the onn 4K Pro using Android debugging / ADB (`adb install -r app-debug.apk`).
 4. Open **TV Voice Probe** from Apps.
-5. Test remote microphone key delivery, default assistant role, audio input list, and mic signal levels. Check if the input comes from the remote or the box.
+5. Test remote microphone key delivery and the default assistant role. Use **List audio inputs**, then compare the new **MIC** and **VOICE_RECOGNITION** 10-second audio-level tests:
+   - With the microphone button **not pressed**, speak near the box and note signal levels / reported route.
+   - Repeat while holding the remote microphone button, speaking only into the remote.
+   - The remote may launch Google Assistant and our recorder may capture only silence, even with permission.
+   - Compare the capture-route name/type and RMS/peak values. A generic mic route is not proof that the Bluetooth remote audio is available.
 
 The probe does **not** connect to Home Assistant, provide media player or announcements, stream or store audio, display overlays, or show cameras yet.
 
