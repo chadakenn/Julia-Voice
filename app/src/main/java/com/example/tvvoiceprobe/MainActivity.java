@@ -29,6 +29,8 @@ public class MainActivity extends Activity {
     private TextView output;
     private ScrollView scroll;
     private volatile boolean probing = false;
+    // Remember which source was requested if the runtime permission dialog appears.
+    private int pendingAudioSource = MediaRecorder.AudioSource.VOICE_RECOGNITION;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -43,7 +45,8 @@ public class MainActivity extends Activity {
         layout.addView(heading);
         addButton(layout, "List audio inputs", v -> listInputs());
         addButton(layout, "Check / request default assistant", v -> requestAssistant());
-        addButton(layout, "Record microphone LEVEL for 10 seconds", v -> requestAudio());
+        addButton(layout, "Test MIC audio source (10 seconds)", v -> requestAudio(MediaRecorder.AudioSource.MIC));
+        addButton(layout, "Test VOICE_RECOGNITION source (10 seconds)", v -> requestAudio(MediaRecorder.AudioSource.VOICE_RECOGNITION));
         addButton(layout, "Clear log", v -> output.setText(""));
         scroll = new ScrollView(this);
         output = new TextView(this);
@@ -53,7 +56,10 @@ public class MainActivity extends Activity {
         scroll.addView(output);
         layout.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
         setContentView(layout);
-        log("Press remote keys while this screen is focused. Try mic key; it may be intercepted by firmware.");
+        log("First test MIC and VOICE_RECOGNITION while speaking near the TV box.");
+        log("Then repeat while holding the remote microphone button and speaking into the remote.");
+        log("Remote voice key may launch Google's assistant instead of appearing in this app.");
+        log("These tests measure signal levels only; no audio is saved or transmitted.");
         handleAssistIntent(getIntent());
         listInputs();
     }
@@ -122,20 +128,30 @@ public class MainActivity extends Activity {
         log("A Bluetooth remote may use vendor GATT instead of appearing in this list.");
     }
 
-    private void requestAudio() {
+    private void requestAudio(int source) {
         if (probing) { log("Mic test already running"); return; }
+        pendingAudioSource = source;
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, REQUEST_AUDIO);
-        } else { micTest(); }
+        } else { micTest(source); }
     }
 
     @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
         super.onRequestPermissionsResult(requestCode, permissions, results);
-        if (requestCode == REQUEST_AUDIO && results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED) micTest();
+        if (requestCode == REQUEST_AUDIO && results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED) micTest(pendingAudioSource);
         else if (requestCode == REQUEST_AUDIO) log("Microphone permission denied.");
     }
 
-    private void micTest() {
+    private String sourceName(int source) {
+        return source == MediaRecorder.AudioSource.MIC ? "MIC" : "VOICE_RECOGNITION";
+    }
+
+    private String deviceName(AudioDeviceInfo device) {
+        if (device == null) return "unknown / unavailable";
+        return device.getProductName() + " (id " + device.getId() + ", type " + device.getType() + ")";
+    }
+
+    private void micTest(int source) {
         probing = true;
         new Thread(() -> {
             AudioRecord rec = null;
@@ -147,14 +163,18 @@ public class MainActivity extends Activity {
                     min = AudioRecord.getMinBufferSize(rate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
                 }
                 if (min <= 0) throw new IllegalStateException("No usable mono PCM capture format");
-                rec = new AudioRecord(MediaRecorder.AudioSource.VOICE_RECOGNITION, rate,
+                rec = new AudioRecord(source, rate,
                         AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT,
                         Math.max(min * 2, 8192));
                 if (rec.getState() != AudioRecord.STATE_INITIALIZED) throw new IllegalStateException("AudioRecord initialization failed");
                 rec.startRecording();
-                log("Mic level test running (" + rate + " Hz). Press and HOLD remote mic button, then speak.");
-                AudioDeviceInfo routed = rec.getRoutedDevice();
-                log("AudioRecord routed input=" + (routed == null ? "unknown" : routed.getProductName() + " (type " + routed.getType() + ")"));
+                if (rec.getRecordingState() != AudioRecord.RECORDSTATE_RECORDING) {
+                    throw new IllegalStateException("Capture did not start recording");
+                }
+                log("Testing " + sourceName(source) + " (" + rate + " Hz) for 10 sec.");
+                log("Speak by the box first, then hold remote mic key and speak into remote.");
+                String previousRoute = deviceName(rec.getRoutedDevice());
+                log("Actual capture route: " + previousRoute);
                 short[] samples = new short[2048];
                 long until = SystemClock.elapsedRealtime() + 10000;
                 long lastLog = 0;
@@ -171,7 +191,13 @@ public class MainActivity extends Activity {
                     if (SystemClock.elapsedRealtime() - lastLog > 400) {
                         lastLog = SystemClock.elapsedRealtime();
                         double rms = Math.sqrt(squareSum / (double)read) / 32768;
-                        log(String.format(Locale.US, "Mic peak=%d /32768  RMS=%.3f", peak, rms));
+                        String nowRoute = deviceName(rec.getRoutedDevice());
+                        if (!nowRoute.equals(previousRoute)) {
+                            log("Capture route changed: " + nowRoute);
+                            previousRoute = nowRoute;
+                        }
+                        log(String.format(Locale.US, "%s peak=%d /32768  RMS=%.3f",
+                                sourceName(source), peak, rms));
                     }
                 }
             } catch (Exception e) { log("Mic test failed: " + e); }
