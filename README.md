@@ -11,9 +11,11 @@ Inspired by [Voice Satellite](https://github.com/jxlarrea/voice-satellite-card-i
 - Press the Google TV remote's voice button, speak to the selected Home Assistant Assist pipeline, and hear the reply through TV speakers.
 - A small translucent **voice/chat overlay**, with listening/processing animation, transcript, response, and multi-turn conversations.
 - Ask **"Show the driveway camera"** for a Frigate/go2rtc or Home Assistant camera overlay, optionally full screen.
+- Announce **"The washer is done"** or similar automation events through a dedicated Home Assistant **media_player** entity with optional chime, spoken TTS, audio ducking and quiet-hours preferences.
+- Pop up a **temporary Frigate front-door live camera PiP** when a filtered person detection occurs, with optional spoken "Someone is at the front door", cooldown and expand/close controls.
 - Ask **"Show my garage dashboard"** to open a TV-friendly HA dashboard view **only on demand**.
 - Dismiss with Back or by voice to return to the previously playing app.
-- Eventually add timers, announcements, rich assistant answers, optional built-in-microphone wake word, and multi-pipeline support.
+- Eventually add timers, rich assistant answers, optional built-in-microphone wake word, and multi-pipeline support.
 
 **Do not require:** a permanent dashboard, kiosk mode, launcher replacement, root access, or firmware changes for MVP.
 
@@ -27,18 +29,19 @@ Inspired by [Voice Satellite](https://github.com/jxlarrea/voice-satellite-card-i
 4. Open **TV Voice Probe** from Apps.
 5. Test remote microphone key delivery, default assistant role, audio input list, and mic signal levels. Check if the input comes from the remote or the box.
 
-The probe does **not** connect to Home Assistant, stream or store audio, display overlays, or show cameras yet.
+The probe does **not** connect to Home Assistant, provide media player or announcements, stream or store audio, display overlays, or show cameras yet.
 
 ## Development roadmap
 
 1. Confirm voice remote / built-in mic behavior on actual hardware.
 2. Build authenticated HA Assist WebSocket + STT/TTS + transient overlay.
 3. Add multi-turn chat and assistant information panels.
-4. Add Frigate/go2rtc camera overlays and full-screen view.
-5. Add optional on-demand dashboard viewer.
-6. Add advanced satellite features (wake word, dual pipelines, timers, media entities).
+4. Add Home Assistant **media_player** entity and automation-driven TTS/chime announcements.
+5. Add Frigate/go2rtc camera previews, filtered person-triggered PiP alerts, and full-screen view.
+6. Add optional on-demand dashboard viewer and richer multi-turn chat.
+7. Add advanced satellite features (wake word, dual pipelines, timers, Assist Satellite entity).
 
-Details, acceptance criteria, architecture, privacy rules and tradeoffs: **[Project vision](docs/PROJECT_VISION.md)**.
+Details, acceptance criteria, architecture, privacy rules and tradeoffs: **[Project vision](docs/PROJECT_VISION.md)** and **[Media player, announcements & Frigate PiP design](docs/ANNOUNCEMENTS_AND_PIP.md)**.
 
 ## Security and attribution
 
