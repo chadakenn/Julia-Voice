@@ -55,47 +55,43 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         root.setPadding(34, 22, 34, 22);
         root.setBackgroundColor(0xff101c2b);
 
-        TextView title = label("HOME ASSISTANT  |  TV VOICE", 25, 0xff5de1ec);
+        TextView title = label("HOME ASSISTANT  |  TV VOICE", 24, 0xff5de1ec);
         root.addView(title);
 
-        connection = label("Home Assistant: not configured", 16, 0xffc7d8e9);
+        connection = label("Home Assistant: not configured", 15, 0xffc7d8e9);
         root.addView(connection);
 
-        TextView info = label("D-pad UP/DOWN: select  •  OK: activate  •  BACK: leave", 16, 0xff8ba6c1);
-        root.addView(info);
-
-        addButton(root, "1. Configure Home Assistant", v -> configure());
-        addButton(root, "2. Connect to Home Assistant", v -> connect());
-        addButton(root, "3. TALK to Home Assistant", v -> startTalk());
-        addButton(root, "4. STOP speaking", v -> assist.finishTalking());
-        addButton(root, "5. Start new conversation", v -> newConversation());
-        addButton(root, "6. Hardware microphone diagnostics", v ->
-                startActivity(new Intent(this, MainActivity.class)));
-        addButton(root, "7. Forget saved connection", v -> confirmForget());
-
-        status = label("Set up your Home Assistant address and a long-lived token.", 18, 0xff5de1ec);
+        status = label("Connect, then press TALK.", 17, 0xff5de1ec);
         root.addView(status);
 
+        // Prioritize the conversation on small TV screens. The large seven-button
+        // diagnostic layout hid all but the first line of the recognized speech.
         ScrollView scroller = new ScrollView(this);
         scroller.setFocusable(false);
+        scroller.setFillViewport(true);
         LinearLayout history = new LinearLayout(this);
         history.setOrientation(LinearLayout.VERTICAL);
-        history.setPadding(10, 10, 10, 0);
-        TextView youTitle = label("YOU SAID", 15, 0xff8ba6c1);
-        history.addView(youTitle);
+        history.setPadding(10, 6, 10, 6);
+
+        history.addView(label("HOME ASSISTANT SAYS", 16, 0xff8ba6c1));
+        response = label("Your answer will appear here.", 25, 0xffd2e9fd);
+        history.addView(response);
+
+        history.addView(label("YOU SAID", 16, 0xff8ba6c1));
         recognized = label("Nothing yet", 21, 0xffffffff);
         history.addView(recognized);
-        TextView assistTitle = label("HOME ASSISTANT", 15, 0xff8ba6c1);
-        history.addView(assistTitle);
-        response = label("Waiting for your first request", 21, 0xffd2e9fd);
-        history.addView(response);
-        TextView note = label(
-                "ALPHA: This version tests in-app microphone, Assist WebSocket, transcript and spoken TTS. " +
-                "The floating TV overlay, remote ⭐ shortcut, HA media player and Frigate PiP are coming later.",
-                15, 0xff7992ad);
-        history.addView(note);
+
         scroller.addView(history);
         root.addView(scroller, new LinearLayout.LayoutParams(-1, 0, 1));
+
+        // Three controls in one bottom row leave most of the screen for the
+        // actual Home Assistant response. The other actions live in SETTINGS.
+        LinearLayout toolbar = new LinearLayout(this);
+        toolbar.setOrientation(LinearLayout.HORIZONTAL);
+        addButton(toolbar, "TALK", v -> startTalk());
+        addButton(toolbar, "STOP", v -> assist.finishTalking());
+        addButton(toolbar, "SETTINGS", v -> showSettingsMenu());
+        root.addView(toolbar, new LinearLayout.LayoutParams(-1, -2));
 
         setContentView(root);
         try { settings = store.load(); }
@@ -130,7 +126,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
             b.setBackgroundTintList(ColorStateList.valueOf(focused ? 0xff097eaf : 0xff405572));
         });
         buttons.add(b);
-        parent.addView(b);
+        parent.addView(b, new LinearLayout.LayoutParams(0, -2, 1f));
     }
 
     private void focus(int index) {
@@ -181,6 +177,30 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         connection.setText(settings == null
                 ? "Home Assistant: not configured"
                 : "Home Assistant: " + settings.url + (assist.isConnected() ? "  ✓ connected" : "  (not connected)"));
+    }
+
+    private void showSettingsMenu() {
+        String[] entries = new String[] {
+                "Configure Home Assistant",
+                "Connect / reconnect",
+                "Start new conversation",
+                "Hardware microphone diagnostics",
+                "Forget saved connection"
+        };
+        new AlertDialog.Builder(this)
+                .setTitle("TV Voice settings")
+                .setItems(entries, (dialog, which) -> {
+                    switch (which) {
+                        case 0: configure(); break;
+                        case 1: connect(); break;
+                        case 2: newConversation(); break;
+                        case 3: startActivity(new Intent(this, MainActivity.class)); break;
+                        case 4: confirmForget(); break;
+                        default: break;
+                    }
+                })
+                .setNegativeButton("Close", null)
+                .show();
     }
 
     private void configure() {
@@ -271,12 +291,14 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
     }
 
     private void newConversation() {
-        // Conversation reset is implemented at client level; reconnect for this first alpha.
         assist.disconnect();
         recognized.setText("Nothing yet");
-        response.setText("New conversation started. Reconnect to begin.");
-        status("Conversation cleared. Select CONNECT to start fresh.");
-        updateConnectionLabel();
+        response.setText("Ready for a fresh conversation.");
+        if (settings != null) {
+            connect();
+        } else {
+            status("Conversation cleared. Configure Home Assistant to continue.");
+        }
     }
 
     private void confirmForget() {
