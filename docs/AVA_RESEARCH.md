@@ -1,6 +1,6 @@
 # Ava research: reuse and protocol options
 
-Research date: 2026-10-19. **No Ava code has yet been incorporated into our app.** Our current APK is only the onn 4K Pro hardware probe.
+Research started: 2026-10-19; status updated 2026-10-20. **No Ava code has been incorporated into our app.** Our app is now a native **foreground Home Assistant Assist WebSocket alpha**, not just the hardware probe. The original diagnostic remains available.
 
 ## References reviewed
 
@@ -30,7 +30,7 @@ Original Ava README explicitly says **its ESPHome API port currently has no auth
 
 Ava's source includes an optional trust-all-SSL-certificates setting. Do not adopt a certificate-validation bypass by default; use trusted certificates, secure pairing, and revocable credentials.
 
-The simpler direct-HA-WebSocket approach provides standard HA bearer-token authentication over `wss://`, but a plain Assist client will **not** automatically create HA `assist_satellite` and `media_player` entities. Those need a companion HA integration or different supported registration.
+The chosen direct-HA-WebSocket approach provides standard HA bearer-token authentication over `wss://` (or optionally warned, unencrypted `ws://` on trusted local LANs), but a plain Assist client will **not** automatically create HA `assist_satellite` and `media_player` entities. Those need a companion HA integration or different supported registration.
 
 **Do not combine both transports carelessly:** ESPHome API protobuf audio transport is **not** Home Assistant's WebSocket `assist_pipeline/run` binary framing. They are separate protocols with different roles.
 
@@ -57,7 +57,7 @@ It captures PCM if Android exposes the input, but the HA **WebSocket** Assist pr
 
 If choosing the ESPHome transport instead, use ESPHome Native API message framing and appropriate protobuf events, not the above WebSocket messages.
 
-## Architecture choice to make **after hardware tests**
+## Architecture selected for the first alpha; later options still open
 
 | Candidate | Main advantage | Tradeoff |
 | --- | --- | --- |
@@ -65,7 +65,7 @@ If choosing the ESPHome transport instead, use ESPHome Native API message framin
 | **Direct HA WebSocket Assist + custom HA integration** | Standard HA authentication/TLS for voice; explicit command channel for Frigate overlay, on-demand dashboard, and TV events. | Need to create/register our own HA media-player entity and announcement routing. More backend code. |
 | **Hybrid** | Potentially ESPHome for satellite/media and separately authenticated endpoint for overlay controls. | Two transport stacks, duplicate lifecycle/authentication work and increased maintenance. Avoid unless clearly justified. |
 
-**Provisional recommendation:** finish the real onn hardware probe first. Then prototype voice + media on the **least-complex secure** transport. Evaluate reusing vetted portions of original Apache-2.0 Ava under its license, but avoid importing it unmodified, and do not use unverified fork/proprietary features.
+**Current decision:** direct, authenticated HA WebSocket Assist has been implemented and verified on the real onn 4K Pro for **authentication and STT**. The client uses `assist_pipeline/run` and per-run binary audio framing. It does **not** expose a `media_player` or `assist_satellite` to Home Assistant. Add a secured custom HA companion for announcements, or reevaluate vetted Apache-2.0 Ava architecture if that route becomes significantly simpler. Avoid importing Ava unmodified or adopting unauthenticated listening ports.
 
 ## Still custom TV work
 
