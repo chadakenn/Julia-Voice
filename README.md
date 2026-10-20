@@ -1,51 +1,68 @@
-# Home Assistant TV Voice for onn 4K Pro
+# HA TV Voice 🎙️📺
 
-A **native Google TV / Android TV voice assistant** that eventually overlays normal streaming apps, supports Home Assistant announcements and shows Frigate camera picture-in-picture.
+**Native Home Assistant Assist on Google TV / Android TV**, initially tested on the **onn 4K Pro**. This project aims to let you talk to Home Assistant without replacing your TV launcher or permanently covering streaming apps.
 
-> **Current alpha:** The first Home Assistant **push-to-talk client is implemented and compiles**, but it is **NOT yet tested against the user's Home Assistant instance**. The current build is **foreground-only**, not the future floating overlay, media_player or doorbell PiP. The original diagnostics remain accessible from the main menu.
+> **Status: v0.3 signed foreground alpha (2026-10-20).** The app **authenticated to Home Assistant and successfully transcribed an actual spoken question on the onn 4K Pro**. Its compact answer-first interface and TV speaker TTS are built but **still awaiting device verification**. Floating overlays, ⭐ shortcut activation, HA announcement/media-player integration and Frigate camera PiP are future work.
 
-## Install the alpha APK
+## What's working and what's next
 
-1. Go to [GitHub Actions](../../actions/workflows/build-apk.yml), open the latest **successful** run.
-2. Under **Artifacts**, download `onn-tv-ha-assist-alpha`.
-3. Extract `app-debug.apk` from the ZIP and transfer it to the onn 4K Pro (e.g. Send Files to TV).
-4. Install over the previous test APK; both share the same app ID. Open **HA TV Voice Alpha**.
-5. Use the remote's up/down and OK buttons. The previous microphone tests are under **Hardware microphone diagnostics**.
+| Feature | State |
+| --- | --- |
+| Launch on onn 4K Pro with D-pad and OK navigation | ✅ Tested on TV |
+| Built-in box microphone, 16 kHz `VOICE_RECOGNITION` audio capture | ✅ Tested |
+| Authenticate via HA WebSocket and long-lived access token | ✅ Tested on TV |
+| Stream microphone audio to HA Assist; receive speech transcript | ✅ Tested: “What time is it?” |
+| Show HA answer in compact, couch-readable TALK / STOP / SETTINGS screen | 🔶 Built, not tested on TV |
+| Play HA TTS through TV speakers | 🔶 Implemented; needs real-world test |
+| Permanently signed APK build | ✅ GitHub Actions run [#31](../../actions/runs/39397223494) successful |
+| First debug-to-signed migration and in-place signed update | ⏳ Hardware confirmation pending |
+| Program ⭐ shortcut; voice overlay over other TV apps | 📋 Planned |
+| HA media_player announcements, Frigate person-triggered PiP, dashboard on request | 📋 Planned |
 
-## First voice test on the TV
+The **Google voice button currently opens Google's assistant**, not this app. A regular remote can control TALK / STOP, and the onn box microphone has produced working STT audio. We are **not claiming access to the Bluetooth remote microphone**.
 
-Prerequisites: an existing Home Assistant Assist pipeline with STT, conversation agent and TTS configured, a reachable Home Assistant URL, and a user-created **long-lived access token**.
+## Download and install
 
-1. On the TV, choose **Configure Home Assistant**. Paste the full Home Assistant URL (prefer a trusted `https://` URL, including a Nabu Casa remote URL if that is what works) and the access token. The Google TV phone remote may help type the token.
-2. Press **Save and connect**, then look for **Connected and authenticated**. If a certificate or login is rejected, check the URL/token and error shown in the app.
-3. Choose **TALK**. Grant microphone permission if prompted. Wait until it says **LISTENING**, then speak toward the **onn 4K Pro box**, not the Google remote.
-4. Choose **STOP** when finished. The app sends the end-of-audio packet and waits for a transcript and Home Assistant response.
-5. Verify the spoken answer plays through the TV speakers and the text appears on screen. Try a simple command like **"What time is it?"**, then a harmless HA device command if desired.
-6. Report the exact on-screen status/transcript and whether TTS played. Don't share your actual HA token or private URLs.
+**Use signed release APKs only.** The old debug builds had incompatible ephemeral signing certificates.
 
-**Token safety:** The configured token is encrypted locally using Android Keystore, app backup is disabled, and it is **never** stored in the GitHub repo. You can remove it via **Forget saved connection**. HTTPS is the recommended transport. The app warns before allowing plain HTTP because audio and credentials will be unencrypted in transit.
+1. Open [the latest successful **signed APK** build](../../actions/workflows/build-apk.yml). [Build #31](../../actions/runs/39397223494) is the first signing-and-signature-verified release.
+2. Download the **`onn-tv-ha-assist-signed`** artifact ZIP from **Artifacts**. Extract **`app-release.apk`** (not `app-debug.apk`).
+3. Send the APK to the onn 4K Pro using **Send Files to TV**, USB, or ADB. On TV, allow your file manager to install unknown apps when asked.
+4. **Only if you still have the original debug-signed app installed:** uninstall that old app **once**, then install `app-release.apk`. This clears the previous encrypted Home Assistant settings and you'll have to enter your token again. **Do not uninstall until you have the signed APK available.**
+5. **All future signed updates** should install directly over the signed app and preserve the saved HA connection, provided the permanent signing key remains unchanged and `versionCode` increases when necessary.
 
-**Known alpha constraints:** Works in the **foreground** with a D-pad TALK/STOP action. No wake word, system-level remote mic capture, automatic ⭐ button mapping, background voice control, overlay, Frigate streaming or HA media_player entity yet. Your earlier hardware tests suggested usable built-in microphone input, but actual STT quality is unverified.
+📘 [Full installation / migration guide](docs/INSTALL.md) · [Signing and key backup](docs/SIGNING.md) · [Troubleshooting](docs/TROUBLESHOOTING.md)
 
-## How it works
+## First Home Assistant conversation
 
-- Native Android Java app with OkHttp WebSocket client to HA `/api/websocket` and standard HA token auth.
-- Starts `assist_pipeline/run` (`stt` to `tts`, preferred pipeline, 16 kHz PCM).
-- Waits for the server's `stt_binary_handler_id` and `stt-start` before recording; binary chunks include handler byte. STOP sends the one-byte end-of-audio marker.
-- Processes speech transcript, intent response, conversation ID and TTS URL; plays authorized HA TTS audio using Android `MediaPlayer`.
-- Android KeyStore encrypts saved connection details; URLs are validated and only HA-related playback sources can receive the token.
-- Separate **TV Voice Probe** diagnostic screen remains available for keycodes, mic source tests, assistant role check and input routing.
+Prerequisites: a reachable Home Assistant server, a working **Assist pipeline** with STT/conversation agent (and TTS if you want spoken answers), and a **long-lived access token**.
 
-## Future development
+1. Open **HA TV Voice Alpha**, then **SETTINGS → Configure Home Assistant**. Enter HA URL and token; choose **Save and connect**. Google TV's phone remote keyboard can help, but clipboard paste varies.
+2. Wait for **Connected and authenticated**.
+3. Select **TALK**, wait for **LISTENING**, speak toward the **onn 4K Pro box** (not the Google remote mic), then select **STOP**.
+4. The **HOME ASSISTANT SAYS** answer should appear above **YOU SAID**. Check separately whether its spoken TTS reply plays through the TV speakers.
+5. If speech-to-text works but no sound comes out, see [Troubleshooting](docs/TROUBLESHOOTING.md). Keep tokens out of screenshots.
 
-- Translucent voice/chat overlay on current streaming app; robust audio-focus controls.
-- Programmable ⭐ button integration (remote mic button still invokes Google and isn't proven routable).
-- Real Home Assistant `media_player` entity for announcements, TTS and availability.
-- Proactive Frigate person-event doorbell PiP, with quiet hours and cooldown; request cameras by voice.
-- On-demand dashboard and richer conversations.
+The app currently runs **in the foreground**. It is *not* a voice overlay, system Assistant replacement, HA media player, wake-word listener or Frigate client yet.
 
-Details: [Project vision](docs/PROJECT_VISION.md), [Ava research](docs/AVA_RESEARCH.md), [announcements + Frigate PiP](docs/ANNOUNCEMENTS_AND_PIP.md), [remote key fallback testing](docs/REMOTE_BUTTON_FALLBACKS.md).
+## Architecture and privacy
 
-## Security and licensing
+- **Android Java**, Android TV-compatible D-pad UI, `AudioRecord` with `VOICE_RECOGNITION` at **16 kHz mono PCM16**, OkHttp authenticated WebSocket `/api/websocket`.
+- Standard Home Assistant **`assist_pipeline/run`** events, per-run binary audio handler, transcripts, intent response and server-returned TTS URL; Android `MediaPlayer` attempts playback.
+- The app stores the HA URL and access token encrypted with **Android Keystore** and local preferences; app backup is disabled. No microphone recording is saved or uploaded anywhere except audio intentionally **streamed to your configured HA server during TALK**.
+- **HTTPS is recommended.** Plain local `http://` is allowed with a warning, but **exposes the token and microphone audio unencrypted to the network**. Do not use HTTP across untrusted networks.
+- All installable APKs are now signed with a persistent private **GitHub Actions** keystore. Never commit signing files or tokens to this public repo.
 
-Do not commit access tokens, camera passwords, device secrets or recordings. This repo was written independently with Voice Satellite and Ava as design references; copying their source later requires compliance with their respective AGPL-3.0 or Apache-2.0 licenses.
+More detail: [Field test results and checklist](docs/TESTING.md), [security notes](SECURITY.md), [changelog](CHANGELOG.md).
+
+## Roadmap
+
+1. **Now:** verify the signed install, compact layout, HA answer, TTS sound, reconnect and safe upgrade from the next release.
+2. **Next:** make voice available quickly via ⭐ shortcut and a nonintrusive floating overlay; improve audio focus and recovery.
+3. **Afterward:** dedicated HA `media_player` with automation-driven chimes/TTS (e.g. “The washer is done”); secure companion channel.
+4. **Then:** Frigate/go2rtc camera views, filtered doorbell-person PiP and optional spoken alerts; on-demand dashboards.
+5. **Later:** optional wake word, timers, rich conversations, multi-pipeline selection and `assist_satellite` support.
+
+See [project vision](docs/PROJECT_VISION.md), [announcements and PiP design](docs/ANNOUNCEMENTS_AND_PIP.md), [remote-key options](docs/REMOTE_BUTTON_FALLBACKS.md), and [Ava / protocol research](docs/AVA_RESEARCH.md). Those describe **goals**, not shipped features.
+
+**Licensing:** This implementation was written independently; [Voice Satellite](https://github.com/jxlarrea/voice-satellite-card-integration) and [Ava](https://github.com/brownard/Ava) are research references. If code from those projects is incorporated later, their respective licenses must be followed.
