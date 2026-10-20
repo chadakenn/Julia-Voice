@@ -4,7 +4,7 @@
 
 ## Download / safe update
 
-Get the latest successful **Build HA TV Voice Signed APK** run from GitHub Actions. Download artifact `onn-tv-ha-assist-signed`, unzip and install **`app-release.apk`**.
+Get the latest successful **Build Julia Voice Signed APK** run from GitHub Actions. Download artifact `julia-voice-signed`, unzip and install **`app-release.apk`**.
 
 Version `0.5-glass-voice` / Android versionCode **5** uses the **same permanently stored signing key** as signed v0.4. It should update over the existing app without requiring uninstalling or retyping Home Assistant credentials. **Do not uninstall v0.4.** If Google TV reports a signing conflict, stop and report the error.
 
@@ -15,8 +15,8 @@ Version `0.5-glass-voice` / Android versionCode **5** uses the **same permanentl
 - **Auto-listen** (default ON): launching the overlay starts a microphone session **after Home Assistant authenticates**, no second TALK click and no wake word.
 - **Auto-stop** (best-effort): detects a voice followed by about 1.5 seconds of quieter audio and sends end-of-speech to Home Assistant. TV speaker audio or ambient noise may confuse this first local heuristic. The **STOP** button always remains available; there is also a 23-second safety timeout.
 - **Auto-hide** (default ON): hides the overlay about 6.5 seconds after the spoken reply finishes, unless the user starts another question. If a spoken reply is unavailable, a longer fallback applies.
-- **Manual and customizable options:** from regular HA TV Voice Alpha app, choose **SETTINGS → Overlay style and voice settings**. Change Glass/Classic, auto-listen ON/OFF and auto-hide ON/OFF. Settings are stored locally, not in the public repository.
-- **⭐ compatibility option:** separate installed-app launcher **HA Voice Overlay** remains available. If your onn shortcut picker lists **only HA TV Voice Alpha** (not HA Voice Overlay), enable **SETTINGS → Overlay style and voice settings → ⭐ picker fallback (main app opens overlay)**. It makes the regular launcher open the overlay. Use the overlay's **SETTINGS** button to return to the full app later.
+- **Manual and customizable options:** from regular Julia Voice app, choose **SETTINGS → Overlay style and voice settings**. Change Glass/Classic, auto-listen ON/OFF and auto-hide ON/OFF. Settings are stored locally, not in the public repository.
+- **⭐ compatibility option:** separate installed-app launcher **Julia Voice Overlay** remains available. If your onn shortcut picker lists **only Julia Voice** (not Julia Voice Overlay), enable **SETTINGS → Overlay style and voice settings → ⭐ picker fallback (main app opens overlay)**. It makes the regular launcher open the overlay. Use the overlay's **SETTINGS** button to return to the full app later.
 
 **The app cannot program your actual onn remote button remotely.** You need to configure its shortcut on the TV, and the firmware may hide activities under one package. It does not capture Google's Bluetooth voice remote microphone; use the onn box's microphones.
 
@@ -24,10 +24,10 @@ Version `0.5-glass-voice` / Android versionCode **5** uses the **same permanentl
 
 1. Install **signed v0.5** over signed v0.4. Confirm the saved Home Assistant URL/token remain available.
 2. From the regular app, open **SETTINGS → Overlay style and voice settings**. Confirm **Glass**, **Auto-listen ON**, **Auto-hide ON**.
-3. Launch **HA Voice Overlay** from the Google TV apps list, or use the existing main app's **Open floating voice overlay** item. **Don't press TALK.**
+3. Launch **Julia Voice Overlay** from the Google TV apps list, or use the existing main app's **Open floating voice overlay** item. **Don't press TALK.**
 4. Watch for **CONNECTING → LISTENING**. Speak toward the onn box. Say **“What time is it?”** and pause naturally. If the local quiet detector doesn't end capture within a few seconds, press **STOP**.
 5. Confirm a transcript, the Home Assistant answer, and audible speech. If enabled, the overlay should disappear after the spoken reply. Try CLOSE/BACK as an emergency dismiss.
-6. **⭐ remote mapping:** press and hold ⭐ to access the customizable-button favorite app settings where supported. Choose **HA Voice Overlay** if shown. If only the parent **HA TV Voice Alpha** appears, return to settings and enable **⭐ picker fallback**, then select HA TV Voice Alpha.
+6. **⭐ remote mapping:** press and hold ⭐ to access the customizable-button favorite app settings where supported. Choose **Julia Voice Overlay** if shown. If only the parent **Julia Voice** appears, return to settings and enable **⭐ picker fallback**, then select Julia Voice.
 7. Start a **YouTube video**, press ⭐ once, ask a short question without hitting TALK, then observe whether the glass panel appears **over video** and whether audio mixes, ducks, pauses or fails. DRM-protected streaming apps may behave differently. **No promise of unbroken playback** until tested.
 
 ## If it misbehaves
