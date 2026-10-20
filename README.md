@@ -2,7 +2,7 @@
 
 **Native Home Assistant Assist on Google TV / Android TV**, initially tested on the **onn 4K Pro**. This project aims to let you talk to Home Assistant without replacing your TV launcher or permanently covering streaming apps.
 
-> **Status: v0.3 foreground alpha (2026-10-20).** **Real device success:** the onn 4K Pro connected to Home Assistant, transcribed “What time is it?”, displayed the answer “5:07 AM” in the compact UI, **and played the answer through the TV speakers**. Floating overlays, ⭐ shortcut activation, HA announcement/media-player integration and Frigate camera PiP are future work. In-place updates between permanently signed releases still need verification.
+> **Status: v0.4 overlay prototype (2026-10-20).** **Real device success (v0.3):** the onn 4K Pro connected to Home Assistant, transcribed “What time is it?”, displayed the answer “5:07 AM”, **and played it through the TV speakers**. **New in v0.4:** opt-in floating Assist panel and a separate ⭐ shortcut launch entry. **Both still need testing on Google TV hardware.** HA announcement/media-player integration and Frigate PiP are future work.
 
 ## What's working and what's next
 
@@ -16,7 +16,8 @@
 | Play HA TTS through TV speakers | ✅ Tested; spoken reply heard |
 | Permanently signed APK build | ✅ GitHub Actions run [#31](../../actions/runs/39397223494) successful |
 | First debug-to-signed migration and in-place signed update | ⏳ Hardware confirmation pending |
-| Program ⭐ shortcut; voice overlay over other TV apps | 📋 Planned |
+| Opt-in floating voice panel with TALK / STOP / CLOSE, foreground microphone service | 🔶 Built v0.4; awaiting TV testing |
+| Dedicated **HA Voice Overlay** launcher for optional ⭐ mapping | 🔶 Built; mapping depends on onn firmware |
 | HA media_player announcements, Frigate person-triggered PiP, dashboard on request | 📋 Planned |
 
 The **Google voice button currently opens Google's assistant**, not this app. A regular remote can control TALK / STOP, and the onn box microphone has produced working STT audio. We are **not claiming access to the Bluetooth remote microphone**.
@@ -43,7 +44,7 @@ Prerequisites: a reachable Home Assistant server, a working **Assist pipeline** 
 4. The **HOME ASSISTANT SAYS** answer appears above **YOU SAID**. Both on-screen answer and spoken TTS have been confirmed on the onn box in a first end-to-end test.
 5. If speech-to-text works but no sound comes out, see [Troubleshooting](docs/TROUBLESHOOTING.md). Keep tokens out of screenshots.
 
-The app currently runs **in the foreground**. It is *not* a voice overlay, system Assistant replacement, HA media player, wake-word listener or Frigate client yet.
+The **proven v0.3** conversation runs in the foreground. In **v0.4** we added an **experimental floating overlay** started only on request, with a visible foreground service and a dedicated launcher entry. Its behavior over streaming apps is **unverified**. This is still not a system Assistant replacement, wake-word listener, HA media_player or Frigate client. See [Overlay test instructions](docs/OVERLAY_TESTING.md).
 
 ## Architecture and privacy
 
@@ -57,8 +58,8 @@ More detail: [Field test results and checklist](docs/TESTING.md), [security note
 
 ## Roadmap
 
-1. **Now:** the compact layout, HA response and speaker TTS have passed an on-device test. Next verify multiple conversations, reliable reconnect and a safe **signed APK update** without losing credentials.
-2. **Next:** make voice available quickly via ⭐ shortcut and a nonintrusive floating overlay; improve audio focus and recovery.
+1. **Now (v0.4):** update the signed APK **in place** and test floating overlay permission, D-pad operation, speaking over the TV launcher and an ordinary video app. Keep working v0.3 foreground voice as fallback.
+2. **Next:** try assigning the dedicated **HA Voice Overlay** launcher to the onn ⭐ remote button where supported; refine overlay placement, audio focus, fallback and recovery.
 3. **Afterward:** dedicated HA `media_player` with automation-driven chimes/TTS (e.g. “The washer is done”); secure companion channel.
 4. **Then:** Frigate/go2rtc camera views, filtered doorbell-person PiP and optional spoken alerts; on-demand dashboards.
 5. **Later:** optional wake word, timers, rich conversations, multi-pipeline selection and `assist_satellite` support.
