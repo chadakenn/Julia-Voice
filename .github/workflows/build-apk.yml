@@ -1,4 +1,4 @@
-name: Build Android TV Probe APK
+name: Build HA TV Voice Alpha APK
 
 on:
   workflow_dispatch:
@@ -30,11 +30,11 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Build diagnostic APK
+      - name: Build Assist alpha APK
         run: gradle --no-daemon :app:assembleDebug
       - name: Upload installable APK
         uses: actions/upload-artifact@v4
         with:
-          name: onn-tv-voice-probe-debug
+          name: onn-tv-ha-assist-alpha
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
