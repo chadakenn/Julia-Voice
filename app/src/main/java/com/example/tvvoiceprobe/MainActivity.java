@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.app.role.RoleManager;
 import android.content.Intent;
+import android.content.res.ColorStateList;
 import android.content.pm.PackageManager;
 import android.media.AudioDeviceInfo;
 import android.media.AudioFormat;
@@ -20,7 +21,9 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 
 /** Diagnostic only: key events, default-assistant eligibility, audio inputs, audio level. */
@@ -28,6 +31,9 @@ public class MainActivity extends Activity {
     private static final int REQUEST_AUDIO = 41;
     private TextView output;
     private ScrollView scroll;
+    // Android TV requires explicit D-pad focus and a visibly selected action.
+    private final List<Button> actions = new ArrayList<>();
+    private int selectedAction = 0;
     private volatile boolean probing = false;
     // Remember which source was requested if the runtime permission dialog appears.
     private int pendingAudioSource = MediaRecorder.AudioSource.VOICE_RECOGNITION;
@@ -43,6 +49,11 @@ public class MainActivity extends Activity {
         heading.setTextSize(23);
         heading.setTextColor(0xffffffff);
         layout.addView(heading);
+        TextView help = new TextView(this);
+        help.setText("Use remote UP / DOWN to choose a test, then press OK");
+        help.setTextColor(0xff8ce9f5);
+        help.setTextSize(17);
+        layout.addView(help);
         addButton(layout, "List audio inputs", v -> listInputs());
         addButton(layout, "Check / request default assistant", v -> requestAssistant());
         addButton(layout, "Test MIC audio source (10 seconds)", v -> requestAudio(MediaRecorder.AudioSource.MIC));
@@ -52,10 +63,17 @@ public class MainActivity extends Activity {
         output = new TextView(this);
         output.setTextColor(0xffd9f1ff);
         output.setTextSize(16);
-        output.setTextIsSelectable(true);
+        // A selectable text view can steal initial keyboard focus on TV.
+        output.setTextIsSelectable(false);
+        output.setFocusable(false);
+        scroll.setFocusable(false);
         scroll.addView(output);
         layout.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
         setContentView(layout);
+        // Preselect the first action: a remote user should never need a mouse.
+        if (!actions.isEmpty()) {
+            actions.get(0).post(() -> selectAction(0));
+        }
         log("First test MIC and VOICE_RECOGNITION while speaking near the TV box.");
         log("Then repeat while holding the remote microphone button and speaking into the remote.");
         log("Remote voice key may launch Google's assistant instead of appearing in this app.");
@@ -66,10 +84,41 @@ public class MainActivity extends Activity {
 
     private void addButton(LinearLayout parent, String label, View.OnClickListener click) {
         Button b = new Button(this);
+        final int index = actions.size();
         b.setText(label);
         b.setAllCaps(false);
+        b.setFocusable(true);
+        b.setFocusableInTouchMode(true);
+        b.setTextColor(0xffffffff);
+        b.setBackgroundTintList(ColorStateList.valueOf(0xff465873));
         b.setOnClickListener(click);
+        b.setOnFocusChangeListener((view, focused) -> {
+            if (focused) selectedAction = index;
+            b.setBackgroundTintList(ColorStateList.valueOf(
+                    focused ? 0xff087eae : 0xff465873));
+        });
+        actions.add(b);
         parent.addView(b);
+    }
+
+    private void selectAction(int index) {
+        if (actions.isEmpty()) return;
+        selectedAction = Math.max(0, Math.min(index, actions.size() - 1));
+        actions.get(selectedAction).requestFocus();
+    }
+
+    @Override public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus && !actions.isEmpty()) {
+            boolean anyActionFocused = false;
+            for (Button b : actions) {
+                if (b.hasFocus()) {
+                    anyActionFocused = true;
+                    break;
+                }
+            }
+            if (!anyActionFocused) actions.get(selectedAction).post(() -> selectAction(selectedAction));
+        }
     }
 
     @Override public void onNewIntent(Intent intent) {
@@ -85,11 +134,39 @@ public class MainActivity extends Activity {
     }
 
     @Override public boolean dispatchKeyEvent(KeyEvent event) {
+        final int key = event.getKeyCode();
         if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) {
-            log("Key: " + KeyEvent.keyCodeToString(event.getKeyCode()) +
-                " (" + event.getKeyCode() + ") inputDevice=" + event.getDeviceId());
+            log("Key: " + KeyEvent.keyCodeToString(key) +
+                    " (" + key + ") inputDevice=" + event.getDeviceId());
         }
-        return super.dispatchKeyEvent(event);
+
+        // Explicit fallback even if Google TV does not assign focus normally.
+        // Consume both DOWN and UP so the focused button never double-clicks.
+        switch (key) {
+            case KeyEvent.KEYCODE_DPAD_DOWN:
+            case KeyEvent.KEYCODE_DPAD_RIGHT:
+                if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) {
+                    selectAction(selectedAction + 1);
+                }
+                return true;
+            case KeyEvent.KEYCODE_DPAD_UP:
+            case KeyEvent.KEYCODE_DPAD_LEFT:
+                if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) {
+                    selectAction(selectedAction - 1);
+                }
+                return true;
+            case KeyEvent.KEYCODE_DPAD_CENTER:
+            case KeyEvent.KEYCODE_ENTER:
+            case KeyEvent.KEYCODE_NUMPAD_ENTER:
+            case KeyEvent.KEYCODE_BUTTON_A:
+                if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0
+                        && !actions.isEmpty()) {
+                    actions.get(selectedAction).performClick();
+                }
+                return true;
+            default:
+                return super.dispatchKeyEvent(event);
+        }
     }
 
     private void requestAssistant() {
