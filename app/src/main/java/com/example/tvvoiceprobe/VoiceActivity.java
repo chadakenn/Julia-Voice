@@ -103,6 +103,15 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         catch (Exception e) { status("Saved connection couldn't be decrypted. Configure it again."); }
         updateConnectionLabel();
         if (!buttons.isEmpty()) buttons.get(0).post(() -> focus(0));
+        // Some onn firmware offers only the package's primary launcher in the
+        // ⭐ app picker. An explicit opt-in makes that launch the overlay too.
+        Intent launch = getIntent();
+        if (new OverlayPreferences(this).mainLauncherOpensOverlay()
+                && launch != null && Intent.ACTION_MAIN.equals(launch.getAction())
+                && (launch.hasCategory(Intent.CATEGORY_LAUNCHER)
+                    || launch.hasCategory(Intent.CATEGORY_LEANBACK_LAUNCHER))) {
+            root.post(this::launchOverlay);
+        }
     }
 
     private TextView label(String value, int size, int color) {
@@ -218,7 +227,9 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                 "Skin: " + ("glass".equals(preferences.skin()) ? "Glass" : "Classic") +
                         " (choose)",
                 "Auto-listen on launch: " + (preferences.autoListen() ? "ON" : "OFF"),
-                "Auto-hide after spoken reply: " + (preferences.autoHide() ? "ON" : "OFF")
+                "Auto-hide after spoken reply: " + (preferences.autoHide() ? "ON" : "OFF"),
+                "⭐ picker fallback (main app opens overlay): " +
+                        (preferences.mainLauncherOpensOverlay() ? "ON" : "OFF")
         };
         new AlertDialog.Builder(this)
                 .setTitle("TV Voice appearance & launch")
@@ -249,6 +260,22 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                         status("Close after spoken reply: " +
                                 (preferences.autoHide() ? "ON" : "OFF"));
                         showOverlayPreferences();
+                    } else if (index == 3) {
+                        new AlertDialog.Builder(this)
+                                .setTitle("⭐ Remote shortcut compatibility")
+                                .setMessage("Enable this ONLY if the onn shortcut list shows " +
+                                        "HA TV Voice Alpha but not HA Voice Overlay. " +
+                                        "Launching the main app will then open the overlay. " +
+                                        "Use the overlay's SETTINGS button to return here.")
+                                .setNegativeButton("Cancel", null)
+                                .setPositiveButton(preferences.mainLauncherOpensOverlay()
+                                        ? "Turn OFF" : "Turn ON", (d, which) -> {
+                                    preferences.setMainLauncherOpensOverlay(
+                                            !preferences.mainLauncherOpensOverlay());
+                                    status("⭐ compatibility is now " +
+                                            (preferences.mainLauncherOpensOverlay() ? "ON" : "OFF"));
+                                })
+                                .show();
                     }
                 })
                 .setNegativeButton("Done", null)
