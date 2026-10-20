@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="docs/branding/julia-voice-header.svg" alt="Julia Voice | Your voice. Your home. Your AI." width="100%" />
+</div>
+
 # Julia Voice 🎙️💜
 
 **Your voice. Your home. Your AI.**
