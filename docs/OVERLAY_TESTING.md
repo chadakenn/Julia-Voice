@@ -40,13 +40,19 @@ Install the latest **successful** [signed GitHub Actions build](../.github/workf
 
 ## ⭐ button quick-launch experiment
 
-After the overlay permission is granted and normal conversation is configured:
+**The onn 4K Pro has a native customizable star button that can launch a favorite installed app.** Its exact choices vary by Google TV firmware. The native star-button feature is our first choice, before installing any remapper.
 
-1. Look in Google TV / onn remote shortcut settings to see whether the programmable ⭐ button can **launch a selected installed application**.
-2. If it offers an app list, choose the separate **HA Voice Overlay** entry, **not** the regular **HA TV Voice Alpha** config screen.
-3. Press ⭐ while another TV app is visible. The brief shortcut activity should start the foreground overlay service and then finish to reveal the previous task, subject to Google TV's activity-stack behavior.
-4. The microphone button still invokes Google Assistant. **This does not remap the mic button or grant access to the Bluetooth remote mic.**
-5. If ⭐ cannot select this shortcut, report what the TV settings offer; a button mapper or activity alias fallback may be needed. Do not disable Google services or grant root for this test.
+1. On your onn remote, **press and hold ⭐ for about 1–2 seconds**. If it opens the shortcut picker, choose **Open favorite app**.
+2. Look for **HA Voice Overlay** in the installed apps list. Select it and complete the **Create shortcut** confirmation. **Do not pick “HA TV Voice Alpha”** if the separate overlay entry is available.
+3. If a long press doesn't open the shortcut picker because ⭐ is already configured for TV input switching, try **Google TV Settings → Remotes & Accessories → Set up remote buttons → Customizable button**. (Menu wording may vary.)
+4. Once configured, launch **YouTube** or another harmless non-DRM app, start a video, and **briefly press ⭐**. Ideally the quick-launch activity starts the already-authorized foreground overlay, then returns to the video.
+5. Use the overlay's TALK / STOP to ask a question and CLOSE or BACK to dismiss. Confirm whether video remains visible, whether it pauses, and whether playback is interrupted or ducked.
+
+**Important implementation caveat:** although our APK declares a separate `HA Voice Overlay` launcher activity, Google's favorite-app picker might collapse launcher entries to their **parent Android package**. If **HA Voice Overlay** is missing, or ⭐ always launches the full-screen HA TV Voice Alpha, send us a photo of the app picker instead of installing more tools. We may need a separate-package launcher, an activity shortcut, or a vetted third-party button mapper. The working voice app and its token remain intact.
+
+The microphone button still invokes Google Assistant. **This does not remap the mic button or grant access to the Bluetooth remote mic.**
+
+Sources for native ⭐ behavior: [onn 4K Pro review and star button long press](https://www.digitaltrends.com/home-theater/onn-4k-pro-streaming-device-review-google-tv/), [onn hardware review on app shortcuts](https://www.androidauthority.com/onn-4k-pro-review-vs-3445267/).
 
 ## Known constraints
 
