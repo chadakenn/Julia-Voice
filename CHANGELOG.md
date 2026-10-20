@@ -2,6 +2,15 @@
 
 This is an experimental Android TV / Google TV app. Each entry distinguishes **shipped code** from **tested on the onn 4K Pro**.
 
+## v0.5-glass-voice (2026-10-20) — Glass UI and one-press voice prototype
+
+- ✅ Added original animated cyan/purple waveform and wide translucent dark Glass skin, plus optional compact Classic styling.
+- ✅ Added on-device preferences for Glass/Classic, auto-listen (ON by default) and auto-hide after speech (ON by default).
+- ✅ Overlay launches a speech session **after Home Assistant authenticates**, eliminating a second TALK press. Added optional local voice-pause detection and 23-second recording safety timeout; manual STOP still works.
+- ✅ Added optional main-app launcher fallback for the onn ⭐ app picker; overlay SETTINGS button keeps the configuration screen reachable.
+- ✅ Incremented signed Android `versionCode` from 4 to 5; built with same permanent signing key. **[GitHub Actions build #50](https://github.com/chadakenn/onn-tv-voice-remote./actions/runs/39409512785) passed all signing and artifact steps**.
+- ⚠️ **Awaiting actual onn box testing:** auto-listen, waveform, auto-stop with background video, auto-hide, ⭐ shortcut mapping and preserving credentials during signed upgrade. Previous v0.4 already displayed the overlay on Google TV Home. See [v0.5 testing](docs/V0_5_TESTING.md).
+
 ## v0.4-overlay-prototype (2026-10-20) — Opt-in floating TV voice
 
 - Added an **experimental small, translucent floating voice panel** with D-pad TALK / STOP / CLOSE, recognized speech, HA text answer and speech output.
