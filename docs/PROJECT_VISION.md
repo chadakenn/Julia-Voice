@@ -1,6 +1,6 @@
 # Project vision: Julia Voice
 
-**Project identity:** Julia Voice is named after **Julia**, the original local AI assistant. Tagline: **Your voice. Your home. Your AI.** Its first client is the Home Assistant Android TV voice app, but the brand intentionally extends beyond televisions. Current public repository and Android package identifiers remain unchanged to preserve signed updates and existing users.
+**Project identity:** Julia Voice is named after **Julia**, the original local AI assistant. Tagline: **Your voice. Your home. Your AI.** Its first client is the Home Assistant Android TV voice app, but the brand intentionally extends beyond televisions. The repository is now `chadakenn/Julia-Voice`; the Android package identifier and signing key remain unchanged to preserve signed updates.
 
 ## Product definition
 
