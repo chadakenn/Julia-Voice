@@ -2,7 +2,7 @@
 
 **Native Home Assistant Assist on Google TV / Android TV**, initially tested on the **onn 4K Pro**. This project aims to let you talk to Home Assistant without replacing your TV launcher or permanently covering streaming apps.
 
-> **Status: v0.4 overlay prototype (2026-10-20).** **Real device success (v0.3):** the onn 4K Pro connected to Home Assistant, transcribed “What time is it?”, displayed the answer “5:07 AM”, **and played it through the TV speakers**. **New in v0.4:** opt-in floating Assist panel and a separate ⭐ shortcut launch entry. **The floating panel is now confirmed visible and HA-authenticated over Google TV Home**, but overlay talk/TTS over video and ⭐ mapping still need testing. HA announcement/media-player integration and Frigate PiP are future work.
+> **Status: v0.5 Glass voice prototype (2026-10-20).** **Confirmed on real onn 4K Pro:** Home Assistant heard “What time is it?”, displayed “5:07 AM” and played speech through the TV speakers. The v0.4 floating overlay was visible over Google TV Home and authenticated. **New, still untested on TV in v0.5:** dark Glass waveform card, auto-listen on launch, voice-pause auto-stop, skin selection and ⭐ launcher compatibility. Frigate PiP, HA announcements and wake words are future work.
 
 ## What's working and what's next
 
@@ -16,8 +16,10 @@
 | Play HA TTS through TV speakers | ✅ Tested; spoken reply heard |
 | Permanently signed APK build | ✅ GitHub Actions run [#31](../../actions/runs/39397223494) successful |
 | First debug-to-signed migration and in-place signed update | ⏳ Hardware confirmation pending |
-| Opt-in floating voice panel with TALK / STOP / CLOSE, foreground microphone service | ✅ Visible and HA-authenticated over Google TV Home; voice controls not yet tested |
-| Dedicated **HA Voice Overlay** launcher for optional ⭐ mapping | 🔶 Built; mapping depends on onn firmware |
+| Floating overlay on Google TV Home | ✅ v0.4 shown and authenticated on onn box |
+| v0.5 Glass skin, animated waveform and Classic option | 🔶 Signed build passed; await onn field test |
+| v0.5 auto-listen/auto-stop + reply auto-hide | 🔶 Signed build passed; await onn field test |
+| Dedicated **HA Voice Overlay** launcher or main-app ⭐ fallback | 🔶 Built, mapping depends on onn firmware |
 | HA media_player announcements, Frigate person-triggered PiP, dashboard on request | 📋 Planned |
 
 The **Google voice button currently opens Google's assistant**, not this app. A regular remote can control TALK / STOP, and the onn box microphone has produced working STT audio. We are **not claiming access to the Bluetooth remote microphone**.
@@ -44,7 +46,7 @@ Prerequisites: a reachable Home Assistant server, a working **Assist pipeline** 
 4. The **HOME ASSISTANT SAYS** answer appears above **YOU SAID**. Both on-screen answer and spoken TTS have been confirmed on the onn box in a first end-to-end test.
 5. If speech-to-text works but no sound comes out, see [Troubleshooting](docs/TROUBLESHOOTING.md). Keep tokens out of screenshots.
 
-The **proven v0.3** conversation runs in the foreground. In **v0.4** we added an **experimental floating overlay** started only on request, with a visible foreground service and a dedicated launcher entry. Its placement over Google TV Home is **verified**; behavior over streaming apps, panel microphone and spoken TTS is **unverified**. This is still not a system Assistant replacement, wake-word listener, HA media_player or Frigate client. See [Overlay test instructions](docs/OVERLAY_TESTING.md).
+The **proven v0.3** full-screen conversation continues to work; **v0.4** proved the overlay displays over Google TV Home. **v0.5** brings auto-listening after the explicit ⭐/app launch, a Glass waveform skin, optional Classic skin, a best-effort silence detector, configurable automatic dismissal and a TV-app-picker fallback. Google TV real-world behavior and audio/video coexistence still require testing. This is not a system Assistant replacement, wake-word listener, HA media_player or Frigate client. See the [v0.5 home test checklist](docs/V0_5_TESTING.md).
 
 ## Architecture and privacy
 
@@ -58,8 +60,8 @@ More detail: [Field test results and checklist](docs/TESTING.md), [security note
 
 ## Roadmap
 
-1. **Now (v0.4):** update the signed APK **in place** and test floating overlay permission, D-pad operation, speaking over the TV launcher and an ordinary video app. Keep working v0.3 foreground voice as fallback.
-2. **Next:** try assigning the dedicated **HA Voice Overlay** launcher to the onn ⭐ remote button where supported; refine overlay placement, audio focus, fallback and recovery.
+1. **Now (v0.5):** test ⭐ shortcut launch, auto-listen, Glass/Classic selection, actual reply speech, auto-hide and playback over YouTube while preserving credentials. [Home test instructions](docs/V0_5_TESTING.md).
+2. **Next:** refine ⭐ shortcut selection where firmware permits, overlay placement, audio focus, ambient-TV-noise tolerance, skins and recovery based on actual results.
 3. **Afterward:** dedicated HA `media_player` with automation-driven chimes/TTS (e.g. “The washer is done”); secure companion channel.
 4. **Then:** Frigate/go2rtc camera views, filtered doorbell-person PiP and optional spoken alerts; on-demand dashboards.
 5. **Later:** optional wake word, timers, rich conversations, multi-pipeline selection and `assist_satellite` support.
