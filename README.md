@@ -7,7 +7,7 @@ A **native Google TV / Android TV voice assistant** that eventually overlays nor
 ## Install the alpha APK
 
 1. Go to [GitHub Actions](../../actions/workflows/build-apk.yml), open the latest **successful** run.
-2. Under **Artifacts**, download `onn-tv-voice-probe-debug` (the artifact name is inherited from the original probe).
+2. Under **Artifacts**, download `onn-tv-ha-assist-alpha`.
 3. Extract `app-debug.apk` from the ZIP and transfer it to the onn 4K Pro (e.g. Send Files to TV).
 4. Install over the previous test APK; both share the same app ID. Open **HA TV Voice Alpha**.
 5. Use the remote's up/down and OK buttons. The previous microphone tests are under **Hardware microphone diagnostics**.
