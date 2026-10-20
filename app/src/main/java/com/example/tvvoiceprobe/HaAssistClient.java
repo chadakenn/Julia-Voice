@@ -30,6 +30,11 @@ public final class HaAssistClient {
         void transcript(String text);
         void answer(String text);
         void ttsUrl(String url);
+        // Optional typed lifecycle callbacks; existing full-screen client
+        // continues to work without implementing these methods.
+        default void ready() { }
+        default void listening() { }
+        default void processing() { }
     }
 
     private final Context context;
@@ -114,6 +119,7 @@ public final class HaAssistClient {
         if ("auth_ok".equals(type)) {
             authenticated = true;
             events.status("Connected and authenticated. Select TALK.");
+            events.ready();
             return;
         }
         if ("auth_invalid".equals(type)) {
@@ -157,6 +163,7 @@ public final class HaAssistClient {
                 endRequested = true;
                 recording.set(false);
                 events.status("Speech detected. Processing...");
+                events.processing();
                 break;
             case "stt-end":
                 endRequested = true;
@@ -164,6 +171,7 @@ public final class HaAssistClient {
                 JSONObject stt = data.optJSONObject("stt_output");
                 if (stt != null) events.transcript(stt.optString("text", ""));
                 events.status("Thinking...");
+                events.processing();
                 break;
             case "intent-start":
                 events.status("Home Assistant is responding...");
@@ -281,6 +289,7 @@ public final class HaAssistClient {
                 if (recorder.getRecordingState() != AudioRecord.RECORDSTATE_RECORDING)
                     throw new IllegalStateException("Microphone recording was not started");
                 events.status("LISTENING. Speak toward the onn box; select STOP when done.");
+                events.listening();
                 byte[] pcm = new byte[3200]; // 100 ms at 16kHz, mono, 16-bit
                 while (recording.get() && runId == currentRunId) {
                     int read = recorder.read(pcm, 0, pcm.length);
