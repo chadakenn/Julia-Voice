@@ -49,6 +49,7 @@ public final class HaAssistClient {
     private volatile int handlerId = -1;
     private volatile boolean endRequested;
     private volatile boolean captureStarted;
+    private volatile boolean autoEndSpeech;
     private final AtomicBoolean recording = new AtomicBoolean(false);
     private final AtomicBoolean ended = new AtomicBoolean(false);
     private volatile String conversationId;
@@ -216,6 +217,15 @@ public final class HaAssistClient {
     }
 
     public synchronized void talk() {
+        talk(false);
+    }
+
+    /**
+     * Auto mode begins listening on command and uses conservative local
+     * silence detection to finish after an utterance. Manual STOP remains
+     * available if TV playback sound confuses the detector.
+     */
+    public synchronized void talk(boolean autoStopOnSilence) {
         if (!authenticated || socket == null) {
             events.status("Connect to Home Assistant first.");
             return;
@@ -243,6 +253,7 @@ public final class HaAssistClient {
             handlerId = -1;
             endRequested = false;
             captureStarted = false;
+            autoEndSpeech = autoStopOnSilence;
             ended.set(false);
             currentRunId = id;
             if (!socket.send(request.toString())) {
@@ -291,12 +302,48 @@ public final class HaAssistClient {
                 events.status("LISTENING. Speak toward the onn box; select STOP when done.");
                 events.listening();
                 byte[] pcm = new byte[3200]; // 100 ms at 16kHz, mono, 16-bit
+                long observedMs = 0L;
+                long voiceMs = 0L;
+                long quietMs = 0L;
+                boolean heardUtterance = false;
+                double backgroundRms = 0.002;
                 while (recording.get() && runId == currentRunId) {
                     int read = recorder.read(pcm, 0, pcm.length);
                     if (!recording.get() || runId != currentRunId) break;
                     if (read <= 0) throw new IllegalStateException("Microphone read failed (" + read + ")");
                     if (read % 2 != 0) read--; // PCM16 samples must be complete
                     if (read == 0) continue;
+
+                    if (autoEndSpeech) {
+                        long chunkMs = Math.max(1, read / 32);
+                        observedMs += chunkMs;
+                        double power = 0d;
+                        for (int sample = 0; sample + 1 < read; sample += 2) {
+                            short value = (short) ((pcm[sample] & 255) |
+                                    (pcm[sample + 1] << 8));
+                            double normalized = value / 32768.0;
+                            power += normalized * normalized;
+                        }
+                        double rms = Math.sqrt(power / Math.max(1, read / 2));
+                        // Adapt a quiet noise-floor estimate, but don't chase
+                        // loud speech or a TV program's temporary peaks.
+                        if (!heardUtterance && rms < backgroundRms * 2.2) {
+                            backgroundRms = backgroundRms * 0.96 + rms * 0.04;
+                        }
+                        boolean voice = rms > Math.max(0.0045, backgroundRms * 2.4);
+                        if (!heardUtterance) {
+                            voiceMs = voice ? voiceMs + chunkMs : Math.max(0, voiceMs - chunkMs);
+                            if (voiceMs >= 180) heardUtterance = true;
+                        } else {
+                            quietMs = voice ? 0 : quietMs + chunkMs;
+                        }
+                        // Don't finish before sending the final chunk.
+                        if (heardUtterance && quietMs >= 1550 && observedMs >= 1100) {
+                            events.status("Voice pause detected. Processing your question...");
+                            endRequested = true;
+                            recording.set(false);
+                        }
+                    }
                     WebSocket ws = socket;
                     int handler = handlerId;
                     if (ws == null || handler < 0) break;
