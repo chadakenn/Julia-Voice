@@ -1,6 +1,6 @@
 # Install and update on the onn 4K Pro
 
-This is a **foreground Android TV Assist alpha**. The current package ID is `com.example.tvvoiceprobe`. The latest user-tested features are HA token authentication and speech-to-text. **TV-speaker TTS and the compact UI still need confirmation on device.**
+This is a **foreground Android TV Assist alpha**. The current package ID is `com.example.tvvoiceprobe`. User-tested features now include **HA authentication, speech-to-text, compact answer-first UI and TTS spoken through the TV speakers** (one successful end-to-end question). Repeated-session reliability and in-place signed updates remain to be validated.
 
 ## Get the correct APK
 
@@ -43,7 +43,7 @@ Use the normal remote's D-pad and OK (not its Google Assistant microphone button
 1. Select **TALK**.
 2. Wait for **LISTENING** and speak toward the onn 4K Pro's **built-in microphone**.
 3. Select **STOP**. Home Assistant should transcribe and answer.
-4. The compact layout shows the **Home Assistant answer above what you said**. Confirm separately whether speech comes through the TV speakers. TTS playback has not yet been validated.
+4. The compact layout shows the **Home Assistant answer above what you said**. On the first end-to-end test, the user saw **“5:07 AM”** and confirmed the TV spoke the response. Continue testing repeated requests.
 5. Select **SETTINGS** for reconnecting, credentials, new conversation or hardware microphone diagnostics.
 
 Google Assistant currently intercepts the physical remote's mic button; it does **not** activate this app. The ⭐ shortcut and overlays are later milestones.
