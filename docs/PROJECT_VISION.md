@@ -4,7 +4,7 @@
 
 Build a TV-native, voice-first Home Assistant assistant for Google TV / Android TV, starting with the **onn 4K Pro**. It is inspired by [Voice Satellite](https://github.com/jxlarrea/voice-satellite-card-integration) but is **not** a wall tablet, browser kiosk, permanent dashboard, or replacement launcher.
 
-**North star:** The TV remains a TV. Press the voice button (or use an optional wake word), converse naturally with Home Assistant, and see a tasteful transient overlay on top of the current TV app. On request, show a live camera, rich response, or Home Assistant dashboard. Dismiss and return to the same TV app.
+**North star:** The TV remains a TV. Use a configurable shortcut (ideally the onn ⭐ button) or an optional future wake word, converse naturally with Home Assistant, and see a tasteful transient overlay on top of the current TV app. The OEM voice button currently launches Google, so taking it over is **not** a current capability. On request, show a live camera, rich response, or Home Assistant dashboard. Dismiss and return to the same TV app.
 
 Reference project features we want to evaluate: Assist pipeline routing, conversation history, TTS/STT, multiple pipelines, visual conversation, timers, announcements, media playback, and rich results. Implement a TV-native UX without requiring the reference project's browser/HA sidebar.
 
@@ -56,9 +56,9 @@ Reference project features we want to evaluate: Assist pipeline routing, convers
 
 ## Technical architecture (candidate)
 
-- **Platform:** native Android TV application with a service/component for request handling, not a kiosk launcher. The current Java diagnostic probe will evolve into the TV app; consider Kotlin/Jetpack later if useful.
-- **Audio/button input:** discover the firmware's assistant role routing and remote mic transport first. The **remote microphone is NOT yet verified** to be usable by third-party apps. We may need a default assistant implementation, remote-specific solution, or fallback to onn 4K Pro's built-in microphones. No rooting or firmware changes in MVP.
-- **Home Assistant link:** evaluate **either** authenticated Assist WebSocket (`assist_pipeline/run`) plus our own HA integration, **or** an encrypted/authenticated ESPHome Native API modeled on [Ava research](AVA_RESEARCH.md), which already provides native HA satellite and media-player entities. Do not use the original Ava unauthenticated LAN server unchanged. Protocol decision happens after hardware tests. See https://developers.home-assistant.io/docs/voice/pipelines/.
+- **Platform:** native Android TV Java app. The working hardware diagnostic has evolved into an **authenticated foreground Assist alpha** with TALK / STOP / SETTINGS. A background service and overlay are still to be built; consider Kotlin/Jetpack later only if useful.
+- **Audio/button input:** On the actual onn 4K Pro, the remote's voice button launched Google Assistant. The box microphone successfully streamed audio to HA speech-to-text via `VOICE_RECOGNITION`. The third-party app has **not** gained Bluetooth remote mic access. Use box mic + D-pad TALK / STOP for the alpha; try the programmable ⭐ button later. No rooting or firmware changes in MVP.
+- **Home Assistant link:** **Chosen for the alpha:** authenticated HA `/api/websocket` with `assist_pipeline/run`, 16 kHz PCM audio and TTS result handling; authentication and STT were confirmed on the real onn box. For a future HA media-player/satellite endpoint, plan a secure HA custom integration or reassess vetted ESPHome Native API architecture from [Ava research](AVA_RESEARCH.md). Never deploy Ava's original unauthenticated ESPHome server unchanged. See https://developers.home-assistant.io/docs/voice/pipelines/.
 - **Credentials:** device-local secure storage; never hard-code tokens or add them to public GitHub; support safe pairing/rotation and certificate verification.
 - **UI:** an ephemeral overlay (assess `TYPE_APPLICATION_OVERLAY` / `SYSTEM_ALERT_WINDOW` availability and Android TV OEM restrictions); dedicated transparent activity or assistant window where supported. Test overlays on streaming/DRM apps: some content/system dialogs may block or obscure them.
 - **Camera playback:** native player or secure embedded view selected by stream type. Use Home Assistant camera pipeline or restricted Frigate/go2rtc path, ideally with short-lived authenticated URLs; test codec, latency, and audio.
@@ -69,20 +69,20 @@ Reference project features we want to evaluate: Assist pipeline routing, convers
 
 ## Priority and milestones
 
-### Phase 0: hardware discovery (current working diagnostic APK)
+### Phase 0: hardware discovery (tested; diagnostic retained in app)
 
 - Confirm Android version/build and ability to assign assistant role.
 - Does pressing the voice key deliver `KEYCODE_ASSIST`, an Assist intent, or an OEM/Google-only event?
 - Does `AudioRecord` see samples from the remote microphone or only built-in mic?
 - If remote audio is unavailable, test a practical fallback without breaking Google TV.
 - Test **native ⭐ customizable key** and **tvQuickActions / Button Mapper** to launch our assistant when firmware reserves the Google Assistant key. Button remapping does not itself give access to Bluetooth remote mic audio. See [Remote button fallback research and test matrix](REMOTE_BUTTON_FALLBACKS.md).
-- Record test results on the actual onn 4K Pro.
+- Record test results on the actual onn 4K Pro. **Done for launch, D-pad navigation, microphone capture, Google mic-key routing, Home Assistant authentication and STT.** See [test matrix](TESTING.md).
 
-### Phase 1: minimum useful TV assistant
+### Phase 1: minimum useful TV assistant (foreground alpha in progress)
 
-- Pair locally to Home Assistant via secure authenticated WebSocket.
-- Hold-to-talk / press-to-talk using available input.
-- STT -> configured HA conversation agent -> TTS.
+- **Implemented and tested:** authenticated Home Assistant WebSocket connection with a user-supplied token. The app currently also allows warned, unencrypted HTTP on trusted LANs; trusted TLS remains recommended. Secure phone-based pairing is a future improvement.
+- **Implemented and tested:** D-pad press-to-talk using onn box microphone; user presses TALK and STOP in the foreground. No remote microphone-button interception.
+- **Partially verified:** working STT transcript on real TV. The intent-answer view and Android TTS playback implementation require on-device validation.
 - Animated compact overlay with live state and transcripts.
 - Dismissable, restores previous TV app and audio focus, reconnects after TV reboot.
 - No dashboard needed.
@@ -124,10 +124,11 @@ Reference project features we want to evaluate: Assist pipeline routing, convers
 
 ## Explicit current limitations / decisions pending
 
-- **Unknown:** Can this firmware route the actual onn voice remote button *and remote mic audio* to an app we control?
+- **Tested:** Remote's voice button launches Google Assistant; our app does not intercept it. Actual Bluetooth remote mic audio for third-party apps remains **unverified/unavailable through our current implementation**. The onn box microphone works for HA STT.
 - **Unknown:** Does the system permit an overlay on top of all desired TV/DRM apps? Provide an activity-based fallback where necessary.
 - **Unknown:** Which Frigate/go2rtc camera transport is fastest and reliably decoded by the onn box?
-- **Not yet implemented:** Assist connection, HA media-player entity, audio streaming, announcements, app overlay, Frigate PiP, cameras, dashboards or media focus. The current APK is ONLY a microphone/key diagnostic.
+- **Implemented:** foreground authenticated Assist connection and microphone audio streaming, working real-world speech transcript, answer-first TV UI (awaiting TV validation), TTS event parsing and tentative playback, Android Keystore token storage, permanently signed releases.
+- **Not yet implemented / not verified:** dedicated HA media_player entity, automation announcements, app overlay, Frigate PiP, cameras, dashboards, button launcher shortcut, background voice and media focus. TV-speaker TTS and compact UI need on-device confirmation. See [field tests](TESTING.md).
 - **Licensing:** Voice Satellite is AGPL-3.0. We can learn from documented behavior and APIs, but must review licensing obligations before copying or incorporating any of its source.
 - **No root / no firmware replacement** for initial work; do not promise every OEM limitation can be bypassed.
 
