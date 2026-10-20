@@ -19,6 +19,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.FrameLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
@@ -65,7 +66,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                 manualUpdateCheck = false;
                 if (isFinishing() || isDestroyed()) return;
                 new AlertDialog.Builder(VoiceActivity.this)
-                        .setTitle("TV Voice update available: " + version)
+                        .setTitle("Julia Voice update available: " + version)
                         .setMessage("Download the signed update from GitHub Releases?\n\n" +
                                 (notes == null ? "" : notes.substring(0, Math.min(notes.length(), 700))))
                         .setNegativeButton("Later", null)
@@ -90,9 +91,9 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(34, 22, 34, 22);
-        root.setBackgroundColor(0xff101c2b);
+        root.setBackgroundColor(0xff0b1732);
 
-        TextView title = label("HOME ASSISTANT  |  TV VOICE", 24, 0xff5de1ec);
+        TextView title = label("JULIA VOICE   ✦   HOME ASSISTANT", 24, 0xff9ed8ff);
         root.addView(title);
 
         connection = label("Home Assistant: not configured", 15, 0xffc7d8e9);
@@ -130,7 +131,14 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         addButton(toolbar, "SETTINGS", v -> showSettingsMenu());
         root.addView(toolbar, new LinearLayout.LayoutParams(-1, -2));
 
-        setContentView(root);
+        // A short, focus-safe welcome view on ordinary full-screen launches.
+        // Keep the existing root ready underneath, so HA configuration and
+        // microphone behavior remain untouched.
+        FrameLayout page = new FrameLayout(this);
+        page.addView(root, new FrameLayout.LayoutParams(-1, -1));
+        JuliaSplashView splash = new JuliaSplashView(this);
+        page.addView(splash, new FrameLayout.LayoutParams(-1, -1));
+        setContentView(page);
         try { settings = store.load(); }
         catch (Exception e) { status("Saved connection couldn't be decrypted. Configure it again."); }
         updateConnectionLabel();
@@ -143,8 +151,15 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                 && (launch.hasCategory(Intent.CATEGORY_LAUNCHER)
                     || launch.hasCategory(Intent.CATEGORY_LEANBACK_LAUNCHER));
         if (openOverlayOnLaunch) {
+            // ⭐ shortcuts should never be slowed by the splash.
+            page.removeView(splash);
             root.post(this::launchOverlay);
         } else {
+            splash.postDelayed(() -> {
+                if (isFinishing() || isDestroyed()) return;
+                splash.animate().alpha(0f).setDuration(260)
+                        .withEndAction(() -> page.removeView(splash)).start();
+            }, 1050L);
             long now = System.currentTimeMillis();
             android.content.SharedPreferences checks =
                     getSharedPreferences("tv_voice_update_checks", MODE_PRIVATE);
@@ -247,7 +262,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                 "Forget saved connection"
         };
         new AlertDialog.Builder(this)
-                .setTitle("TV Voice settings")
+                .setTitle("Julia Voice settings")
                 .setItems(entries, (dialog, which) -> {
                     switch (which) {
                         case 0: configure(); break;
