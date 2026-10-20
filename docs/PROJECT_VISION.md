@@ -82,7 +82,7 @@ Reference project features we want to evaluate: Assist pipeline routing, convers
 
 - **Implemented and tested:** authenticated Home Assistant WebSocket connection with a user-supplied token. The app currently also allows warned, unencrypted HTTP on trusted LANs; trusted TLS remains recommended. Secure phone-based pairing is a future improvement.
 - **Implemented and tested:** D-pad press-to-talk using onn box microphone; user presses TALK and STOP in the foreground. No remote microphone-button interception.
-- **Partially verified:** working STT transcript on real TV. The intent-answer view and Android TTS playback implementation require on-device validation.
+- **Verified on real onn 4K Pro:** Home Assistant STT correctly understood “What time is it?”, the compact screen showed **“5:07 AM”**, and the user confirmed the answer was **spoken through the TV speakers**. Reliability across repeated sessions remains to be tested.
 - Animated compact overlay with live state and transcripts.
 - Dismissable, restores previous TV app and audio focus, reconnects after TV reboot.
 - No dashboard needed.
@@ -127,9 +127,9 @@ Reference project features we want to evaluate: Assist pipeline routing, convers
 - **Tested:** Remote's voice button launches Google Assistant; our app does not intercept it. Actual Bluetooth remote mic audio for third-party apps remains **unverified/unavailable through our current implementation**. The onn box microphone works for HA STT.
 - **Unknown:** Does the system permit an overlay on top of all desired TV/DRM apps? Provide an activity-based fallback where necessary.
 - **Unknown:** Which Frigate/go2rtc camera transport is fastest and reliably decoded by the onn box?
-- **Implemented:** foreground authenticated Assist connection and microphone audio streaming, working real-world speech transcript, answer-first TV UI (awaiting TV validation), TTS event parsing and tentative playback, Android Keystore token storage, permanently signed releases.
-- **Not yet implemented / not verified:** dedicated HA media_player entity, automation announcements, app overlay, Frigate PiP, cameras, dashboards, button launcher shortcut, background voice and media focus. TV-speaker TTS and compact UI need on-device confirmation. See [field tests](TESTING.md).
-- **Licensing:** Voice Satellite is AGPL-3.0. We can learn from documented behavior and APIs, but must review licensing obligations before copying or incorporating any of its source.
+- **Implemented and hardware-verified:** foreground HA Assist connection, microphone audio streaming, speech transcript, answer-first TV UI and spoken TTS playback (first successful end-to-end question). Android Keystore credential storage and permanent signed release builds are implemented.
+- **Not yet implemented / not verified:** dedicated HA media_player entity, automation announcements, app overlay, Frigate PiP, cameras, dashboards, button launcher shortcut, background voice, media focus and repeated-session stability. Signed update retaining credentials also needs field confirmation. See [field tests](TESTING.md).
+- **Licensing:** This app is now **GPL-3.0-only**, with the full [project LICENSE](../LICENSE). Voice Satellite is AGPL-3.0 and Ava is Apache-2.0; both have been used as research references. Any future source incorporation needs deliberate license and attribution review.
 - **No root / no firmware replacement** for initial work; do not promise every OEM limitation can be bypassed.
 
 ## Project links
