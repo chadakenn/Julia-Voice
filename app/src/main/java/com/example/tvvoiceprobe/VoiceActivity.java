@@ -292,7 +292,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
             return;
         }
         new AlertDialog.Builder(this)
-                .setTitle("Install verified TV Voice update?")
+                .setTitle("Install verified Julia Voice update?")
                 .setMessage("Android will ask you to approve the package update. " +
                         "Your Home Assistant login and preferences should be retained " +
                         "because the release uses our permanent signing key.")
@@ -312,7 +312,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                         (preferences.mainLauncherOpensOverlay() ? "ON" : "OFF")
         };
         new AlertDialog.Builder(this)
-                .setTitle("TV Voice appearance & launch")
+                .setTitle("Julia Voice appearance & launch")
                 .setItems(options, (dialog, index) -> {
                     if (index == 0) {
                         new AlertDialog.Builder(this)
@@ -344,7 +344,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                         new AlertDialog.Builder(this)
                                 .setTitle("⭐ Remote shortcut compatibility")
                                 .setMessage("Enable this ONLY if the onn shortcut list shows " +
-                                        "HA TV Voice Alpha but not HA Voice Overlay. " +
+                                        "Julia Voice but not Julia Voice Overlay. " +
                                         "Launching the main app will then open the overlay. " +
                                         "Use the overlay's SETTINGS button to return here.")
                                 .setNegativeButton("Cancel", null)
@@ -375,7 +375,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         if (!Settings.canDrawOverlays(this)) {
             status("Grant 'Display over other apps', then start the overlay again.");
             new AlertDialog.Builder(this)
-                    .setTitle("Allow TV Voice overlay")
+                    .setTitle("Allow Julia Voice overlay")
                     .setMessage("Google TV must allow this app to display over other apps. " +
                             "The microphone listens after launch when Auto-listen is enabled. " +
                             "The overlay stops completely when you choose CLOSE or BACK. " +
@@ -410,7 +410,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
             if (Settings.canDrawOverlays(this)) {
                 status("Overlay allowed! Open SETTINGS and choose floating overlay again.");
             } else {
-                status("Overlay permission wasn't granted. The normal TV voice app still works.");
+                status("Overlay permission wasn't granted. The Julia Voice app still works.");
             }
         }
     }
