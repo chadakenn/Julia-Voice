@@ -36,6 +36,25 @@ The **Julia Voice v0.7 branding APK has passed signed GitHub Actions builds**, b
 
 A manual `workflow_dispatch` run **without** the publish checkbox produces a signed APK in the `julia-voice-signed` artifact, but will not announce it to installed users.
 
+## Planned GitHub repository rename: Julia Voice
+
+**Target repository:** `chadakenn/julia-voice` (not renamed yet).
+
+The published **v0.6** updater contains an exact hard-coded URL check for release assets under the original GitHub repository. GitHub redirects alone **may not fix** this because the release API can return asset URLs under the new repository name. **Do not rename the repository until all TVs you want to update automatically have moved off v0.6.** Otherwise those TVs may require a one-time manual APK installation.
+
+The **v0.7 development source** has a migration-safe updater that prefers `chadakenn/julia-voice`, falls back to the original repository while it still exists, and permits signed-APK asset URLs from **only those two exact repository paths**. It still validates versionCode, exact asset filename and size, SHA-256 checksum, allowed HTTPS hosts, and the Android signing certificate enforced by the installer.
+
+**Safe handoff sequence:**
+
+1. Complete the **signed v0.7 field test** on onn hardware; verify it checks the published v0.6 release and displays "You're up to date" when appropriate.
+2. Publish v0.7 as a GitHub Release in the **original repository** through the owner-approved workflow, with `publish_release` enabled.
+3. Upgrade all TVs from v0.6 to v0.7 using the in-app update and Android installer **before changing the repository name**. If this fails, do a one-time manual v0.7 signed APK install over v0.6; never uninstall a same-signed version.
+4. The owner renames the repository in **Settings → General → Repository name → julia-voice → Rename**. The GitHub connector cannot make the administrative rename in this chat.
+5. Verify both the new GitHub Releases API URL and the v0.7 updater. Update all README/workflow/release links to the new canonical URL and update any local Git clones with `git remote set-url origin https://github.com/chadakenn/julia-voice.git`.
+6. Never recreate a different repository at the old name; doing so can break GitHub's previous-path redirects. Keep the Android applicationId and signing key unchanged.
+
+**Not yet verified:** a complete in-app update before and after repository rename on the onn 4K Pro. Do not assume old v0.6 installations will update after the rename.
+
 ## Privacy and security
 
 - Release metadata and APK are fetched only from approved GitHub HTTPS hosts; the user's **Home Assistant credentials are never sent to GitHub**.
