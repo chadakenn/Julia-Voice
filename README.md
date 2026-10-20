@@ -10,13 +10,26 @@
 
 **Native Home Assistant Assist on Google TV / Android TV**, initially tested on the **onn 4K Pro**. This project aims to let you talk to Home Assistant without replacing your TV launcher or permanently covering streaming apps.
 
-> **Status: v0.6 in-app updater alpha (2026-10-20).** **Confirmed on real onn 4K Pro:** Home Assistant understood a spoken question, displayed the answer and played it through TV speakers; the v0.4 floating overlay appeared over Google TV Home. **v0.5:** Glass waveform and auto-listen (still needs field testing). **v0.6:** periodic GitHub Release checks, APK download, SHA-256 verification, and user-approved Android installation. **The updater is built and signed, but is not yet tested on the TV.** Frigate PiP, HA announcements and wake words are future work.
+> **Status: v0.7 Julia Voice branding in development (2026-10-20).** **Confirmed on real onn 4K Pro:** Home Assistant understood a spoken question, displayed the answer and played it through TV speakers; the v0.4 floating overlay appeared over Google TV Home. **v0.5:** Glass waveform and auto-listen (still needs field testing). **v0.6:** periodic GitHub Release checks, APK download, SHA-256 verification, and user-approved Android installation. **The v0.7 rename, new launcher icon/TV banner and startup screen are source-code changes under CI test; the v0.6 updater still needs on-device installation testing.** Frigate PiP, HA announcements and wake words are future work.
 
 ## Project name and compatibility
 
-**Julia Voice** is the project's chosen working name. The **GitHub repository URL**, Android `applicationId` (`com.example.tvvoiceprobe`), APK signing key, and existing v0.6 release URLs remain unchanged for now so current installations, credentials, and the in-app updater keep working. The published v0.6 APK still displays its original **HA TV Voice Alpha** label; the new name will reach the TV with a **future properly versioned, signed APK** after the current updater has been tested.
+**Julia Voice** is the project's chosen working name. The **GitHub repository URL**, Android `applicationId` (`com.example.tvvoiceprobe`), APK signing key, and existing v0.6 release URLs remain unchanged for now so current installations, credentials, and the in-app updater keep working. The published v0.6 APK still displays its original **HA TV Voice Alpha** label. The repository's **v0.7 source** changes the launcher labels to Julia Voice, adds a wave icon, TV launcher banner and a brief startup screen, but **this new APK is not yet published as a stable GitHub Release or hardware-tested**.
 
 A preliminary public search found other uses of "Julia" in AI and "Julia Voice" in music; no comprehensive trademark clearance or domain check has been completed. This README reflects our development branding rather than a claim of exclusive rights.
+
+## Julia Voice look and feel
+
+The GitHub header uses a scalable [Julia Voice branded SVG](docs/branding/julia-voice-header.svg) with the approved midnight-navy, electric-cyan and violet-wave styling. It is a vector recreation inspired by the separately generated design concepts, not the original raster render.
+
+For the Android TV app, v0.7 source includes:
+
+- a matching, scalable **Julia Voice waveform launcher icon**
+- an updated **Android TV launcher banner** with Julia Voice wordmark
+- an approximately one-second **startup splash** on normal full-screen launches
+- Julia Voice names in the **app launcher, ⭐ overlay shortcut, overlay panel, and notifications**
+
+The overlay shortcut continues launching directly without the splash so the remote-button experience stays quick. No permissions, application ID, Home Assistant credentials, or APK signing settings were changed. **Test these visuals on actual onn 4K Pro hardware before distributing as stable.**
 
 ## What this project does
 
@@ -118,7 +131,7 @@ More detail: [Field test results and checklist](docs/TESTING.md), [security note
 
 ## Roadmap
 
-1. **Now (v0.6):** install signed updater over v0.5 once; test GitHub Releases check and Android install permission. The public v0.6 Release is available; on-device update installation still needs testing and requires a newer release. [Updater guide](docs/UPDATES.md). Continue v0.5 Glass/⭐ testing as desired.
+1. **Now (v0.7 development / v0.6 published):** test the signed v0.6 updater, then verify Julia Voice launcher icon, banner and splash on v0.7. The public v0.6 Release is available; on-device update installation still needs testing and requires a newer release. [Updater guide](docs/UPDATES.md). Continue v0.5 Glass/⭐ testing as desired.
 2. **Next:** refine ⭐ shortcut selection where firmware permits, overlay placement, audio focus, ambient-TV-noise tolerance, skins and recovery based on actual results.
 3. **Afterward:** dedicated HA `media_player` with automation-driven chimes/TTS (e.g. “The washer is done”); secure companion channel.
 4. **Then:** Frigate/go2rtc camera views, filtered doorbell-person PiP and optional spoken alerts; on-demand dashboards.
