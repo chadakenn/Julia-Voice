@@ -2,6 +2,17 @@
 
 This is an experimental Android TV / Google TV app. Each entry distinguishes **shipped code** from **tested on the onn 4K Pro**.
 
+## v0.6-in-app-updates (2026-10-20) — TV-native signed updater
+
+- Added native Android TV **Check for app updates** and **Install downloaded update** menu actions, plus a roughly daily check when the full-screen app opens.
+- Fetches **public stable GitHub Releases**; a newer `versionCode` prompts before downloading.
+- Downloads APK directly over approved GitHub HTTPS hosts into app-private cache, verifies advertised size and **SHA-256 checksum**, and uses a scoped AndroidX FileProvider URI.
+- Opens Android's standard user-approved APK installer; requests **Install unknown apps** permission if required. No root, silent background installation, HA-token upload or sideloading from arbitrary hosts.
+- Added owner-controlled GitHub Actions `publish_release` checkbox. If selected in a manual run, signs and verifies the APK, then publishes a GitHub Release containing `app-release.apk` and `update.json`. Ordinary pushes do **not** publish releases.
+- Increased Android `versionCode` to **6**, `versionName` to `0.6-in-app-updates`. Existing keystore and application ID are unchanged.
+- **[Signed build #58](https://github.com/chadakenn/onn-tv-voice-remote./actions/runs/39411724076) passed** build and APK signature verification. **No public release has been published yet and the in-app install path is not hardware-verified.**
+- [First-install and release publishing instructions](docs/UPDATES.md).
+
 ## v0.5-glass-voice (2026-10-20) — Glass UI and one-press voice prototype
 
 - ✅ Added original animated cyan/purple waveform and wide translucent dark Glass skin, plus optional compact Classic styling.
