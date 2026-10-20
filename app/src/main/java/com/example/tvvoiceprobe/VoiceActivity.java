@@ -49,11 +49,43 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
     private MediaPlayer player;
     private boolean playing;
     private boolean warningPending;
+    private UpdateManager updater;
+    private boolean manualUpdateCheck;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         store = new CredentialStore(this);
         assist = new HaAssistClient(this, this);
+        updater = new UpdateManager(this, new UpdateManager.Listener() {
+            @Override public void onUpToDate(String message) {
+                if (manualUpdateCheck) status(message);
+                manualUpdateCheck = false;
+            }
+            @Override public void onAvailable(String version, String notes) {
+                manualUpdateCheck = false;
+                if (isFinishing() || isDestroyed()) return;
+                new AlertDialog.Builder(VoiceActivity.this)
+                        .setTitle("TV Voice update available: " + version)
+                        .setMessage("Download the signed update from GitHub Releases?\n\n" +
+                                (notes == null ? "" : notes.substring(0, Math.min(notes.length(), 700))))
+                        .setNegativeButton("Later", null)
+                        .setPositiveButton("Download update", (dialog, choice) -> {
+                            status("Downloading verified update...");
+                            updater.download();
+                        })
+                        .show();
+            }
+            @Override public void onProgress(String message) { status(message); }
+            @Override public void onDownloaded() {
+                status("Update verified. Ready to install.");
+                promptInstallUpdate();
+            }
+            @Override public void onError(String message) {
+                if (manualUpdateCheck) status(message);
+                else if (!message.contains("No public GitHub Release")) status("Updater: " + message);
+                manualUpdateCheck = false;
+            }
+        });
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -106,11 +138,20 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         // Some onn firmware offers only the package's primary launcher in the
         // ⭐ app picker. An explicit opt-in makes that launch the overlay too.
         Intent launch = getIntent();
-        if (new OverlayPreferences(this).mainLauncherOpensOverlay()
+        boolean openOverlayOnLaunch = new OverlayPreferences(this).mainLauncherOpensOverlay()
                 && launch != null && Intent.ACTION_MAIN.equals(launch.getAction())
                 && (launch.hasCategory(Intent.CATEGORY_LAUNCHER)
-                    || launch.hasCategory(Intent.CATEGORY_LEANBACK_LAUNCHER))) {
+                    || launch.hasCategory(Intent.CATEGORY_LEANBACK_LAUNCHER));
+        if (openOverlayOnLaunch) {
             root.post(this::launchOverlay);
+        } else {
+            long now = System.currentTimeMillis();
+            android.content.SharedPreferences checks =
+                    getSharedPreferences("tv_voice_update_checks", MODE_PRIVATE);
+            if (now - checks.getLong("last_checked", 0) >= 24L * 60 * 60 * 1000) {
+                checks.edit().putLong("last_checked", now).apply();
+                root.post(() -> updater.check());
+            }
         }
     }
 
@@ -201,6 +242,8 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                 "Hardware microphone diagnostics",
                 "Open floating voice overlay",
                 "Overlay style and voice settings",
+                "Check for app updates",
+                "Install downloaded update",
                 "Forget saved connection"
         };
         new AlertDialog.Builder(this)
@@ -213,11 +256,33 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                         case 3: startActivity(new Intent(this, MainActivity.class)); break;
                         case 4: launchOverlay(); break;
                         case 5: showOverlayPreferences(); break;
-                        case 6: confirmForget(); break;
+                        case 6:
+                            manualUpdateCheck = true;
+                            status("Checking GitHub Releases...");
+                            updater.check();
+                            break;
+                        case 7: promptInstallUpdate(); break;
+                        case 8: confirmForget(); break;
                         default: break;
                     }
                 })
                 .setNegativeButton("Close", null)
+                .show();
+    }
+
+    private void promptInstallUpdate() {
+        if (isFinishing() || isDestroyed()) return;
+        if (!updater.downloadedExists()) {
+            status("No downloaded update. First choose Check for app updates.");
+            return;
+        }
+        new AlertDialog.Builder(this)
+                .setTitle("Install verified TV Voice update?")
+                .setMessage("Android will ask you to approve the package update. " +
+                        "Your Home Assistant login and preferences should be retained " +
+                        "because the release uses our permanent signing key.")
+                .setNegativeButton("Later", null)
+                .setPositiveButton("Open Android installer", (dialog, which) -> updater.install())
                 .show();
     }
 
