@@ -113,7 +113,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
             showPanel();
             assist = new HaAssistClient(this, this);
             assist.connect(connection.url, connection.token);
-        } catch (Exception | SecurityException exception) {
+        } catch (Exception exception) {
             // No user secrets or internal connection details in logs.
             stopSelf();
         }
