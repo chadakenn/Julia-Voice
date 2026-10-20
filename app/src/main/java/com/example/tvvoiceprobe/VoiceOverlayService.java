@@ -47,15 +47,6 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
 
     private final Handler main = new Handler(Looper.getMainLooper());
     private final List<Button> actions = new ArrayList<>();
-    private final Runnable endListeningTimeout = () -> {
-        if (listening && assist != null) {
-            listening = false;
-            assist.finishTalking();
-            if (wave != null) wave.setMode(VoiceWaveView.THINKING);
-            status("Listening time limit reached. Processing...");
-        }
-    };
-    private final Runnable dismissAfterReply = this::stopSelf;
     private WindowManager windowManager;
     private VoicePanel panel;
     private TextView statusView;
@@ -71,6 +62,16 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
     private boolean firstAutoListenPending = false;
     private boolean firstAutoListenStarted = false;
     private boolean closing = false;
+
+    private final Runnable endListeningTimeout = () -> {
+        if (listening && assist != null) {
+            listening = false;
+            assist.finishTalking();
+            if (wave != null) wave.setMode(VoiceWaveView.THINKING);
+            status("Listening time limit reached. Processing...");
+        }
+    };
+    private final Runnable dismissAfterReply = this::stopSelf;
 
     @Override public IBinder onBind(Intent intent) { return null; }
 
