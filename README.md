@@ -65,13 +65,13 @@ Onn 4K Pro / Julia Voice TV app (mic, overlay, TTS playback)
 The first device tests used a compact blue full-screen UI and a blue floating overlay. **Glass** (dark, animated waveform) and **Classic** are selectable as of v0.5, but actual Glass skin device photos haven't been captured yet.
 
 - **Working voice conversation:** the TV successfully showed “What time is it?” and Home Assistant's “5:07 AM” reply; voice playback through TV speakers was confirmed.
-- **Floating overlay:** the TV showed the HA Voice panel above Google TV Home, with TALK / STOP / CLOSE and an authenticated connection.
+- **Floating overlay:** the TV showed the Julia Voice panel above Google TV Home, with TALK / STOP / CLOSE and an authenticated connection.
 
 The image previews below are **illustrative reconstructions based on those actual TV tests**, not photographs of v0.5/v0.6. Real cropped device photos are available to replace the previews when added as repository image assets.
 
 | Assist conversation preview | Floating overlay preview |
 | --- | --- |
-| ![Illustrated original full-screen TV voice conversation showing question and answer](docs/screenshots/conversation-preview.svg) | ![Illustrated original floating Julia Voice panel on the Google TV launcher](docs/screenshots/overlay-preview.svg) |
+| ![Illustrated Julia Voice full-screen conversation showing question and answer](docs/screenshots/conversation-preview.svg) | ![Illustrated original floating Julia Voice panel on the Google TV launcher](docs/screenshots/overlay-preview.svg) |
 
 ## What's working and what's next
 
