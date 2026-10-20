@@ -10,7 +10,7 @@
 
 **Native Home Assistant Assist on Google TV / Android TV**, initially tested on the **onn 4K Pro**. This project aims to let you talk to Home Assistant without replacing your TV launcher or permanently covering streaming apps.
 
-> **Status: v0.7 Julia Voice branding in development (2026-10-20).** **Confirmed on real onn 4K Pro:** Home Assistant understood a spoken question, displayed the answer and played it through TV speakers; the v0.4 floating overlay appeared over Google TV Home. **v0.5:** Glass waveform and auto-listen (still needs field testing). **v0.6:** periodic GitHub Release checks, APK download, SHA-256 verification, and user-approved Android installation. **The v0.7 rename, new launcher icon/TV banner and startup screen are source-code changes under CI test; the v0.6 updater still needs on-device installation testing.** Frigate PiP, HA announcements and wake words are future work.
+> **Status: v0.7 Julia Voice branding in development (2026-10-20).** **Confirmed on real onn 4K Pro:** Home Assistant understood a spoken question, displayed the answer and played it through TV speakers; the v0.4 floating overlay appeared over Google TV Home. **v0.5:** Glass waveform and auto-listen (still needs field testing). **v0.6:** periodic GitHub Release checks, APK download, SHA-256 verification, and user-approved Android installation. **Julia Voice v0.7 branding builds and signs successfully in CI, but the launcher, icon, startup screen and v0.6 updater still need verification on the onn TV.** Frigate PiP, HA announcements and wake words are future work.
 
 ## Compatibility and updates
 
