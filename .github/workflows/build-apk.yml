@@ -94,10 +94,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          APP_NAME=$(sed -nE "s/.*versionName '([^']+)'.*/\\1/p" app/build.gradle | head -1)
-          APP_CODE=$(sed -nE 's/.*versionCode ([0-9]+).*/\\1/p' app/build.gradle | head -1)
+          APP_NAME=$(sed -nE "s/.*versionName '([^']+)'.*/\1/p" app/build.gradle | head -1)
+          APP_CODE=$(sed -nE 's/.*versionCode ([0-9]+).*/\1/p' app/build.gradle | head -1)
           BASE_VERSION=${APP_NAME%%-*}
-          if [[ ! "$BASE_VERSION" =~ ^[0-9]+\\.[0-9]+(\\.[0-9]+)?$ ]] || [[ ! "$APP_CODE" =~ ^[0-9]+$ ]]; then
+          if [[ ! "$BASE_VERSION" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]] || [[ ! "$APP_CODE" =~ ^[0-9]+$ ]]; then
             echo "::error::Invalid app version in build.gradle"
             exit 1
           fi
@@ -136,4 +136,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh release create "$RELEASE_TAG"             release-files/app-release.apk             release-files/update.json             --target "$GITHUB_SHA"             --title "HA TV Voice $RELEASE_TAG"             --generate-notes             --latest
+          gh release create "$RELEASE_TAG" \
+            release-files/app-release.apk \
+            release-files/update.json \
+            --target "$GITHUB_SHA" \
+            --title "HA TV Voice $RELEASE_TAG" \
+            --generate-notes \
+            --latest
