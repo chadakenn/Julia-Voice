@@ -8,3 +8,25 @@ local.properties
 *.apk
 *.aab
 .DS_Store
+
+# NEVER commit Android signing material or credentials
+*.keystore
+*.jks
+*.p12
+*.pfx
+*.pem
+*.key
+*.asc
+TV_SIGNING_KEYSTORE_B64.txt
+TV_SIGNING_PASSWORD.txt
+ha-tv-voice-signing-backup.zip
+ha-tv-voice-signing.p12
+.env
+.env.*
+!.env.example
+
+# Personal audio/data from field testing
+recordings/
+*.pcm
+*.raw
+*.wav
