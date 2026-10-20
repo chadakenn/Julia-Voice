@@ -16,8 +16,8 @@ Distinguish what has actually worked on hardware from compiled features. A green
 | Remote microphone button | Pressing it opens **Google Assistant**, not our app | ✅ Tested; not supported |
 | HA WebSocket token auth | UI displayed **Connected and authenticated** for the user's HA server | ✅ Tested |
 | STT pipeline | Captured and displayed user's utterance **“What time is it?”** correctly | ✅ Tested |
-| Compact answer-first layout | Replaces seven oversized buttons with TALK, STOP, SETTINGS | 🔶 Compiled, not hardware-verified |
-| TTS event parsing | `tts_output.url` handling corrected in code | 🔶 Compiled, TV-speaker playback unverified |
+| Compact answer-first layout | Shows HOME ASSISTANT SAYS above YOU SAID, with TALK / STOP / SETTINGS | ✅ Verified in user photo |
+| TTS playback through TV speakers | `tts_output.url` consumed; HA answered “5:07 AM” and the user confirmed spoken TV audio | ✅ End-to-end tested |
 | Permanent APK signing | GitHub Actions run **#31** built, signature-verified and uploaded `app-release.apk` | ✅ CI-tested |
 | Migration debug to release | User was preparing to uninstall original debug build and install signed release | ⏳ Awaiting TV test |
 
@@ -30,9 +30,9 @@ Distinguish what has actually worked on hardware from compiled features. A green
 - [x] Built-in microphone sends speech to Assist and yields a readable transcript
 - [x] Stable keystore-backed signed release build succeeds in CI
 - [ ] One-time migration to signed `app-release.apk` installed on TV
-- [ ] Compact answer-first UI readable from couch
-- [ ] Home Assistant answer appears correctly in the **HOME ASSISTANT SAYS** area
-- [ ] TV speakers play HA TTS successfully, without choppy/duplicate audio
+- [x] Compact answer-first UI visible on TV; actual HA reply is readable
+- [x] Home Assistant answer appears correctly in the **HOME ASSISTANT SAYS** area
+- [x] TV speakers played HA TTS on the first end-to-end test (longer-term playback reliability still to test)
 - [ ] Conversation can be repeated without restarting the app
 - [ ] Second signed APK update installs **over** first release while preserving saved HA credentials
 - [ ] Safe error messages when TV goes offline, HA is unavailable, or permissions are declined
@@ -42,8 +42,8 @@ Distinguish what has actually worked on hardware from compiled features. A green
 
 1. Install first stable signed APK after the original debug build is removed.
 2. Configure and connect to Home Assistant; verify auth and microphone permission.
-3. Say “What time is it?” then STOP. Read the **answer** and **transcript** in the compact interface.
-4. Confirm whether spoken TTS plays and whether any other TV app audio interferes.
+3. **Completed:** “What time is it?” was recognized, “5:07 AM” appeared as the reply, and the user confirmed audio from the TV speakers.
+4. **Next:** test repeated TTS, follow-up requests and whether any other TV app audio interferes.
 5. Ask another short follow-up, then test **SETTINGS → Start new conversation**.
 6. Later, after a second signed build is available, verify an over-the-top upgrade preserves the HA login. No uninstall.
 7. After the foreground conversation is stable, begin opt-in ⭐ button launch and overlay tests.
