@@ -2,7 +2,7 @@
 
 **Native Home Assistant Assist on Google TV / Android TV**, initially tested on the **onn 4K Pro**. This project aims to let you talk to Home Assistant without replacing your TV launcher or permanently covering streaming apps.
 
-> **Status: v0.3 signed foreground alpha (2026-10-20).** The app **authenticated to Home Assistant and successfully transcribed an actual spoken question on the onn 4K Pro**. Its compact answer-first interface and TV speaker TTS are built but **still awaiting device verification**. Floating overlays, ⭐ shortcut activation, HA announcement/media-player integration and Frigate camera PiP are future work.
+> **Status: v0.3 foreground alpha (2026-10-20).** **Real device success:** the onn 4K Pro connected to Home Assistant, transcribed “What time is it?”, displayed the answer “5:07 AM” in the compact UI, **and played the answer through the TV speakers**. Floating overlays, ⭐ shortcut activation, HA announcement/media-player integration and Frigate camera PiP are future work. In-place updates between permanently signed releases still need verification.
 
 ## What's working and what's next
 
@@ -12,8 +12,8 @@
 | Built-in box microphone, 16 kHz `VOICE_RECOGNITION` audio capture | ✅ Tested |
 | Authenticate via HA WebSocket and long-lived access token | ✅ Tested on TV |
 | Stream microphone audio to HA Assist; receive speech transcript | ✅ Tested: “What time is it?” |
-| Show HA answer in compact, couch-readable TALK / STOP / SETTINGS screen | 🔶 Built, not tested on TV |
-| Play HA TTS through TV speakers | 🔶 Implemented; needs real-world test |
+| Show HA answer in compact TALK / STOP / SETTINGS screen | ✅ Tested on TV; “5:07 AM” displayed |
+| Play HA TTS through TV speakers | ✅ Tested; spoken reply heard |
 | Permanently signed APK build | ✅ GitHub Actions run [#31](../../actions/runs/39397223494) successful |
 | First debug-to-signed migration and in-place signed update | ⏳ Hardware confirmation pending |
 | Program ⭐ shortcut; voice overlay over other TV apps | 📋 Planned |
@@ -40,7 +40,7 @@ Prerequisites: a reachable Home Assistant server, a working **Assist pipeline** 
 1. Open **HA TV Voice Alpha**, then **SETTINGS → Configure Home Assistant**. Enter HA URL and token; choose **Save and connect**. Google TV's phone remote keyboard can help, but clipboard paste varies.
 2. Wait for **Connected and authenticated**.
 3. Select **TALK**, wait for **LISTENING**, speak toward the **onn 4K Pro box** (not the Google remote mic), then select **STOP**.
-4. The **HOME ASSISTANT SAYS** answer should appear above **YOU SAID**. Check separately whether its spoken TTS reply plays through the TV speakers.
+4. The **HOME ASSISTANT SAYS** answer appears above **YOU SAID**. Both on-screen answer and spoken TTS have been confirmed on the onn box in a first end-to-end test.
 5. If speech-to-text works but no sound comes out, see [Troubleshooting](docs/TROUBLESHOOTING.md). Keep tokens out of screenshots.
 
 The app currently runs **in the foreground**. It is *not* a voice overlay, system Assistant replacement, HA media player, wake-word listener or Frigate client yet.
@@ -48,7 +48,7 @@ The app currently runs **in the foreground**. It is *not* a voice overlay, syste
 ## Architecture and privacy
 
 - **Android Java**, Android TV-compatible D-pad UI, `AudioRecord` with `VOICE_RECOGNITION` at **16 kHz mono PCM16**, OkHttp authenticated WebSocket `/api/websocket`.
-- Standard Home Assistant **`assist_pipeline/run`** events, per-run binary audio handler, transcripts, intent response and server-returned TTS URL; Android `MediaPlayer` attempts playback.
+- Standard Home Assistant **`assist_pipeline/run`** events, per-run binary audio handler, transcripts, intent response and server-returned TTS URL; Android `MediaPlayer` **played TTS successfully** in the first verified on-device conversation.
 - The app stores the HA URL and access token encrypted with **Android Keystore** and local preferences; app backup is disabled. No microphone recording is saved or uploaded anywhere except audio intentionally **streamed to your configured HA server during TALK**.
 - **HTTPS is recommended.** Plain local `http://` is allowed with a warning, but **exposes the token and microphone audio unencrypted to the network**. Do not use HTTP across untrusted networks.
 - All installable APKs are now signed with a persistent private **GitHub Actions** keystore. Never commit signing files or tokens to this public repo.
@@ -57,7 +57,7 @@ More detail: [Field test results and checklist](docs/TESTING.md), [security note
 
 ## Roadmap
 
-1. **Now:** verify the signed install, compact layout, HA answer, TTS sound, reconnect and safe upgrade from the next release.
+1. **Now:** the compact layout, HA response and speaker TTS have passed an on-device test. Next verify multiple conversations, reliable reconnect and a safe **signed APK update** without losing credentials.
 2. **Next:** make voice available quickly via ⭐ shortcut and a nonintrusive floating overlay; improve audio focus and recovery.
 3. **Afterward:** dedicated HA `media_player` with automation-driven chimes/TTS (e.g. “The washer is done”); secure companion channel.
 4. **Then:** Frigate/go2rtc camera views, filtered doorbell-person PiP and optional spoken alerts; on-demand dashboards.
@@ -65,4 +65,8 @@ More detail: [Field test results and checklist](docs/TESTING.md), [security note
 
 See [project vision](docs/PROJECT_VISION.md), [announcements and PiP design](docs/ANNOUNCEMENTS_AND_PIP.md), [remote-key options](docs/REMOTE_BUTTON_FALLBACKS.md), and [Ava / protocol research](docs/AVA_RESEARCH.md). Those describe **goals**, not shipped features.
 
-**Licensing:** This implementation was written independently; [Voice Satellite](https://github.com/jxlarrea/voice-satellite-card-integration) and [Ava](https://github.com/brownard/Ava) are research references. If code from those projects is incorporated later, their respective licenses must be followed.
+## License
+
+**GNU General Public License version 3 (GPL-3.0-only).** See the complete [LICENSE](LICENSE) file. You can use, modify and redistribute the code under GPLv3 terms. Distribution of derivative binaries generally requires making the corresponding source available under the license, including preserving notices. The software comes **without warranty**.
+
+This implementation was written independently; [Voice Satellite](https://github.com/jxlarrea/voice-satellite-card-integration) (AGPL-3.0) and [Ava](https://github.com/brownard/Ava) (Apache-2.0) are **research references**, not incorporated source. Any future code reuse must comply with the original work's licensing and attribution. Third-party dependencies retain their respective licenses.
