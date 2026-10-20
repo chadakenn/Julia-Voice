@@ -2,6 +2,12 @@ name: Build HA TV Voice Signed APK
 
 on:
   workflow_dispatch:
+    inputs:
+      publish_release:
+        description: 'Publish a public GitHub Release after the signed APK passes verification'
+        required: false
+        default: false
+        type: boolean
   push:
     branches: [main]
     paths:
@@ -68,3 +74,66 @@ jobs:
           name: onn-tv-ha-assist-signed
           path: app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
+
+  publish-release:
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_release == true
+    needs: signed-release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out the exact built commit
+        uses: actions/checkout@v4
+      - name: Download APK verified by the build job
+        uses: actions/download-artifact@v4
+        with:
+          name: onn-tv-ha-assist-signed
+          path: release-files
+      - name: Create release metadata with checksum
+        id: metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_NAME=$(sed -nE "s/.*versionName '([^']+)'.*/\\1/p" app/build.gradle | head -1)
+          APP_CODE=$(sed -nE 's/.*versionCode ([0-9]+).*/\\1/p' app/build.gradle | head -1)
+          BASE_VERSION=${APP_NAME%%-*}
+          if [[ ! "$BASE_VERSION" =~ ^[0-9]+\\.[0-9]+(\\.[0-9]+)?$ ]] || [[ ! "$APP_CODE" =~ ^[0-9]+$ ]]; then
+            echo "::error::Invalid app version in build.gradle"
+            exit 1
+          fi
+          RELEASE_TAG="v$BASE_VERSION"
+          if [[ ! -s release-files/app-release.apk ]]; then
+            echo "::error::Signed release APK is missing"
+            exit 1
+          fi
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "::error::Release $RELEASE_TAG already exists. Increment versionCode and versionName."
+            exit 1
+          fi
+          export APP_NAME APP_CODE RELEASE_TAG
+          python3 - <<'PY'
+          import os, json, hashlib
+          from pathlib import Path
+          apk = Path('release-files/app-release.apk')
+          checksum = hashlib.sha256(apk.read_bytes()).hexdigest()
+          metadata = {
+              'tag': os.environ['RELEASE_TAG'],
+              'versionCode': int(os.environ['APP_CODE']),
+              'versionName': os.environ['APP_NAME'],
+              'sha256': checksum
+          }
+          Path('release-files/update.json').write_text(
+              json.dumps(metadata, indent=2) + '\n', encoding='utf-8')
+          print('Release metadata generated with SHA-256 checksum.')
+          PY
+          echo "release_tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Publish GitHub Release for in-app update checks
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.metadata.outputs.release_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release create "$RELEASE_TAG"             release-files/app-release.apk             release-files/update.json             --target "$GITHUB_SHA"             --title "HA TV Voice $RELEASE_TAG"             --generate-notes             --latest
