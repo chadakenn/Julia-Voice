@@ -10,8 +10,8 @@ android {
         applicationId 'com.example.tvvoiceprobe'
         minSdk 26
         targetSdk 35
-        versionCode 5
-        versionName '0.5-glass-voice'
+        versionCode 6
+        versionName '0.6-in-app-updates'
     }
 
     // The keystore is private and supplied from GitHub Actions secrets.
@@ -39,4 +39,5 @@ android {
 
 dependencies {
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    implementation 'androidx.core:core:1.13.1'
 }
