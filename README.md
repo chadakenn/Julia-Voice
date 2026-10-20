@@ -1,8 +1,18 @@
-# HA TV Voice 🎙️📺
+# Julia Voice 🎙️💜
+
+**Your voice. Your home. Your AI.**
+
+**Julia Voice** (formerly **HA TV Voice**) is a local-first, open-source voice interface for Home Assistant. **Julia** is the assistant's name, and the project is growing from its first Android TV app into a platform-neutral voice interface.
 
 **Native Home Assistant Assist on Google TV / Android TV**, initially tested on the **onn 4K Pro**. This project aims to let you talk to Home Assistant without replacing your TV launcher or permanently covering streaming apps.
 
 > **Status: v0.6 in-app updater alpha (2026-10-20).** **Confirmed on real onn 4K Pro:** Home Assistant understood a spoken question, displayed the answer and played it through TV speakers; the v0.4 floating overlay appeared over Google TV Home. **v0.5:** Glass waveform and auto-listen (still needs field testing). **v0.6:** periodic GitHub Release checks, APK download, SHA-256 verification, and user-approved Android installation. **The updater is built and signed, but is not yet tested on the TV.** Frigate PiP, HA announcements and wake words are future work.
+
+## Project name and compatibility
+
+**Julia Voice** is the project's chosen working name. The **GitHub repository URL**, Android `applicationId` (`com.example.tvvoiceprobe`), APK signing key, and existing v0.6 release URLs remain unchanged for now so current installations, credentials, and the in-app updater keep working. The published v0.6 APK still displays its original **HA TV Voice Alpha** label; the new name will reach the TV with a **future properly versioned, signed APK** after the current updater has been tested.
+
+A preliminary public search found other uses of "Julia" in AI and "Julia Voice" in music; no comprehensive trademark clearance or domain check has been completed. This README reflects our development branding rather than a claim of exclusive rights.
 
 ## What this project does
 
@@ -17,7 +27,7 @@ We use a **self-hosted Ollama language-model server on our home network**, separ
 On the **Home Assistant server**, we installed [**Tools for Assist (`llm_intents`)**](https://github.com/skye-harris/llm_intents) as a companion integration for **online search and weather**. The search and weather providers/tools must still be configured and made available to the selected conversation agent; installing `llm_intents` alone does not prove that every tool is working.
 
 ```text
-Onn 4K Pro / HA TV Voice app (mic, overlay, TTS playback)
+Onn 4K Pro / Julia Voice TV app (mic, overlay, TTS playback)
                      |
           Home Assistant Assist pipeline
                      |
@@ -29,7 +39,7 @@ Onn 4K Pro / HA TV Voice app (mic, overlay, TTS playback)
       Home Assistant entities / automations
 ```
 
-The **TV app does not run Ollama**, query web-search providers directly, or store Ollama configuration. That separation makes it possible to reuse the same Home Assistant intelligence from other microphones, phones, and voice satellites.
+**Julia Voice's TV app does not run Ollama**, query web-search providers directly, or store Ollama configuration. That separation makes it possible to reuse the same Home Assistant intelligence from other microphones, phones, and voice satellites.
 
 **Permissions and expectations:** Expose only approved HA entities and actions to a conversational agent, avoid unrestricted shell/network access, and use confirmation for sensitive actions. Web search sends search queries to the configured provider. Ollama can stay local even though weather/search retrieval uses external services.
 
