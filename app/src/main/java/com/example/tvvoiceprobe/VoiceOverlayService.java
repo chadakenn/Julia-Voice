@@ -116,7 +116,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
                     PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
             Notification notification = new Notification.Builder(this, CHANNEL_ID)
                     .setSmallIcon(android.R.drawable.ic_btn_speak_now)
-                    .setContentTitle("HA TV Voice")
+                    .setContentTitle("Julia Voice")
                     .setContentText("Overlay open. Microphone is active only during a voice request.")
                     .setContentIntent(openPending)
                     .addAction(new Notification.Action.Builder(
@@ -150,7 +150,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         NotificationManager manager = getSystemService(NotificationManager.class);
         if (manager != null) {
             NotificationChannel channel = new NotificationChannel(CHANNEL_ID,
-                    "Home Assistant TV Voice", NotificationManager.IMPORTANCE_LOW);
+                    "Julia Voice", NotificationManager.IMPORTANCE_LOW);
             channel.setDescription("Visible only while the voice overlay is open");
             manager.createNotificationChannel(channel);
         }
@@ -191,7 +191,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         panel.setBackground(background);
         panel.setElevation(dp(14));
 
-        TextView top = label(glass ? "✦  HOME ASSISTANT" : "🎙  HOME ASSISTANT TV VOICE",
+        TextView top = label(glass ? "✦  JULIA VOICE" : "🎙  JULIA VOICE",
                 glass ? 15 : 19, glass ? 0xffc9ccff : 0xff5de1ec);
         top.setLetterSpacing(0.12f);
         panel.addView(top);
@@ -235,7 +235,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
                 : (Gravity.TOP | Gravity.END);
         params.y = dp(glass ? 42 : 45);
         if (!glass) params.x = dp(18);
-        params.setTitle("Home Assistant TV Voice");
+        params.setTitle("Julia Voice");
         windowManager.addView(panel, params);
         panel.post(() -> focus(0));
     }
