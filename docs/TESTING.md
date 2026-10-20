@@ -25,7 +25,7 @@ Distinguish what has actually worked on hardware from compiled features. A green
 
 ## v0.4 experimental overlay follow-up
 
-The permanently signed **[build #39](https://github.com/chadakenn/onn-tv-voice-remote./actions/runs/39400677478)** completed compilation and APK signature verification. The following are **not yet hardware-verified**:
+The permanently signed **[build #39](https://github.com/chadakenn/Julia-Voice/actions/runs/39400677478)** completed compilation and APK signature verification. The following are **not yet hardware-verified**:
 
 - [ ] Signed v0.4 installs *over* signed v0.3 while preserving encrypted HA credentials
 - [x] Overlay permission is effective: Google TV displayed our floating panel above its launcher (exact permission-screen steps not documented)
