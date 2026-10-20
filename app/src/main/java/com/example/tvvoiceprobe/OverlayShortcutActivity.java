@@ -57,7 +57,7 @@ public final class OverlayShortcutActivity extends Activity {
                 // in the foreground before the former TV app is revealed.
                 handler.postDelayed(this::finish, 1000);
             } catch (Exception error) {
-                Toast.makeText(this, "Overlay not supported. Open the regular TV Voice app.",
+                Toast.makeText(this, "Overlay not supported. Open Julia Voice.",
                         Toast.LENGTH_LONG).show();
                 startActivity(new Intent(this, VoiceActivity.class));
                 finish();
