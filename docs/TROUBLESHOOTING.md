@@ -37,14 +37,14 @@ The original seven-button alpha pushed the response beneath the visible portion 
 
 ## HA transcribes me, but TV speakers are silent
 
-Speech-to-text and TTS are separate stages. The current client attempts TTS audio playback through Android `MediaPlayer`, but this still needs real-TV validation. Confirm that:
+Speech-to-text and TTS are separate stages. The current client **successfully played a Home Assistant TTS answer through the onn 4K Pro TV speakers** in its first real-device test. If it stops working, confirm that:
 
 1. The selected HA Assist pipeline has **TTS configured**.
 2. The on-screen answer is present.
 3. TV volume isn't muted and no other app has exclusive audio focus.
 4. The app shows **Speaking...**, **Finished...**, or a TTS error in its status line.
 
-The client now reads the HA `tts_output.url` event field; earlier builds missed this URL. If the transcript works but no sound plays, capture the **exact status/error text**; don't post your HA token.
+The client reads the HA `tts_output.url` event field; earlier builds missed this URL. The working on-device example answered **“5:07 AM”** aloud. If a later test shows a transcript but no sound, capture the **exact status/error text**; don't post your HA token.
 
 ## Remote's microphone button launches Google Assistant
 
