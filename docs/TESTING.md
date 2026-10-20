@@ -23,6 +23,22 @@ Distinguish what has actually worked on hardware from compiled features. A green
 
 **Caution:** Increased audio peak numbers indicate received audio samples, not validated acoustics for every listening distance or guaranteed input-device identity. The box microphone is the probable source based on the separate test and working STT; Bluetooth remote mic access remains unproven.
 
+## v0.4 experimental overlay follow-up
+
+The permanently signed **[build #39](https://github.com/chadakenn/onn-tv-voice-remote./actions/runs/39400677478)** completed compilation and APK signature verification. The following are **not yet hardware-verified**:
+
+- [ ] Signed v0.4 installs *over* signed v0.3 while preserving encrypted HA credentials
+- [ ] Google TV exposes and grants “Display over other apps” permission
+- [ ] Floating panel appears near upper-right while launcher/another TV app is visible
+- [ ] D-pad selects TALK / STOP / CLOSE; BACK dismisses panel and releases controls
+- [ ] Microphone capture, HA transcript, reply and TV TTS work through the floating panel
+- [ ] Closing the overlay stops the foreground-service notification and microphone activity
+- [ ] The separate HA Voice Overlay launcher starts overlay while another TV app is visible
+- [ ] Optional onn ⭐ app shortcut can target the overlay launcher if firmware supports it
+- [ ] Test a non-DRM video app first; DRM/Netflix overlays and audio focus remain unknown
+
+See [step-by-step overlay tests](OVERLAY_TESTING.md). No remote-microphone button interception, boot-time auto-start or always-on wake word was introduced.
+
 ## Current MVP acceptance checklist
 
 - [x] App opens and navigates using regular onn remote
