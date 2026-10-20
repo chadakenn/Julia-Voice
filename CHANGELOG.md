@@ -5,6 +5,9 @@ This is an experimental Android TV / Google TV app. Each entry distinguishes **s
 ## v0.7-julia-branding (2026-10-20) — Julia Voice identity
 
 - Introduced the official **Julia Voice** development branding and the tagline **Your voice. Your home. Your AI.** The repo name remains unchanged for updater compatibility.
+- Completed a repository-wide brand sweep: README, installation/testing/security-adjacent guides, SVG screenshot previews, in-app dialogs, notifications, shortcut labels and diagnostics all use **Julia Voice**.
+- GitHub Actions is now named **Build Julia Voice Signed APK**, with the new `julia-voice-signed` artifact used by both build and release publishing jobs. The Gradle root project is **JuliaVoice**.
+- **[CI run #75](https://github.com/chadakenn/onn-tv-voice-remote./actions/runs/39423514042) passed**, including the new artifact. The Android package ID, signing key, and published v0.6 update URLs remain unchanged.
 - Added a new [GitHub README hero](docs/branding/julia-voice-header.svg) inspired by approved neon-glass concept images.
 - Added new Android **waveform launcher icon**, **Julia Voice TV banner**, and approximately one-second **startup artwork** rendered with Android primitives.
 - Updated the launcher, overlay shortcut, foreground-service notification, floating panel, diagnostic heading and settings label to Julia Voice.
