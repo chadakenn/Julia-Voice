@@ -1,6 +1,6 @@
 # Floating TV voice overlay: v0.4 prototype
 
-> **Experimental, awaiting onscreen testing on the onn 4K Pro.** This is NOT yet Frigate PiP, a persistent satellite, or an always-on wake-word assistant. Keep the regular working v0.3 foreground voice app available as a fallback.
+> **First hardware milestone reached (2026-10-20):** onn 4K Pro showed the floating panel above **Google TV Home** and displayed “Connected and authenticated. Select TALK.” The panel's microphone capture, speaker TTS, CLOSE/BACK behavior and appearance over playing video remain **untested**. This is NOT yet Frigate PiP, a persistent satellite, or an always-on wake-word assistant.
 
 ## What's new
 
@@ -19,6 +19,13 @@ Install the latest **successful** [signed GitHub Actions build](../.github/workf
 **Important: `versionCode=4`, `versionName=0.4-overlay-prototype`.** If you already installed v0.3 *signed* release, this APK should install **over it without uninstalling or retyping your HA token**. The private release signing key is the same, and versionCode increased.
 
 **Do not uninstall the working signed app to install this update.** If it reports a signature conflict, stop and report it: we need to diagnose signing before modifying/removing the old app.
+
+## Verified so far
+
+- ✅ Screenshot confirms a visible translucent **Home Assistant TV Voice** panel at the upper-right of Google TV Home.
+- ✅ Overlay displays **Connected and authenticated. Select TALK.**
+- ✅ TALK, STOP and CLOSE buttons are visible; TALK appears highlighted, but button activation is **not yet verified**.
+- ⏳ Test audio capture, STT, reply and TTS inside the overlay; D-pad and BACK exit, then overlay over YouTube or another ordinary video app.
 
 ## First test (avoid disrupting movies)
 
