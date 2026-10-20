@@ -190,7 +190,8 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                 "Connect / reconnect",
                 "Start new conversation",
                 "Hardware microphone diagnostics",
-                "Open floating voice overlay (experimental)",
+                "Open floating voice overlay",
+                "Overlay style and voice settings",
                 "Forget saved connection"
         };
         new AlertDialog.Builder(this)
@@ -202,11 +203,55 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                         case 2: newConversation(); break;
                         case 3: startActivity(new Intent(this, MainActivity.class)); break;
                         case 4: launchOverlay(); break;
-                        case 5: confirmForget(); break;
+                        case 5: showOverlayPreferences(); break;
+                        case 6: confirmForget(); break;
                         default: break;
                     }
                 })
                 .setNegativeButton("Close", null)
+                .show();
+    }
+
+    private void showOverlayPreferences() {
+        final OverlayPreferences preferences = new OverlayPreferences(this);
+        final String[] options = new String[] {
+                "Skin: " + ("glass".equals(preferences.skin()) ? "Glass" : "Classic") +
+                        " (choose)",
+                "Auto-listen on launch: " + (preferences.autoListen() ? "ON" : "OFF"),
+                "Auto-hide after spoken reply: " + (preferences.autoHide() ? "ON" : "OFF")
+        };
+        new AlertDialog.Builder(this)
+                .setTitle("TV Voice appearance & launch")
+                .setItems(options, (dialog, index) -> {
+                    if (index == 0) {
+                        new AlertDialog.Builder(this)
+                                .setTitle("Choose a voice overlay skin")
+                                .setSingleChoiceItems(new String[] {
+                                        "Glass • dark purple with animated neon waveform",
+                                        "Classic • compact blue panel"
+                                }, OverlayPreferences.SKIN_GLASS.equals(preferences.skin()) ? 0 : 1,
+                                    (chooser, which) -> {
+                                        preferences.setSkin(which == 0
+                                                ? OverlayPreferences.SKIN_GLASS
+                                                : OverlayPreferences.SKIN_CLASSIC);
+                                        chooser.dismiss();
+                                        status("Skin saved. Reopen the overlay to see it.");
+                                    })
+                                .setNegativeButton("Cancel", null)
+                                .show();
+                    } else if (index == 1) {
+                        preferences.setAutoListen(!preferences.autoListen());
+                        status("Auto-listen on overlay launch: " +
+                                (preferences.autoListen() ? "ON" : "OFF"));
+                        showOverlayPreferences();
+                    } else if (index == 2) {
+                        preferences.setAutoHide(!preferences.autoHide());
+                        status("Close after spoken reply: " +
+                                (preferences.autoHide() ? "ON" : "OFF"));
+                        showOverlayPreferences();
+                    }
+                })
+                .setNegativeButton("Done", null)
                 .show();
     }
 
@@ -225,7 +270,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
             new AlertDialog.Builder(this)
                     .setTitle("Allow TV Voice overlay")
                     .setMessage("Google TV must allow this app to display over other apps. " +
-                            "The microphone listens only after you select TALK. " +
+                            "The microphone listens after launch when Auto-listen is enabled. " +
                             "The overlay stops completely when you choose CLOSE or BACK. " +
                             "If the TV has no overlay permission screen, this firmware may not support it.")
                     .setNegativeButton("Not now", null)
