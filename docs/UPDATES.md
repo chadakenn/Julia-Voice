@@ -28,11 +28,13 @@ The signed APK uses the **same private Android signing key stored in GitHub Acti
 5. The published Release appears at [GitHub Releases](../../releases). Apps with an older `versionCode` detect it on their next daily/explicit check.
 6. Do not rerun the same version's release step or recycle tags. If it fails because a release already exists, increment versionName/versionCode in a future build.
 
-## First v0.6 catch
+## Current release status
 
-**The repo had no GitHub Releases before the updater.** The first approved published v0.6 release gives future TV versions a stable endpoint but is **not itself a newer update for installed v0.6**, so its own UI should correctly report "You're up to date." To test download-and-install end-to-end, publish a **newer signed v0.7 release** after adding a legitimate change.
+The **signed v0.6 release is publicly available** at [GitHub Releases](https://github.com/chadakenn/onn-tv-voice-remote./releases/tag/v0.6). An installed v0.6 APK should correctly report **You're up to date** until a newer version is published.
 
-An `on: workflow_dispatch` run without the publish checkbox only builds the installer artifact ZIP, which is still useful for installing v0.6 once.
+The **Julia Voice v0.7 branding APK has passed signed GitHub Actions builds**, but it has **not been published as a stable GitHub Release or tested on the onn 4K Pro**. Once we validate the new UI and deliberately publish v0.7, an installed v0.6 app can discover, download and open its installer using the updater.
+
+A manual `workflow_dispatch` run **without** the publish checkbox produces a signed APK in the `julia-voice-signed` artifact, but will not announce it to installed users.
 
 ## Privacy and security
 
