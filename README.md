@@ -14,7 +14,7 @@
 
 ## Compatibility and updates
 
-**Julia Voice** keeps the existing GitHub repository URL, Android `applicationId` (`com.example.tvvoiceprobe`), release-signing key and published v0.6 download addresses to preserve existing installations and automatic-update compatibility. The public v0.6 APK predates the visual rebrand. The v0.7 development APK includes Julia Voice launcher labels, waveform icon, TV banner and welcome screen. **v0.7 has passed CI but is not yet published as a stable GitHub Release or tested on TV.**
+**Julia Voice** now lives at [**chadakenn/Julia-Voice**](https://github.com/chadakenn/Julia-Voice). The Android `applicationId` (`com.example.tvvoiceprobe`) and release-signing key remain unchanged to preserve installations and settings. The public v0.6 APK predates the visual rebrand. The v0.7 development APK includes Julia Voice launcher labels, waveform icon, TV banner and welcome screen. **The revised v0.7 updater builds in CI but is not yet a public stable Release or tested on the TV.** Since the repository has already been renamed, **installed v0.6 users may need a one-time manual signed APK upgrade**. See [upgrade instructions](docs/UPDATES.md#repository-rename-completed-chadakennjulia-voice).
 
 A preliminary public search found other uses of "Julia" in AI and "Julia Voice" in music; no comprehensive trademark clearance or domain check has been completed. This README reflects our development branding rather than a claim of exclusive rights.
 
@@ -96,7 +96,7 @@ The **Google voice button currently opens Google's assistant**, not this app. A 
 
 ## Download and install
 
-**Get the current public signed APK:** [**Julia Voice v0.6**](https://github.com/chadakenn/onn-tv-voice-remote./releases/tag/v0.6) · [**Direct APK download**](https://github.com/chadakenn/onn-tv-voice-remote./releases/download/v0.6/app-release.apk).
+**Get the current public signed APK:** [**Julia Voice v0.6**](https://github.com/chadakenn/Julia-Voice/releases/tag/v0.6) · [**Direct APK download**](https://github.com/chadakenn/Julia-Voice/releases/download/v0.6/app-release.apk).
 
 1. Download `app-release.apk` and install it using **Send Files to TV**, USB, or ADB (one-time migration to the update-enabled build). Allow Android's installation prompt.
 2. If you're **already using an APK signed by our permanent release key (v0.3 or newer)**, **install over it; do not uninstall**. The HA URL and encrypted token should remain saved.
