@@ -10,13 +10,19 @@
 
 **Native Home Assistant Assist on Google TV / Android TV**, initially tested on the **onn 4K Pro**. This project aims to let you talk to Home Assistant without replacing your TV launcher or permanently covering streaming apps.
 
-> **Status: v0.7 Julia Voice branding in development (2026-10-20).** **Confirmed on real onn 4K Pro:** Home Assistant understood a spoken question, displayed the answer and played it through TV speakers; the v0.4 floating overlay appeared over Google TV Home. **v0.5:** Glass waveform and auto-listen (still needs field testing). **v0.6:** periodic GitHub Release checks, APK download, SHA-256 verification, and user-approved Android installation. **Julia Voice v0.7 branding builds and signs successfully in CI, but the launcher, icon, startup screen and v0.6 updater still need verification on the onn TV.** Frigate PiP, HA announcements and wake words are future work.
+> **Status: v0.8 ⭐ shortcut compatibility update in development (2026-10-20).** **Confirmed on real onn 4K Pro:** Home Assistant understood a spoken question, displayed the answer and played it through TV speakers; the v0.4 floating overlay appeared over Google TV Home. **v0.5:** Glass waveform and auto-listen (still needs field testing). **v0.6:** periodic GitHub Release checks, APK download, SHA-256 verification, and user-approved Android installation. **v0.7 branding builds and signs; v0.8 fixes additional onn ⭐ shortcut launcher behaviors. The shortcut fallback still requires user opt-in and on-device verification.** Frigate PiP, HA announcements and wake words are future work.
 
 ## Compatibility and updates
 
 **Julia Voice** now lives at [**chadakenn/Julia-Voice**](https://github.com/chadakenn/Julia-Voice). The Android `applicationId` (`com.example.tvvoiceprobe`) and release-signing key remain unchanged to preserve installations and settings. The public v0.6 APK predates the visual rebrand. The v0.7 development APK includes Julia Voice launcher labels, waveform icon, TV banner and welcome screen. **The revised v0.7 updater successfully built and passed signature verification in [CI run #77](https://github.com/chadakenn/Julia-Voice/actions/runs/39425244245), but is not yet a public stable Release or tested on the TV.** Since the repository has already been renamed, **installed v0.6 users may need a one-time manual signed APK upgrade**. See [upgrade instructions](docs/UPDATES.md#repository-rename-completed-chadakennjulia-voice).
 
 A preliminary public search found other uses of "Julia" in AI and "Julia Voice" in music; no comprehensive trademark clearance or domain check has been completed. This README reflects our development branding rather than a claim of exclusive rights.
+
+## onn ⭐ button shortcut
+
+**Actual onn 4K Pro observation:** The firmware's ⭐ app picker lists only **Julia Voice**, not the separate **Julia Voice Overlay** entry. To make it open the floating voice assistant, open Julia Voice → **SETTINGS → Overlay style and voice settings → ⭐ picker fallback (main app opens overlay)**, and enable it. This is **OFF by default** to prevent unexpected microphone launches. Make sure microphone and *Display over other apps* permissions are granted by first testing **SETTINGS → Open floating voice overlay**.
+
+The v0.8 development update also accepts ⭐ launch intents that omit the launcher category and reacts when Android reuses a running activity. If an installed v0.7 APK still opens the full app with fallback enabled, try the latest signed v0.8 development build over the existing install; do **not** uninstall and lose saved HA credentials. See [star-button test steps](docs/V0_5_TESTING.md).
 
 ## Julia Voice look and feel
 
