@@ -1,17 +1,42 @@
 plugins {
     id 'com.android.application'
 }
+
 android {
     namespace 'com.example.tvvoiceprobe'
     compileSdk 35
+
     defaultConfig {
         applicationId 'com.example.tvvoiceprobe'
         minSdk 26
         targetSdk 35
-        versionCode 2
-        versionName '0.2-assist-alpha'
+        versionCode 3
+        versionName '0.3-assist-alpha'
+    }
+
+    // The keystore is private and supplied from GitHub Actions secrets.
+    // Never put the signing key or password into this public repository.
+    signingConfigs {
+        release {
+            def keyPath = System.getenv('TV_SIGNING_KEYSTORE_PATH')
+            def keyPasswordValue = System.getenv('TV_SIGNING_PASSWORD')
+            if (keyPath && keyPasswordValue) {
+                storeFile file(keyPath)
+                storePassword keyPasswordValue
+                keyAlias 'tvvoice'
+                keyPassword keyPasswordValue
+                storeType 'pkcs12'
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
     }
 }
+
 dependencies {
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
 }
