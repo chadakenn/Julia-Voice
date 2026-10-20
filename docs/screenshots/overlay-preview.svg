@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 580" role="img" aria-labelledby="title desc">
+ <title id="title">TV voice overlay shown over Google TV Home, illustrated</title>
+ <desc id="desc">A simplified illustration based on the real onn 4K Pro photograph. An authenticated Home Assistant TV Voice floating card appears over the TV launcher.</desc>
+ <defs>
+  <linearGradient id="wall" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#283c6a"/><stop offset=".5" stop-color="#263e5e"/><stop offset="1" stop-color="#0c1e39"/></linearGradient>
+  <linearGradient id="overlay" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#245884" stop-opacity=".96"/><stop offset="1" stop-color="#113050" stop-opacity=".98"/></linearGradient>
+  <linearGradient id="talk" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#16b7df"/><stop offset="1" stop-color="#0a7bac"/></linearGradient>
+ </defs>
+ <rect width="980" height="580" rx="22" fill="#0a0e1b"/>
+ <rect x="12" y="12" width="956" height="556" rx="14" fill="url(#wall)"/>
+ <rect x="28" y="30" width="870" height="55" rx="27" fill="#35465f" fill-opacity=".8"/>
+ <text x="61" y="65" fill="#eaf2ff" font-family="Arial, sans-serif" font-size="23">✦ Gemini</text>
+ <rect x="228" y="39" width="102" height="39" rx="21" fill="#dce6ee"/>
+ <text x="279" y="65" text-anchor="middle" fill="#263952" font-family="Arial, sans-serif" font-size="20">Home</text>
+ <text x="365" y="65" fill="#eaf2ff" font-family="Arial, sans-serif" font-size="20">Live</text>
+ <text x="439" y="65" fill="#eaf2ff" font-family="Arial, sans-serif" font-size="20">Apps</text>
+ <text x="62" y="181" fill="#dce2ef" font-family="Arial, sans-serif" font-size="22">Your entertainment</text>
+ <text x="62" y="236" fill="#ffffff" font-family="Arial, sans-serif" font-size="31" font-weight="700">Shows, movies, and apps</text>
+ <text x="62" y="286" fill="#bcc7df" font-family="Arial, sans-serif" font-size="17">Top picks for you</text>
+ <rect x="60" y="309" width="196" height="107" rx="13" fill="#405a95"/>
+ <rect x="268" y="309" width="196" height="107" rx="13" fill="#344d72"/>
+ <rect x="476" y="309" width="196" height="107" rx="13" fill="#4c3974"/>
+ <rect x="684" y="309" width="196" height="107" rx="13" fill="#325f6e"/>
+ <text x="70" y="462" fill="#c4cfe0" font-family="Arial, sans-serif" font-size="18">Your apps</text>
+ <rect x="70" y="484" width="78" height="56" rx="18" fill="#e53339"/>
+ <rect x="164" y="484" width="78" height="56" rx="18" fill="#2456cb"/>
+ <rect x="258" y="484" width="78" height="56" rx="18" fill="#1d8e8e"/>
+ <rect x="352" y="484" width="78" height="56" rx="18" fill="#5125a4"/>
+ <rect x="446" y="484" width="78" height="56" rx="18" fill="#6b46bd"/>
+ <rect x="540" y="484" width="78" height="56" rx="18" fill="#bc422d"/>
+ <rect x="287" y="94" width="647" height="268" rx="20" fill="#050f1d" fill-opacity=".55"/>
+ <rect x="295" y="89" width="636" height="266" rx="17" fill="url(#overlay)" stroke="#22d6f6" stroke-width="2"/>
+ <text x="322" y="127" fill="#a9e9ff" font-family="Arial, sans-serif" font-size="23" font-weight="700">HOME ASSISTANT TV VOICE</text>
+ <text x="322" y="161" fill="#f6faff" font-family="Arial, sans-serif" font-size="16">Connected and authenticated. Select TALK.</text>
+ <text x="322" y="197" fill="#a7c2df" font-family="Arial, sans-serif" font-size="14">HOME ASSISTANT SAYS</text>
+ <text x="322" y="224" fill="#fff" font-family="Arial, sans-serif" font-size="22">Ready for your question</text>
+ <text x="322" y="255" fill="#a7c2df" font-family="Arial, sans-serif" font-size="14">YOU SAID</text>
+ <text x="322" y="281" fill="#fff" font-family="Arial, sans-serif" font-size="20">Nothing yet</text>
+ <rect x="318" y="303" width="194" height="40" rx="7" fill="url(#talk)"/>
+ <rect x="519" y="303" width="192" height="40" rx="7" fill="#7894b3"/>
+ <rect x="718" y="303" width="192" height="40" rx="7" fill="#7894b3"/>
+ <text x="415" y="330" fill="#ffffff" text-anchor="middle" font-family="Arial, sans-serif" font-size="17">TALK</text>
+ <text x="615" y="330" fill="#ffffff" text-anchor="middle" font-family="Arial, sans-serif" font-size="17">STOP</text>
+ <text x="814" y="330" fill="#ffffff" text-anchor="middle" font-family="Arial, sans-serif" font-size="17">CLOSE</text>
+</svg>
