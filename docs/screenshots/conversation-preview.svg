@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 580" role="img" aria-labelledby="title desc">
+  <title id="title">TV voice answer screen illustrated from a real onn 4K Pro test</title>
+  <desc id="desc">Illustration, not a photo: Home Assistant TV Voice shows the spoken question What time is it and answered 5:07 AM.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#254e84"/>
+      <stop offset=".48" stop-color="#183962"/>
+      <stop offset="1" stop-color="#172948"/>
+    </linearGradient>
+    <linearGradient id="button" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#1b9ec7"/>
+      <stop offset="1" stop-color="#14719f"/>
+    </linearGradient>
+  </defs>
+  <rect width="980" height="580" rx="20" fill="#101923"/>
+  <rect x="15" y="15" width="950" height="550" rx="10" fill="url(#bg)"/>
+  <text x="50" y="75" font-size="33" fill="#68e4f1" font-family="Arial, sans-serif" font-weight="700">HOME ASSISTANT  |  TV VOICE</text>
+  <text x="50" y="121" font-size="18" fill="#d1e6f3" font-family="Arial, sans-serif">Home Assistant: connected ✓</text>
+  <text x="50" y="157" font-size="19" fill="#9ad8f4" font-family="Arial, sans-serif">Finished. Select TALK for another question.</text>
+  <text x="50" y="231" font-size="22" fill="#b2cbe0" font-family="Arial, sans-serif">HOME ASSISTANT SAYS</text>
+  <text x="50" y="288" font-size="43" fill="#ffffff" font-family="Arial, sans-serif" font-weight="700">5:07 AM</text>
+  <text x="50" y="363" font-size="22" fill="#b2cbe0" font-family="Arial, sans-serif">YOU SAID</text>
+  <text x="50" y="419" font-size="34" fill="#ffffff" font-family="Arial, sans-serif">What time is it?</text>
+  <rect x="48" y="482" width="294" height="60" rx="7" fill="url(#button)" stroke="#78d3f0" stroke-width="2"/>
+  <rect x="350" y="482" width="294" height="60" rx="7" fill="#506a88"/>
+  <rect x="652" y="482" width="279" height="60" rx="7" fill="#506a88"/>
+  <text x="195" y="522" font-size="22" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif">TALK</text>
+  <text x="497" y="522" font-size="22" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif">STOP</text>
+  <text x="792" y="522" font-size="22" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif">SETTINGS</text>
+</svg>
