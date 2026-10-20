@@ -1,0 +1,59 @@
+# Developer guide and release checklist
+
+This is an experimental **native Android TV** project targeting the **onn 4K Pro**. Code is Java, app module `app/`; the repository does not currently include a Gradle wrapper, so GitHub Actions supplies Gradle 8.9.
+
+## Build requirements
+
+- JDK 17
+- Android SDK platform 35 + build tools 35.0.0
+- Gradle 8.9, Android Gradle Plugin 8.7.3
+- Working dependency downloads for `com.squareup.okhttp3:okhttp:4.12.0`
+
+Use GitHub Actions **Build HA TV Voice Signed APK** for APKs to install on a TV. The workflow is triggered by changes to app/build config files or manually via workflow_dispatch; **README and docs-only changes do not launch an Android build**.
+
+Do **not** hand out `app-debug.apk` files from temporary GitHub runners. The original alpha suffered **conflicts with an existing package** because Android debug signing certificates differed between runs. All user-installable updates must be consistently signed with the same private key.
+
+## Main source files
+
+| File | Responsibility |
+| --- | --- |
+| `app/src/main/java/com/example/tvvoiceprobe/VoiceActivity.java` | Main TV D-pad TALK/STOP/SETTINGS screen, HA config, transcript, answer and Android TTS playback |
+| `app/src/main/java/com/example/tvvoiceprobe/HaAssistClient.java` | HA WebSocket authentication, `assist_pipeline/run` event handling, binary PCM framing, conversation state |
+| `app/src/main/java/com/example/tvvoiceprobe/CredentialStore.java` | Device-local encrypted HA credentials via Android Keystore |
+| `app/src/main/java/com/example/tvvoiceprobe/MainActivity.java` | Legacy mic/button and Android input diagnostics, opened from settings |
+| `app/build.gradle` | Package ID, Android version code/name, dependencies and keystore signing configuration |
+| `.github/workflows/build-apk.yml` | Repeatable signed release build and APK signature verification |
+
+## Signing and release
+
+Private signing key/password must stay off GitHub source control. Repository Actions secrets:
+
+- `TV_SIGNING_KEYSTORE_B64`: private PKCS12 keystore encoded in base64, alias `tvvoice`
+- `TV_SIGNING_PASSWORD`: keystore and key password
+
+See [signing and recovery](SIGNING.md). First signed APK was verified in [run #31](https://github.com/chadakenn/onn-tv-voice-remote./actions/runs/39397223494). [Run #32](https://github.com/chadakenn/onn-tv-voice-remote./actions/runs/39397723153) should not be used as a fixed artifact link unless verified independently; always prefer the **latest successful** signed run.
+
+**Release checklist:**
+
+1. Increment `versionCode` for a new installable version. Update `versionName`.
+2. Commit changes to `main`, or use Actions → Run workflow.
+3. Confirm **Restore private release-signing key**, **Build signed release APK**, **Verify APK signature**, and **Upload installable signed APK** all passed.
+4. Download artifact `onn-tv-ha-assist-signed`; unpack `app-release.apk`. Never embed signing key or HA token in the APK.
+5. Test fresh install on the onn box, verify authentication, built-in microphone STT, TTS, D-pad operation and settings access.
+6. **Test in-place upgrade** from previous **signed** APK; the HA token should survive. If Android reports a signing conflict, stop and compare certificates rather than uninstalling.
+7. Update [changelog](../CHANGELOG.md), [test matrix](TESTING.md) and documentation based on what actually passed on hardware.
+
+## Safety and architecture decisions
+
+- Avoid copying code from references without checking licenses (Voice Satellite AGPL-3.0; Ava original Apache-2.0).
+- Keep microphone access foreground and user-triggered until an explicit privacy-controlled background mode is designed.
+- Never upload/print long-lived tokens, captured audio or private signing keys in CI logs.
+- Prefer trusted HTTPS to Home Assistant. Existing local HTTP support is explicitly **unencrypted**.
+- The Google TV voice key opens Google Assistant on tested hardware. An app-launch ⭐ mapping is a later project, and it does not mean we can capture the Bluetooth remote mic.
+- TTS, camera overlays, PiP, the HA media_player entity, and video app audio focus need physical hardware tests rather than assumptions from compilation.
+
+## Contributions and repository naming
+
+Please keep bug reports reproducible: include Android/Google TV version, app `versionName`, GitHub Actions run, remote key steps and a **redacted** status screenshot. Never post secrets. The repository name currently ends with a literal period (`onn-tv-voice-remote.`), which may be awkward with some command-line tools or Windows paths. Rename only deliberately, with a plan to update links and local clones.
+
+The repo currently has no explicit OSS LICENSE file. Being publicly readable is not the same as granting redistribution/reuse permissions; the owner should choose a license before accepting outside code contributions.
