@@ -2,6 +2,15 @@
 
 This is an experimental Android TV / Google TV app. Each entry distinguishes **shipped code** from **tested on the onn 4K Pro**.
 
+## v0.7-julia-branding (2026-10-20) — Julia Voice identity
+
+- Introduced the official **Julia Voice** development branding and the tagline **Your voice. Your home. Your AI.** The repo name remains unchanged for updater compatibility.
+- Added a new [GitHub README hero](docs/branding/julia-voice-header.svg) inspired by approved neon-glass concept images.
+- Added new Android **waveform launcher icon**, **Julia Voice TV banner**, and approximately one-second **startup artwork** rendered with Android primitives.
+- Updated the launcher, overlay shortcut, foreground-service notification, floating panel, diagnostic heading and settings label to Julia Voice.
+- Kept existing `applicationId` (`com.example.tvvoiceprobe`), private signing key, encrypted Home Assistant settings and existing updater logic. Increased Android `versionCode` to **7** and `versionName` to `0.7-julia-branding`.
+- **[Signed CI run #69](https://github.com/chadakenn/onn-tv-voice-remote./actions/runs/39421241827) passed** compile and APK signature verification. **Not yet tested on TV**, and v0.7 is **not yet a public GitHub Release**. Only owner-approved manual release publishing offers it as an OTA update.
+
 ## v0.6-in-app-updates (2026-10-20) — TV-native signed updater
 
 - Added native Android TV **Check for app updates** and **Install downloaded update** menu actions, plus a roughly daily check when the full-screen app opens.
@@ -10,7 +19,7 @@ This is an experimental Android TV / Google TV app. Each entry distinguishes **s
 - Opens Android's standard user-approved APK installer; requests **Install unknown apps** permission if required. No root, silent background installation, HA-token upload or sideloading from arbitrary hosts.
 - Added owner-controlled GitHub Actions `publish_release` checkbox. If selected in a manual run, signs and verifies the APK, then publishes a GitHub Release containing `app-release.apk` and `update.json`. Ordinary pushes do **not** publish releases.
 - Increased Android `versionCode` to **6**, `versionName` to `0.6-in-app-updates`. Existing keystore and application ID are unchanged.
-- **[Signed build #58](https://github.com/chadakenn/onn-tv-voice-remote./actions/runs/39411724076) passed** build and APK signature verification. **No public release has been published yet and the in-app install path is not hardware-verified.**
+- **[Signed build #58](https://github.com/chadakenn/onn-tv-voice-remote./actions/runs/39411724076) passed** build and APK signature verification. **Public v0.6 GitHub Release is published. The in-app installation path is not yet hardware-verified.**
 - [First-install and release publishing instructions](docs/UPDATES.md).
 
 ## v0.5-glass-voice (2026-10-20) — Glass UI and one-press voice prototype
