@@ -4,6 +4,48 @@
 
 > **Status: v0.6 in-app updater alpha (2026-10-20).** **Confirmed on real onn 4K Pro:** Home Assistant understood a spoken question, displayed the answer and played it through TV speakers; the v0.4 floating overlay appeared over Google TV Home. **v0.5:** Glass waveform and auto-listen (still needs field testing). **v0.6:** periodic GitHub Release checks, APK download, SHA-256 verification, and user-approved Android installation. **The updater is built and signed, but is not yet tested on the TV.** Frigate PiP, HA announcements and wake words are future work.
 
+## What this project does
+
+Your TV is the **voice front end**, not the AI server. Press the programmable ⭐ button (where the TV firmware allows app shortcuts), speak toward the onn box, and receive Home Assistant's answer as text and speech. The app sends requests through the Home Assistant Assist pipeline, so you can change the conversation agent or install new tools **without rebuilding the TV APK**.
+
+**Already demonstrated on the onn 4K Pro:** authenticated HA Assist, recognized speech, a spoken answer through TV speakers, and a translucent overlay on Google TV Home. **Not yet verified on device:** v0.5 Glass/automatic voice flow and v0.6 automatic installation over other video apps.
+
+## Our local AI and Home Assistant setup 🧠
+
+We use a **self-hosted Ollama language-model server on our home network**, separate from the onn Android TV app and the Home Assistant host. Our earlier local Ollama setup used an **NVIDIA RTX 3060 (12 GB)** and tested the **Qwen3 8B** family; the exact currently selected model and Assist pipeline should be checked in Home Assistant rather than assumed.
+
+On the **Home Assistant server**, we installed [**Tools for Assist (`llm_intents`)**](https://github.com/skye-harris/llm_intents) as a companion integration for **online search and weather**. The search and weather providers/tools must still be configured and made available to the selected conversation agent; installing `llm_intents` alone does not prove that every tool is working.
+
+```text
+Onn 4K Pro / HA TV Voice app (mic, overlay, TTS playback)
+                     |
+          Home Assistant Assist pipeline
+                     |
+     Conversation agent + approved HA tools
+               /                  \
+  Local Ollama LLM server     Tools for Assist
+      (RTX 3060)             (weather / web search)
+                     |
+      Home Assistant entities / automations
+```
+
+The **TV app does not run Ollama**, query web-search providers directly, or store Ollama configuration. That separation makes it possible to reuse the same Home Assistant intelligence from other microphones, phones, and voice satellites.
+
+**Permissions and expectations:** Expose only approved HA entities and actions to a conversational agent, avoid unrestricted shell/network access, and use confirmation for sensitive actions. Web search sends search queries to the configured provider. Ollama can stay local even though weather/search retrieval uses external services.
+
+## Screenshots and appearance
+
+The first device tests used a compact blue full-screen UI and a blue floating overlay. **Glass** (dark, animated waveform) and **Classic** are selectable as of v0.5, but actual Glass skin device photos haven't been captured yet.
+
+- **Working voice conversation:** the TV successfully showed “What time is it?” and Home Assistant's “5:07 AM” reply; voice playback through TV speakers was confirmed.
+- **Floating overlay:** the TV showed the HA Voice panel above Google TV Home, with TALK / STOP / CLOSE and an authenticated connection.
+
+The image previews below are **illustrative reconstructions based on those actual TV tests**, not photographs of v0.5/v0.6. Real cropped device photos are available to replace the previews when added as repository image assets.
+
+| Assist conversation preview | Floating overlay preview |
+| --- | --- |
+| ![Illustrated original full-screen TV voice conversation showing question and answer](docs/screenshots/conversation-preview.svg) | ![Illustrated original floating Home Assistant TV voice panel on the Google TV launcher](docs/screenshots/overlay-preview.svg) |
+
 ## What's working and what's next
 
 | Feature | State |
@@ -27,13 +69,14 @@ The **Google voice button currently opens Google's assistant**, not this app. A 
 
 ## Download and install
 
-**Use signed release APKs only.** The old debug builds had incompatible ephemeral signing certificates.
+**Get the current public signed APK:** [**HA TV Voice v0.6**](https://github.com/chadakenn/onn-tv-voice-remote./releases/tag/v0.6) · [**Direct APK download**](https://github.com/chadakenn/onn-tv-voice-remote./releases/download/v0.6/app-release.apk).
 
-1. Open [the latest successful **signed APK** build](../../actions/workflows/build-apk.yml). [Build #31](../../actions/runs/39397223494) is the first signing-and-signature-verified release.
-2. Download the **`onn-tv-ha-assist-signed`** artifact ZIP from **Artifacts**. Extract **`app-release.apk`** (not `app-debug.apk`).
-3. Send the APK to the onn 4K Pro using **Send Files to TV**, USB, or ADB. On TV, allow your file manager to install unknown apps when asked.
-4. **Only if you still have the original debug-signed app installed:** uninstall that old app **once**, then install `app-release.apk`. This clears the previous encrypted Home Assistant settings and you'll have to enter your token again. **Do not uninstall until you have the signed APK available.**
-5. **All future signed updates** should install directly over the signed app and preserve the saved HA connection, provided the permanent signing key remains unchanged and `versionCode` increases when necessary.
+1. Download `app-release.apk` and install it using **Send Files to TV**, USB, or ADB (one-time migration to the update-enabled build). Allow Android's installation prompt.
+2. If you're **already using an APK signed by our permanent release key (v0.3 or newer)**, **install over it; do not uninstall**. The HA URL and encrypted token should remain saved.
+3. **Only for an original debug-signed diagnostic APK** with a different certificate: uninstall the debug version once and then install the signed release; you'll need to re-enter the HA token.
+4. From v0.6 onward, use **SETTINGS → Check for app updates**. The app can download a newer public signed release and open the standard Android installer. Android installation approval may still be required.
+
+GitHub Releases are intentionally published only after an owner-approved workflow run. New builds and updater behavior should be tested on actual Google TV hardware; don't interpret a green CI build as proof of a completed on-device update.
 
 📘 [In-app updates and first v0.6 install](docs/UPDATES.md) · [Full installation / migration guide](docs/INSTALL.md) · [Signing and key backup](docs/SIGNING.md) · [Troubleshooting](docs/TROUBLESHOOTING.md)
 
@@ -49,12 +92,6 @@ Prerequisites: a reachable Home Assistant server, a working **Assist pipeline** 
 
 The **proven v0.3** full-screen conversation continues to work; **v0.4** proved the overlay displays over Google TV Home. **v0.5** brings auto-listening after the explicit ⭐/app launch, a Glass waveform skin, optional Classic skin, a best-effort silence detector, configurable automatic dismissal and a TV-app-picker fallback. Google TV real-world behavior and audio/video coexistence still require testing. This is not a system Assistant replacement, wake-word listener, HA media_player or Frigate client. See the [v0.5 home test checklist](docs/V0_5_TESTING.md).
 
-## Home Assistant companion tools
-
-We installed [**Tools for Assist (`llm_intents`)**](https://github.com/skye-harris/llm_intents) on the **Home Assistant side** to support **online searches and weather information** for our AI assistant.
-
-This integration runs on the Home Assistant server, **not inside the Android TV APK**. HA TV Voice sends speech to the configured Home Assistant Assist pipeline; the conversation agent and its configured tools handle requests for live information. Installing the integration alone does not guarantee every tool is enabled or available to the selected agent. Web searches require network access and the corresponding search-provider configuration.
-
 ## Architecture and privacy
 
 - **Android Java**, Android TV-compatible D-pad UI, `AudioRecord` with `VOICE_RECOGNITION` at **16 kHz mono PCM16**, OkHttp authenticated WebSocket `/api/websocket`.
@@ -67,7 +104,7 @@ More detail: [Field test results and checklist](docs/TESTING.md), [security note
 
 ## Roadmap
 
-1. **Now (v0.6):** install signed updater over v0.5 once; test GitHub Releases check and Android install permission. The first published v0.6 will report up to date; download/install testing requires a newer release. [Updater guide](docs/UPDATES.md). Continue v0.5 Glass/⭐ testing as desired.
+1. **Now (v0.6):** install signed updater over v0.5 once; test GitHub Releases check and Android install permission. The public v0.6 Release is available; on-device update installation still needs testing and requires a newer release. [Updater guide](docs/UPDATES.md). Continue v0.5 Glass/⭐ testing as desired.
 2. **Next:** refine ⭐ shortcut selection where firmware permits, overlay placement, audio focus, ambient-TV-noise tolerance, skins and recovery based on actual results.
 3. **Afterward:** dedicated HA `media_player` with automation-driven chimes/TTS (e.g. “The washer is done”); secure companion channel.
 4. **Then:** Frigate/go2rtc camera views, filtered doorbell-person PiP and optional spoken alerts; on-demand dashboards.
