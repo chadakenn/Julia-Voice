@@ -72,8 +72,7 @@ public final class HaAssistClient {
             // User supplies the HA base address, not a manually entered WebSocket endpoint.
             okhttp3.HttpUrl url = parsed.newBuilder()
                     .addPathSegments("api/websocket")
-                    .scheme("https".equals(parsed.scheme()) ? "wss" : "ws")
-                    .build();
+                    .build(); // OkHttp newWebSocket() accepts HTTP(S) URLs and upgrades internally.
             events.status("Connecting to Home Assistant...");
             socket = http.newWebSocket(new Request.Builder().url(url).build(), new WebSocketListener() {
                 @Override public void onOpen(WebSocket ws, Response response) {
