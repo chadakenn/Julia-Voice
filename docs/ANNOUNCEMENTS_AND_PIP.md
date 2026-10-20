@@ -1,6 +1,6 @@
 # Home Assistant media player, announcements and Frigate picture-in-picture
 
-Status: **design specification**. None of the capabilities below are implemented in the current remote-button/microphone diagnostic APK.
+Status (2026-10-20): **future feature design, not a shipped announcement/PiP capability**. The separate foreground Android TV Assist alpha already authenticates to Home Assistant and streams microphone audio for speech-to-text. It **does not** yet expose a dedicated `media_player`, run an announcement service, or display Frigate cameras. See [verified tests](TESTING.md).
 
 ## Intent
 
@@ -73,11 +73,11 @@ Two related but distinct Android features must be tested:
 
 ## Revised priority
 
-0. Current remote/microphone + overlay support hardware probing.
-1. Minimal HA Assist voice client with transient overlay.
+0. **Completed for foreground mode:** real onn mic/D-pad probe, HA WebSocket token auth and first successful speech-to-text question. **Not yet completed:** audio focus, overlay permissions and shortcut tests.
+1. Verify reliable TTS playback, answer-first UI, microphone lifecycle and signed APK update; **then** build a minimal transient Assist overlay.
 2. **Dedicated HA media player and announcement pipeline**, including washer-finished use case.
 3. **Frigate event-driven picture-in-picture camera popups**, with spoken doorbell notices and cooldown.
 4. Rich chat panels, timer and media previews, on-demand dashboards and multi-camera view.
 5. Optional wake word and advanced Assist Satellite/media features.
 
-All functionality described here is a design target, not shipped. Camera overlay support over streaming/DRM content and remote mic/audio routing are hardware/firmware unknowns.
+All **media player, automation announcement and Frigate PiP** functionality described here is a design target, **not shipped**. Camera overlay support over streaming/DRM content remains untested. The Google voice button has been observed opening Google Assistant; the onn box microphone already works for foreground Assist STT, but Bluetooth remote mic access is unverified.
