@@ -185,8 +185,13 @@ public final class HaAssistClient {
                 events.status("Generating spoken response...");
                 break;
             case "tts-end":
-                String audio = data.optString("url", "");
+                // HA supplies the playback URL INSIDE tts_output, not at the
+                // top level of the event. Earlier builds silently missed TTS.
+                JSONObject tts = data.optJSONObject("tts_output");
+                String audio = tts == null ? data.optString("url", "")
+                        : tts.optString("url", "");
                 if (!audio.isEmpty()) events.ttsUrl(audio);
+                else events.status("Home Assistant didn't return a TTS audio URL.");
                 break;
             case "error":
                 events.status("Assist error: " + data.optString("code", "unknown") +
@@ -321,6 +326,7 @@ public final class HaAssistClient {
     public synchronized void disconnect() {
         disposed = true;
         authenticated = false;
+        conversationId = null;
         stopForRunEnd();
         WebSocket ws = socket;
         socket = null;
