@@ -143,14 +143,10 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         catch (Exception e) { status("Saved connection couldn't be decrypted. Configure it again."); }
         updateConnectionLabel();
         if (!buttons.isEmpty()) buttons.get(0).post(() -> focus(0));
-        // Some onn firmware offers only the package's primary launcher in the
-        // ⭐ app picker. An explicit opt-in makes that launch the overlay too.
-        Intent launch = getIntent();
-        boolean openOverlayOnLaunch = new OverlayPreferences(this).mainLauncherOpensOverlay()
-                && launch != null && Intent.ACTION_MAIN.equals(launch.getAction())
-                && (launch.hasCategory(Intent.CATEGORY_LAUNCHER)
-                    || launch.hasCategory(Intent.CATEGORY_LEANBACK_LAUNCHER));
-        if (openOverlayOnLaunch) {
+        // Some onn firmware shows only one entry per package in the ⭐ picker.
+        // Launchers may strip CATEGORY_LAUNCHER/LEANBACK_LAUNCHER on the actual
+        // start intent, so the explicit user opt-in + ACTION_MAIN is sufficient.
+        if (shouldLaunchOverlayFromLauncher(getIntent())) {
             // ⭐ shortcuts should never be slowed by the splash.
             page.removeView(splash);
             root.post(this::launchOverlay);
@@ -167,6 +163,24 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                 checks.edit().putLong("last_checked", now).apply();
                 root.post(() -> updater.check());
             }
+        }
+    }
+
+    private boolean shouldLaunchOverlayFromLauncher(Intent intent) {
+        // OPEN_SETTINGS and ordinary explicit activities must open the full UI.
+        // The opt-in also prevents microphone startup on an ordinary install.
+        return intent != null
+                && Intent.ACTION_MAIN.equals(intent.getAction())
+                && new OverlayPreferences(this).mainLauncherOpensOverlay();
+    }
+
+    @Override protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        // If Android reuses a running instance, onCreate is not called.
+        // Handle a new launcher/⭐ command without requiring a fresh Activity.
+        if (shouldLaunchOverlayFromLauncher(intent)) {
+            getWindow().getDecorView().post(this::launchOverlay);
         }
     }
 
