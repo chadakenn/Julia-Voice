@@ -45,7 +45,7 @@ public class MainActivity extends Activity {
         layout.setPadding(32, 24, 32, 24);
         layout.setBackgroundColor(0xff142031);
         TextView heading = new TextView(this);
-        heading.setText("TV Voice Probe  •  onn / Google TV");
+        heading.setText("Julia Voice diagnostics  •  onn / Google TV");
         heading.setTextSize(23);
         heading.setTextColor(0xffffffff);
         layout.addView(heading);
