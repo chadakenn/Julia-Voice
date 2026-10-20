@@ -11,6 +11,7 @@ public final class OverlayPreferences {
     private static final String KEY_SKIN = "skin";
     private static final String KEY_AUTO = "auto_listen";
     private static final String KEY_HIDE = "auto_hide";
+    private static final String KEY_MAIN_SHORTCUT = "main_launcher_opens_overlay";
 
     private final SharedPreferences preferences;
 
@@ -32,6 +33,14 @@ public final class OverlayPreferences {
     public boolean autoListen() { return preferences.getBoolean(KEY_AUTO, true); }
     public void setAutoListen(boolean enabled) {
         preferences.edit().putBoolean(KEY_AUTO, enabled).apply();
+    }
+
+    public boolean mainLauncherOpensOverlay() {
+        return preferences.getBoolean(KEY_MAIN_SHORTCUT, false);
+    }
+
+    public void setMainLauncherOpensOverlay(boolean enabled) {
+        preferences.edit().putBoolean(KEY_MAIN_SHORTCUT, enabled).apply();
     }
 
     public boolean autoHide() { return preferences.getBoolean(KEY_HIDE, true); }
