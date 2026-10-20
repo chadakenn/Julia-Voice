@@ -50,10 +50,14 @@ See [signing and recovery](SIGNING.md). First signed APK was verified in [run #3
 - Never upload/print long-lived tokens, captured audio or private signing keys in CI logs.
 - Prefer trusted HTTPS to Home Assistant. Existing local HTTP support is explicitly **unencrypted**.
 - The Google TV voice key opens Google Assistant on tested hardware. An app-launch ⭐ mapping is a later project, and it does not mean we can capture the Bluetooth remote mic.
-- TTS, camera overlays, PiP, the HA media_player entity, and video app audio focus need physical hardware tests rather than assumptions from compilation.
+- **TTS and answer display were verified on the real onn box** (Home Assistant answered “5:07 AM” through the TV speakers). Camera overlays, PiP, the HA media_player entity, and video app audio focus still need physical hardware tests rather than assumptions from compilation.
 
 ## Contributions and repository naming
 
 Please keep bug reports reproducible: include Android/Google TV version, app `versionName`, GitHub Actions run, remote key steps and a **redacted** status screenshot. Never post secrets. The repository name currently ends with a literal period (`onn-tv-voice-remote.`), which may be awkward with some command-line tools or Windows paths. Rename only deliberately, with a plan to update links and local clones.
 
-The repo currently has no explicit OSS LICENSE file. Being publicly readable is not the same as granting redistribution/reuse permissions; the owner should choose a license before accepting outside code contributions.
+## Open-source license and contribution notes
+
+The project is distributed under **GNU GPL version 3 only (SPDX: `GPL-3.0-only`)**, with the full [LICENSE](../LICENSE) text at the repository root. Anyone who redistributes a modified binary must comply with GPLv3's source availability, notices and other requirements.
+
+Do not silently import code under incompatible terms. Original [Ava](https://github.com/brownard/Ava) is Apache-2.0, while [Voice Satellite](https://github.com/jxlarrea/voice-satellite-card-integration) is AGPL-3.0; we have researched their architecture without copying implementation code. Third-party libraries retain their own licenses. Contributions are accepted under GPL-3.0-only unless explicitly agreed otherwise.
