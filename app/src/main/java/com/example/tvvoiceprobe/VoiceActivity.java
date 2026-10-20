@@ -1,0 +1,356 @@
+package com.example.tvvoiceprobe;
+
+import android.Manifest;
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.res.ColorStateList;
+import android.media.AudioAttributes;
+import android.media.MediaPlayer;
+import android.net.Uri;
+import android.os.Bundle;
+import android.text.InputType;
+import android.view.KeyEvent;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
+import android.widget.TextView;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import okhttp3.HttpUrl;
+
+/**
+ * Android TV D-pad-first foreground Home Assistant Assist proof of concept.
+ * No launcher replacement, background microphone, PiP or overlay in this build.
+ */
+public class VoiceActivity extends Activity implements HaAssistClient.Events {
+    private static final int MIC_PERMISSION_REQUEST = 17;
+    private final List<Button> buttons = new ArrayList<>();
+    private int selected = 0;
+    private TextView status;
+    private TextView recognized;
+    private TextView response;
+    private TextView connection;
+    private CredentialStore store;
+    private HaAssistClient assist;
+    private CredentialStore.Connection settings;
+    private MediaPlayer player;
+    private boolean playing;
+    private boolean warningPending;
+
+    @Override public void onCreate(Bundle state) {
+        super.onCreate(state);
+        store = new CredentialStore(this);
+        assist = new HaAssistClient(this, this);
+
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(34, 22, 34, 22);
+        root.setBackgroundColor(0xff101c2b);
+
+        TextView title = label("HOME ASSISTANT  |  TV VOICE", 25, 0xff5de1ec);
+        root.addView(title);
+
+        connection = label("Home Assistant: not configured", 16, 0xffc7d8e9);
+        root.addView(connection);
+
+        TextView info = label("D-pad UP/DOWN: select  •  OK: activate  •  BACK: leave", 16, 0xff8ba6c1);
+        root.addView(info);
+
+        addButton(root, "1. Configure Home Assistant", v -> configure());
+        addButton(root, "2. Connect to Home Assistant", v -> connect());
+        addButton(root, "3. TALK to Home Assistant", v -> startTalk());
+        addButton(root, "4. STOP speaking", v -> assist.finishTalking());
+        addButton(root, "5. Start new conversation", v -> newConversation());
+        addButton(root, "6. Hardware microphone diagnostics", v ->
+                startActivity(new Intent(this, MainActivity.class)));
+        addButton(root, "7. Forget saved connection", v -> confirmForget());
+
+        status = label("Set up your Home Assistant address and a long-lived token.", 18, 0xff5de1ec);
+        root.addView(status);
+
+        ScrollView scroller = new ScrollView(this);
+        scroller.setFocusable(false);
+        LinearLayout history = new LinearLayout(this);
+        history.setOrientation(LinearLayout.VERTICAL);
+        history.setPadding(10, 10, 10, 0);
+        TextView youTitle = label("YOU SAID", 15, 0xff8ba6c1);
+        history.addView(youTitle);
+        recognized = label("Nothing yet", 21, 0xffffffff);
+        history.addView(recognized);
+        TextView assistTitle = label("HOME ASSISTANT", 15, 0xff8ba6c1);
+        history.addView(assistTitle);
+        response = label("Waiting for your first request", 21, 0xffd2e9fd);
+        history.addView(response);
+        TextView note = label(
+                "ALPHA: This version tests in-app microphone, Assist WebSocket, transcript and spoken TTS. " +
+                "The floating TV overlay, remote ⭐ shortcut, HA media player and Frigate PiP are coming later.",
+                15, 0xff7992ad);
+        history.addView(note);
+        scroller.addView(history);
+        root.addView(scroller, new LinearLayout.LayoutParams(-1, 0, 1));
+
+        setContentView(root);
+        try { settings = store.load(); }
+        catch (Exception e) { status("Saved connection couldn't be decrypted. Configure it again."); }
+        updateConnectionLabel();
+        if (!buttons.isEmpty()) buttons.get(0).post(() -> focus(0));
+    }
+
+    private TextView label(String value, int size, int color) {
+        TextView t = new TextView(this);
+        t.setText(value);
+        t.setTextSize(size);
+        t.setTextColor(color);
+        t.setPadding(0, 7, 0, 7);
+        t.setFocusable(false);
+        return t;
+    }
+
+    private void addButton(LinearLayout parent, String value, View.OnClickListener action) {
+        Button b = new Button(this);
+        int index = buttons.size();
+        b.setText(value);
+        b.setAllCaps(false);
+        b.setTextSize(16);
+        b.setTextColor(0xffffffff);
+        b.setFocusable(true);
+        b.setFocusableInTouchMode(true);
+        b.setBackgroundTintList(ColorStateList.valueOf(0xff405572));
+        b.setOnClickListener(action);
+        b.setOnFocusChangeListener((v, focused) -> {
+            if (focused) selected = index;
+            b.setBackgroundTintList(ColorStateList.valueOf(focused ? 0xff097eaf : 0xff405572));
+        });
+        buttons.add(b);
+        parent.addView(b);
+    }
+
+    private void focus(int index) {
+        if (buttons.isEmpty()) return;
+        selected = Math.max(0, Math.min(index, buttons.size() - 1));
+        buttons.get(selected).requestFocus();
+    }
+
+    @Override public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus && !buttons.isEmpty()) {
+            View now = getCurrentFocus();
+            if (!(now instanceof Button) || !buttons.contains(now)) {
+                buttons.get(selected).post(() -> focus(selected));
+            }
+        }
+    }
+
+    @Override public boolean dispatchKeyEvent(KeyEvent event) {
+        int code = event.getKeyCode();
+        if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) {
+            if (code == KeyEvent.KEYCODE_DPAD_DOWN || code == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                focus(selected + 1);
+                return true;
+            }
+            if (code == KeyEvent.KEYCODE_DPAD_UP || code == KeyEvent.KEYCODE_DPAD_LEFT) {
+                focus(selected - 1);
+                return true;
+            }
+            if (code == KeyEvent.KEYCODE_DPAD_CENTER || code == KeyEvent.KEYCODE_ENTER
+                    || code == KeyEvent.KEYCODE_NUMPAD_ENTER || code == KeyEvent.KEYCODE_BUTTON_A) {
+                if (!buttons.isEmpty()) buttons.get(selected).performClick();
+                return true;
+            }
+        }
+        // Ignore key release for navigation/selection to avoid duplicate activation.
+        if (code == KeyEvent.KEYCODE_DPAD_DOWN || code == KeyEvent.KEYCODE_DPAD_RIGHT
+                || code == KeyEvent.KEYCODE_DPAD_UP || code == KeyEvent.KEYCODE_DPAD_LEFT
+                || code == KeyEvent.KEYCODE_DPAD_CENTER || code == KeyEvent.KEYCODE_ENTER
+                || code == KeyEvent.KEYCODE_NUMPAD_ENTER || code == KeyEvent.KEYCODE_BUTTON_A) {
+            return true;
+        }
+        return super.dispatchKeyEvent(event);
+    }
+
+    private void updateConnectionLabel() {
+        if (connection == null) return;
+        connection.setText(settings == null
+                ? "Home Assistant: not configured"
+                : "Home Assistant: " + settings.url + (assist.isConnected() ? "  ✓ connected" : "  (not connected)"));
+    }
+
+    private void configure() {
+        LinearLayout form = new LinearLayout(this);
+        form.setPadding(30, 10, 30, 10);
+        form.setOrientation(LinearLayout.VERTICAL);
+
+        form.addView(label("Home Assistant URL (prefer HTTPS / Nabu Casa)", 16, 0xff101c2b));
+        EditText url = new EditText(this);
+        url.setSingleLine(true);
+        url.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
+        url.setHint("https://your-ha-address");
+        url.setText(settings == null ? "" : settings.url);
+        form.addView(url);
+
+        form.addView(label("Long-lived access token (never saved in GitHub)", 16, 0xff101c2b));
+        EditText token = new EditText(this);
+        token.setSingleLine(true);
+        token.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        token.setHint(settings == null ? "Paste token" : "Leave blank to keep existing token");
+        form.addView(token);
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Connect to Home Assistant");
+        builder.setView(form);
+        builder.setNegativeButton("Cancel", null);
+        builder.setPositiveButton("Save and connect", (dialog, which) -> saveAndConnect(
+                url.getText().toString().trim(), token.getText().toString().trim()));
+        AlertDialog dialog = builder.create();
+        dialog.setOnShowListener(ignored -> url.requestFocus());
+        dialog.show();
+    }
+
+    private void saveAndConnect(String url, String token) {
+        if (settings != null && token.isEmpty()) token = settings.token;
+        if (token.isEmpty()) { status("Enter a Home Assistant long-lived access token."); return; }
+        HttpUrl parsed = HttpUrl.parse(url);
+        if (parsed == null || (!"https".equals(parsed.scheme()) && !"http".equals(parsed.scheme()))) {
+            status("Enter the full http:// or https:// Home Assistant address."); return;
+        }
+        final String acceptedToken = token;
+        if ("http".equals(parsed.scheme())) {
+            new AlertDialog.Builder(this)
+                    .setTitle("HTTP connection is not encrypted")
+                    .setMessage("Your Home Assistant token and voice audio would travel without transport encryption. " +
+                            "Use HTTPS when possible. Continue with HTTP only on a trusted private network.")
+                    .setNegativeButton("Cancel", null)
+                    .setPositiveButton("Use HTTP locally", (d, w) -> persistAndConnect(url, acceptedToken))
+                    .show();
+            return;
+        }
+        persistAndConnect(url, acceptedToken);
+    }
+
+    private void persistAndConnect(String url, String token) {
+        try {
+            store.save(url, token);
+            settings = store.load();
+            updateConnectionLabel();
+            connect();
+        } catch (Exception e) {
+            status("Couldn't safely save connection. Try again.");
+        }
+    }
+
+    private void connect() {
+        if (settings == null) { configure(); return; }
+        assist.connect(settings.url, settings.token);
+        updateConnectionLabel();
+    }
+
+    private void startTalk() {
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, MIC_PERMISSION_REQUEST);
+        } else {
+            recognized.setText("Listening...");
+            response.setText("Waiting for Home Assistant...");
+            assist.talk();
+        }
+    }
+
+    @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grants) {
+        super.onRequestPermissionsResult(requestCode, permissions, grants);
+        if (requestCode == MIC_PERMISSION_REQUEST) {
+            if (grants.length > 0 && grants[0] == PackageManager.PERMISSION_GRANTED) startTalk();
+            else status("Microphone permission denied.");
+        }
+    }
+
+    private void newConversation() {
+        // Conversation reset is implemented at client level; reconnect for this first alpha.
+        assist.disconnect();
+        recognized.setText("Nothing yet");
+        response.setText("New conversation started. Reconnect to begin.");
+        status("Conversation cleared. Select CONNECT to start fresh.");
+        updateConnectionLabel();
+    }
+
+    private void confirmForget() {
+        new AlertDialog.Builder(this)
+                .setTitle("Forget Home Assistant login?")
+                .setMessage("Deletes the saved URL and encrypted token from this TV.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Forget", (d, w) -> {
+                    assist.disconnect();
+                    if (player != null) { player.release(); player = null; }
+                    store.clear();
+                    settings = null;
+                    updateConnectionLabel();
+                    status("Saved connection deleted.");
+                }).show();
+    }
+
+    @Override public void status(String message) {
+        runOnUiThread(() -> {
+            if (status != null) status.setText(message);
+            updateConnectionLabel();
+        });
+    }
+
+    @Override public void transcript(String value) {
+        runOnUiThread(() -> { if (recognized != null) recognized.setText(value); });
+    }
+
+    @Override public void answer(String value) {
+        runOnUiThread(() -> { if (response != null) response.setText(value); });
+    }
+
+    @Override public void ttsUrl(String url) { runOnUiThread(() -> playTts(url)); }
+
+    private void playTts(String address) {
+        if (settings == null) return;
+        try {
+            HttpUrl base = HttpUrl.parse(settings.url);
+            HttpUrl playback = base.resolve(address);
+            if (playback == null) throw new IllegalArgumentException("Invalid TTS audio URL");
+            // Only load from our configured HA endpoint, never send HA credentials elsewhere.
+            if (!playback.host().equals(base.host()) || playback.port() != base.port()
+                    || !playback.scheme().equals(base.scheme())) {
+                // HA sometimes emits its internal URL. Rewrite only known HA TTS proxy paths.
+                if (!playback.encodedPath().startsWith("/api/tts_proxy/")) {
+                    throw new SecurityException("Refusing unknown audio server");
+                }
+                playback = base.newBuilder()
+                        .encodedPath(playback.encodedPath())
+                        .encodedQuery(playback.encodedQuery()).build();
+            }
+            if (player != null) { player.release(); player = null; }
+            player = new MediaPlayer();
+            player.setAudioAttributes(new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ASSISTANT)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build());
+            Map<String, String> headers = new HashMap<>();
+            headers.put("Authorization", "Bearer " + settings.token);
+            player.setDataSource(this, Uri.parse(playback.toString()), headers);
+            player.setOnPreparedListener(p -> { status("Speaking..."); p.start(); });
+            player.setOnCompletionListener(p -> status("Finished. Select TALK for another question."));
+            player.setOnErrorListener((p, what, extra) -> {
+                status("TTS playback failed. The text answer is still above.");
+                return true;
+            });
+            player.prepareAsync();
+        } catch (Exception e) {
+            status("Could not play TTS. The text answer is still above.");
+        }
+    }
+
+    @Override protected void onDestroy() {
+        if (player != null) { player.release(); player = null; }
+        assist.shutdown();
+        super.onDestroy();
+    }
+}
