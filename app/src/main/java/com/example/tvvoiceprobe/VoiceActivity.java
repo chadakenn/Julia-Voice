@@ -10,6 +10,9 @@ import android.media.AudioAttributes;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.provider.Settings;
 import android.text.InputType;
 import android.view.KeyEvent;
 import android.view.View;
@@ -27,11 +30,13 @@ import java.util.Map;
 import okhttp3.HttpUrl;
 
 /**
- * Android TV D-pad-first foreground Home Assistant Assist proof of concept.
- * No launcher replacement, background microphone, PiP or overlay in this build.
+ * Android TV D-pad-first Home Assistant Assist UI with explicitly enabled
+ * overlay prototype. No launcher replacement, wake word, or Frigate PiP.
  */
 public class VoiceActivity extends Activity implements HaAssistClient.Events {
     private static final int MIC_PERMISSION_REQUEST = 17;
+    private static final int OVERLAY_MIC_PERMISSION_REQUEST = 18;
+    private static final int OVERLAY_SETTINGS_REQUEST = 19;
     private final List<Button> buttons = new ArrayList<>();
     private int selected = 0;
     private TextView status;
@@ -185,6 +190,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                 "Connect / reconnect",
                 "Start new conversation",
                 "Hardware microphone diagnostics",
+                "Open floating voice overlay (experimental)",
                 "Forget saved connection"
         };
         new AlertDialog.Builder(this)
@@ -195,12 +201,66 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                         case 1: connect(); break;
                         case 2: newConversation(); break;
                         case 3: startActivity(new Intent(this, MainActivity.class)); break;
-                        case 4: confirmForget(); break;
+                        case 4: launchOverlay(); break;
+                        case 5: confirmForget(); break;
                         default: break;
                     }
                 })
                 .setNegativeButton("Close", null)
                 .show();
+    }
+
+    private void launchOverlay() {
+        // Never activate the overlay without explicit user action and consent.
+        if (settings == null) {
+            status("Configure Home Assistant before opening the overlay.");
+            return;
+        }
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, OVERLAY_MIC_PERMISSION_REQUEST);
+            return;
+        }
+        if (!Settings.canDrawOverlays(this)) {
+            status("Grant 'Display over other apps', then start the overlay again.");
+            new AlertDialog.Builder(this)
+                    .setTitle("Allow TV Voice overlay")
+                    .setMessage("Google TV must allow this app to display over other apps. " +
+                            "The microphone listens only after you select TALK. " +
+                            "The overlay stops completely when you choose CLOSE or BACK. " +
+                            "If the TV has no overlay permission screen, this firmware may not support it.")
+                    .setNegativeButton("Not now", null)
+                    .setPositiveButton("Open system permission", (dialog, which) -> {
+                        try {
+                            startActivityForResult(new Intent(
+                                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                    Uri.parse("package:" + getPackageName())), OVERLAY_SETTINGS_REQUEST);
+                        } catch (Exception error) {
+                            status("No overlay permission screen found on this Google TV firmware.");
+                        }
+                    }).show();
+            return;
+        }
+        try {
+            Intent start = new Intent(this, VoiceOverlayService.class);
+            startForegroundService(start);
+            status("Starting voice overlay... CLOSE or BACK dismisses it.");
+            // Reveal the prior task rather than forcing the TV launcher.
+            // OEM behavior may vary; test with a harmless launcher screen first.
+            new Handler(Looper.getMainLooper()).postDelayed(() -> moveTaskToBack(true), 750);
+        } catch (Exception error) {
+            status("Couldn't start overlay on this Google TV firmware.");
+        }
+    }
+
+    @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == OVERLAY_SETTINGS_REQUEST) {
+            if (Settings.canDrawOverlays(this)) {
+                status("Overlay allowed! Open SETTINGS and choose floating overlay again.");
+            } else {
+                status("Overlay permission wasn't granted. The normal TV voice app still works.");
+            }
+        }
     }
 
     private void configure() {
@@ -287,6 +347,9 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         if (requestCode == MIC_PERMISSION_REQUEST) {
             if (grants.length > 0 && grants[0] == PackageManager.PERMISSION_GRANTED) startTalk();
             else status("Microphone permission denied.");
+        } else if (requestCode == OVERLAY_MIC_PERMISSION_REQUEST) {
+            if (grants.length > 0 && grants[0] == PackageManager.PERMISSION_GRANTED) launchOverlay();
+            else status("Microphone permission denied; overlay not started.");
         }
     }
 
