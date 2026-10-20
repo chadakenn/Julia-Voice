@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 580" role="img" aria-labelledby="title desc">
-  <title id="title">TV voice answer screen illustrated from a real onn 4K Pro test</title>
-  <desc id="desc">Illustration, not a photo: Home Assistant TV Voice shows the spoken question What time is it and answered 5:07 AM.</desc>
+  <title id="title">Julia Voice answer screen illustrated from a real onn 4K Pro test</title>
+  <desc id="desc">Illustration, not a photo: Julia Voice shows the spoken question What time is it and answered 5:07 AM.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop stop-color="#254e84"/>
@@ -14,7 +14,7 @@
   </defs>
   <rect width="980" height="580" rx="20" fill="#101923"/>
   <rect x="15" y="15" width="950" height="550" rx="10" fill="url(#bg)"/>
-  <text x="50" y="75" font-size="33" fill="#68e4f1" font-family="Arial, sans-serif" font-weight="700">HOME ASSISTANT  |  TV VOICE</text>
+  <text x="50" y="75" font-size="33" fill="#68e4f1" font-family="Arial, sans-serif" font-weight="700">JULIA VOICE</text>
   <text x="50" y="121" font-size="18" fill="#d1e6f3" font-family="Arial, sans-serif">Home Assistant: connected ✓</text>
   <text x="50" y="157" font-size="19" fill="#9ad8f4" font-family="Arial, sans-serif">Finished. Select TALK for another question.</text>
   <text x="50" y="231" font-size="22" fill="#b2cbe0" font-family="Arial, sans-serif">HOME ASSISTANT SAYS</text>
