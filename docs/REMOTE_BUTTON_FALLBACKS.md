@@ -4,7 +4,7 @@ Research began before hardware testing; updated 2026-10-20 with **actual onn 4K 
 
 ## Candidate approaches (least invasive first)
 
-1. **Onn 4K Pro built-in customizable ⭐ star button.** In the Google TV remote-button configuration, see whether it can launch our future TV Voice app. This may be the simplest reliable push-to-talk *trigger* if the stock microphone/Assistant button is OEM-reserved. Exact menu behavior depends on model and firmware.
+1. **Onn 4K Pro built-in customizable ⭐ star button.** In the Google TV remote-button configuration, see whether it can launch our future Julia Voice app. This may be the simplest reliable push-to-talk *trigger* if the stock microphone/Assistant button is OEM-reserved. Exact menu behavior depends on model and firmware.
 2. **tvQuickActions** (Android TV / Google TV app). Via its Accessibility Service, attempt to map a spare key (or possibly the star, Free TV, app shortcut, or voice button if delivered) to **Open App / Open Activity** or a targeted app intent. Its Free and Pro features differ; do not require a paid version before testing a free route. Docs say some keys are not detectable by normal remapping and some advanced actions may need ADB; do not disable system apps without an explicit rollback path.
 3. **Button Mapper** as another Accessibility-based experiment if tvQuickActions fails. Preserve original remote navigation, Back and power behavior.
 4. **Android default assistant RoleManager / Assist intent** remains a separate route to investigate; the existing Android diagnostic app can test role availability. The actual Google voice button is currently intercepted by Google.
