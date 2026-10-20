@@ -31,14 +31,14 @@ This is an experimental Android TV / Google TV app. Each entry distinguishes **s
 - ✅ Incremented signed Android `versionCode` from 4 to 5; built with same permanent signing key. **[GitHub Actions build #50](https://github.com/chadakenn/onn-tv-voice-remote./actions/runs/39409512785) passed all signing and artifact steps**.
 - ⚠️ **Awaiting actual onn box testing:** auto-listen, waveform, auto-stop with background video, auto-hide, ⭐ shortcut mapping and preserving credentials during signed upgrade. Previous v0.4 already displayed the overlay on Google TV Home. See [v0.5 testing](docs/V0_5_TESTING.md).
 
-## v0.4-overlay-prototype (2026-10-20) — Opt-in floating TV voice
+## v0.4-overlay-prototype (2026-10-20) — Opt-in floating Julia Voice panel
 
 - Added an **experimental small, translucent floating voice panel** with D-pad TALK / STOP / CLOSE, recognized speech, HA text answer and speech output.
 - Implemented `VoiceOverlayService` as an **explicitly user-started, microphone-typed Android foreground service**. It is not an always-on microphone; recording starts only during TALK, and stopping the overlay closes the service.
 - Added consent flow for **Display over other apps** and microphone permission. No overlay is started without permission.
-- Added a separate launcher entry **HA Voice Overlay**, which may be selectable as the onn ⭐ programmable remote shortcut **if the TV firmware allows app launch selection**.
+- Added a separate launcher entry **Julia Voice Overlay**, which may be selectable as the onn ⭐ programmable remote shortcut **if the TV firmware allows app launch selection**.
 - Version upgraded to `0.4-overlay-prototype` / Android `versionCode 4`. The package ID and **permanent release signing key** are unchanged, so signed-v0.3 users should be able to **update in place** without losing tokens.
-- Signed GitHub Actions **[build #39](https://github.com/chadakenn/onn-tv-voice-remote./actions/runs/39400677478)** passed compilation, private key restoration and APK signature verification, and published `onn-tv-ha-assist-signed`.
+- Signed GitHub Actions **[build #39](https://github.com/chadakenn/onn-tv-voice-remote./actions/runs/39400677478)** passed compilation, private key restoration and APK signature verification, and uploaded the signed APK artifact.
 - **Hardware testing still required:** overlay permission availability on onn Google TV, floating window display over launcher/streaming apps, D-pad focus and TTS during a video, shortcut remapping, task return behavior and in-place credential retention. See [overlay test instructions](docs/OVERLAY_TESTING.md).
 
 ## 2026-10-20 — Full voice conversation confirmed; GPLv3 selected
@@ -52,7 +52,7 @@ This is an experimental Android TV / Google TV app. Each entry distinguishes **s
 ## v0.3-assist-alpha (2026-10-20) — Signed release
 
 - ✅ Added **persistent private release signing** using encrypted GitHub Actions secrets `TV_SIGNING_KEYSTORE_B64` and `TV_SIGNING_PASSWORD`. First successful signed build: [#31](https://github.com/chadakenn/onn-tv-voice-remote./actions/runs/39397223494).
-- ✅ Changed downloadable artifact from old `onn-tv-ha-assist-alpha` debug ZIP to `onn-tv-ha-assist-signed` containing `app-release.apk`. Signature verification runs before publishing.
+- ✅ Changed downloadable artifact from earlier debug debug ZIP to `julia-voice-signed` containing `app-release.apk`. Signature verification runs before publishing.
 - ✅ Increased Android `versionCode` to 3 and set `versionName` to `0.3-assist-alpha`.
 - ✅ Replaced the seven oversized action buttons with a **TALK / STOP / SETTINGS** layout. **The new layout subsequently passed an on-device test**, see the milestone above.
 - ✅ Corrected parsing of the Assist TTS event URL from `tts_output.url`. **TV-speaker playback subsequently passed the real-device test.**
