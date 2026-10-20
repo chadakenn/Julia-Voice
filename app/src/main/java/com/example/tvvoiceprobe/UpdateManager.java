@@ -228,7 +228,7 @@ public final class UpdateManager {
         }
         try {
             if (!activity.getPackageManager().canRequestPackageInstalls()) {
-                listener.onError("Allow HA TV Voice to install unknown apps in Android settings, " +
+                listener.onError("Allow Julia Voice to install unknown apps in Android settings, " +
                         "then return and choose Install downloaded update again.");
                 Intent settings = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
                         Uri.parse("package:" + activity.getPackageName()));
@@ -311,7 +311,7 @@ public final class UpdateManager {
             conn.setConnectTimeout(15000);
             conn.setReadTimeout(30000);
             conn.setInstanceFollowRedirects(false);
-            conn.setRequestProperty("User-Agent", "HA-TV-Voice-Updater");
+            conn.setRequestProperty("User-Agent", "Julia-Voice-Updater");
             conn.setRequestProperty("Accept", "application/vnd.github+json");
             int code = conn.getResponseCode();
             if (code >= 300 && code < 400) {
