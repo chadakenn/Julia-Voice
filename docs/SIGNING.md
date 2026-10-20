@@ -1,5 +1,7 @@
 # Android APK signing for this TV app
 
+**Status (2026-10-20):** the permanent GitHub Actions signing secrets have been configured. **[Run #31](https://github.com/chadakenn/onn-tv-voice-remote./actions/runs/39397223494) succeeded**, including private-keystore restoration, building a release APK, Android signature verification and publishing the `onn-tv-ha-assist-signed` artifact.
+
 ## Why the original APK reports "conflicts with another app"
 
 The original `app-debug.apk` from GitHub Actions was signed with a temporary Android debug key generated on each hosted build machine. Android will not install a new APK over an installed app with the same package ID but a different certificate. This is Android's security protection, NOT a Home Assistant authentication error.
@@ -28,6 +30,6 @@ The files must be protected like passwords; anyone who possesses both the keysto
 
 Never upload the signing key/password to the public repo, an issue, a chat screenshot, or a third-party file-sharing service. Back up both privately. GitHub Actions secret values are not visible in the source code.
 
-No release APK is available until BOTH required secrets have been configured. The workflow intentionally fails instead of producing another incompatible debug APK.
+On any fork or replacement repository **without both secrets**, the workflow intentionally fails rather than publishing another incompatible debug APK. In this repository, the signing setup was verified by run #31. All future releases must reuse **exactly the same** original signing key and increment `versionCode` for app updates.
 
 If the password or key is lost, future releases cannot update this signed app without a reinstall and associated loss of stored credentials.
