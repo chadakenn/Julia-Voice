@@ -10,8 +10,8 @@ android {
         applicationId 'com.example.tvvoiceprobe'
         minSdk 26
         targetSdk 35
-        versionCode 6
-        versionName '0.6-in-app-updates'
+        versionCode 7
+        versionName '0.7-julia-branding'
     }
 
     // The keystore is private and supplied from GitHub Actions secrets.
