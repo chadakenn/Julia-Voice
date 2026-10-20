@@ -31,15 +31,15 @@ import java.util.concurrent.Executors;
  * Validates the release checksum and then lets Android enforce package signature.
  */
 public final class UpdateManager {
-    // Support migration of the repository to chadakenn/julia-voice.
-    // New APKs prefer the new canonical address once the owner renames the repo.
-    // Keep the old path while the repository still has its original name.
+    // The repository has been renamed to chadakenn/Julia-Voice.
+    // GitHub reports the canonical spelling in release asset URLs. Preserve the
+    // original address only as a constrained migration fallback for old links.
     private static final String LATEST =
-            "https://api.github.com/repos/chadakenn/julia-voice/releases/latest";
+            "https://api.github.com/repos/chadakenn/Julia-Voice/releases/latest";
     private static final String LEGACY_LATEST =
             "https://api.github.com/repos/chadakenn/onn-tv-voice-remote./releases/latest";
     private static final String RELEASE_PREFIX =
-            "https://github.com/chadakenn/julia-voice/releases/download/";
+            "https://github.com/chadakenn/Julia-Voice/releases/download/";
     private static final String LEGACY_RELEASE_PREFIX =
             "https://github.com/chadakenn/onn-tv-voice-remote./releases/download/";
     private static final long MAX_APK_BYTES = 150L * 1024L * 1024L;
@@ -285,8 +285,8 @@ public final class UpdateManager {
         try {
             return readText(LATEST, 750000);
         } catch (IllegalStateException error) {
-            // The canonical repository will legitimately return 404 until the
-            // owner performs the rename in GitHub's Settings.
+            // Retain an explicit fallback for rollout/migration edge cases.
+            // It never broadens the APK host or asset-path allowlist.
             if (error.getMessage() == null || !error.getMessage().contains("404")) {
                 throw error;
             }
