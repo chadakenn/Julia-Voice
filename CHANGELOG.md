@@ -4,15 +4,17 @@ This is an experimental Android TV / Google TV app. Each entry distinguishes **s
 
 ## v0.7-julia-branding (2026-10-20) — Julia Voice identity
 
-- Introduced the official **Julia Voice** development branding and the tagline **Your voice. Your home. Your AI.** The repo name remains unchanged for updater compatibility.
+- **Repo rename:** GitHub now reports `chadakenn/Julia-Voice`. Fixed v0.7 release download verification for canonical capitalization (`Julia-Voice`) and documented the one-time manual upgrade needed by some installed v0.6 builds. No public v0.7 release has been published.
+
+- Introduced the official **Julia Voice** development branding and the tagline **Your voice. Your home. Your AI.** The repository was renamed to `chadakenn/Julia-Voice` on 2026-10-20; the updater source was adjusted for the canonical release URLs.
 - Completed a repository-wide brand sweep: README, installation/testing/security-adjacent guides, SVG screenshot previews, in-app dialogs, notifications, shortcut labels and diagnostics all use **Julia Voice**.
 - GitHub Actions is now named **Build Julia Voice Signed APK**, with the new `julia-voice-signed` artifact used by both build and release publishing jobs. The Gradle root project is **JuliaVoice**.
-- **[CI run #75](https://github.com/chadakenn/onn-tv-voice-remote./actions/runs/39423514042) passed**, including the new artifact. The Android package ID, signing key, and published v0.6 update URLs remain unchanged.
+- **[CI run #75](https://github.com/chadakenn/Julia-Voice/actions/runs/39423514042) passed**, including the new artifact. The Android package ID, signing key, and existing Android package signing remain unchanged; the release URL has moved with the renamed repo.
 - Added a new [GitHub README hero](docs/branding/julia-voice-header.svg) inspired by approved neon-glass concept images.
 - Added new Android **waveform launcher icon**, **Julia Voice TV banner**, and approximately one-second **startup artwork** rendered with Android primitives.
 - Updated the launcher, overlay shortcut, foreground-service notification, floating panel, diagnostic heading and settings label to Julia Voice.
 - Kept existing `applicationId` (`com.example.tvvoiceprobe`), private signing key, encrypted Home Assistant settings and existing updater logic. Increased Android `versionCode` to **7** and `versionName` to `0.7-julia-branding`.
-- **[Signed CI run #69](https://github.com/chadakenn/onn-tv-voice-remote./actions/runs/39421241827) passed** compile and APK signature verification. **Not yet tested on TV**, and v0.7 is **not yet a public GitHub Release**. Only owner-approved manual release publishing offers it as an OTA update.
+- **[Signed CI run #69](https://github.com/chadakenn/Julia-Voice/actions/runs/39421241827) passed** compile and APK signature verification. **Not yet tested on TV**, and v0.7 is **not yet a public GitHub Release**. Only owner-approved manual release publishing offers it as an OTA update.
 
 ## v0.6-in-app-updates (2026-10-20) — TV-native signed updater
 
@@ -22,7 +24,7 @@ This is an experimental Android TV / Google TV app. Each entry distinguishes **s
 - Opens Android's standard user-approved APK installer; requests **Install unknown apps** permission if required. No root, silent background installation, HA-token upload or sideloading from arbitrary hosts.
 - Added owner-controlled GitHub Actions `publish_release` checkbox. If selected in a manual run, signs and verifies the APK, then publishes a GitHub Release containing `app-release.apk` and `update.json`. Ordinary pushes do **not** publish releases.
 - Increased Android `versionCode` to **6**, `versionName` to `0.6-in-app-updates`. Existing keystore and application ID are unchanged.
-- **[Signed build #58](https://github.com/chadakenn/onn-tv-voice-remote./actions/runs/39411724076) passed** build and APK signature verification. **Public v0.6 GitHub Release is published. The in-app installation path is not yet hardware-verified.**
+- **[Signed build #58](https://github.com/chadakenn/Julia-Voice/actions/runs/39411724076) passed** build and APK signature verification. **Public v0.6 GitHub Release is published. The in-app installation path is not yet hardware-verified.**
 - [First-install and release publishing instructions](docs/UPDATES.md).
 
 ## v0.5-glass-voice (2026-10-20) — Glass UI and one-press voice prototype
@@ -31,7 +33,7 @@ This is an experimental Android TV / Google TV app. Each entry distinguishes **s
 - ✅ Added on-device preferences for Glass/Classic, auto-listen (ON by default) and auto-hide after speech (ON by default).
 - ✅ Overlay launches a speech session **after Home Assistant authenticates**, eliminating a second TALK press. Added optional local voice-pause detection and 23-second recording safety timeout; manual STOP still works.
 - ✅ Added optional main-app launcher fallback for the onn ⭐ app picker; overlay SETTINGS button keeps the configuration screen reachable.
-- ✅ Incremented signed Android `versionCode` from 4 to 5; built with same permanent signing key. **[GitHub Actions build #50](https://github.com/chadakenn/onn-tv-voice-remote./actions/runs/39409512785) passed all signing and artifact steps**.
+- ✅ Incremented signed Android `versionCode` from 4 to 5; built with same permanent signing key. **[GitHub Actions build #50](https://github.com/chadakenn/Julia-Voice/actions/runs/39409512785) passed all signing and artifact steps**.
 - ⚠️ **Awaiting actual onn box testing:** auto-listen, waveform, auto-stop with background video, auto-hide, ⭐ shortcut mapping and preserving credentials during signed upgrade. Previous v0.4 already displayed the overlay on Google TV Home. See [v0.5 testing](docs/V0_5_TESTING.md).
 
 ## v0.4-overlay-prototype (2026-10-20) — Opt-in floating Julia Voice panel
@@ -41,7 +43,7 @@ This is an experimental Android TV / Google TV app. Each entry distinguishes **s
 - Added consent flow for **Display over other apps** and microphone permission. No overlay is started without permission.
 - Added a separate launcher entry **Julia Voice Overlay**, which may be selectable as the onn ⭐ programmable remote shortcut **if the TV firmware allows app launch selection**.
 - Version upgraded to `0.4-overlay-prototype` / Android `versionCode 4`. The package ID and **permanent release signing key** are unchanged, so signed-v0.3 users should be able to **update in place** without losing tokens.
-- Signed GitHub Actions **[build #39](https://github.com/chadakenn/onn-tv-voice-remote./actions/runs/39400677478)** passed compilation, private key restoration and APK signature verification, and uploaded the signed APK artifact.
+- Signed GitHub Actions **[build #39](https://github.com/chadakenn/Julia-Voice/actions/runs/39400677478)** passed compilation, private key restoration and APK signature verification, and uploaded the signed APK artifact.
 - **Hardware testing still required:** overlay permission availability on onn Google TV, floating window display over launcher/streaming apps, D-pad focus and TTS during a video, shortcut remapping, task return behavior and in-place credential retention. See [overlay test instructions](docs/OVERLAY_TESTING.md).
 
 ## 2026-10-20 — Full voice conversation confirmed; GPLv3 selected
@@ -54,8 +56,8 @@ This is an experimental Android TV / Google TV app. Each entry distinguishes **s
 
 ## v0.3-assist-alpha (2026-10-20) — Signed release
 
-- ✅ Added **persistent private release signing** using encrypted GitHub Actions secrets `TV_SIGNING_KEYSTORE_B64` and `TV_SIGNING_PASSWORD`. First successful signed build: [#31](https://github.com/chadakenn/onn-tv-voice-remote./actions/runs/39397223494).
-- ✅ Changed downloadable artifact from earlier debug debug ZIP to `julia-voice-signed` containing `app-release.apk`. Signature verification runs before publishing.
+- ✅ Added **persistent private release signing** using encrypted GitHub Actions secrets `TV_SIGNING_KEYSTORE_B64` and `TV_SIGNING_PASSWORD`. First successful signed build: [#31](https://github.com/chadakenn/Julia-Voice/actions/runs/39397223494).
+- ✅ Changed downloadable artifact from earlier debug ZIP to `julia-voice-signed` containing `app-release.apk`. Signature verification runs before publishing.
 - ✅ Increased Android `versionCode` to 3 and set `versionName` to `0.3-assist-alpha`.
 - ✅ Replaced the seven oversized action buttons with a **TALK / STOP / SETTINGS** layout. **The new layout subsequently passed an on-device test**, see the milestone above.
 - ✅ Corrected parsing of the Assist TTS event URL from `tts_output.url`. **TV-speaker playback subsequently passed the real-device test.**
