@@ -22,7 +22,7 @@ public final class OverlayShortcutActivity extends Activity {
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
         TextView message = new TextView(this);
-        message.setText("Opening Home Assistant floating voice...");
+        message.setText("Opening Julia Voice...");
         message.setTextColor(0xffffffff);
         message.setTextSize(22);
         message.setPadding(45, 60, 45, 60);
@@ -45,7 +45,7 @@ public final class OverlayShortcutActivity extends Activity {
                     checkSelfPermission(Manifest.permission.RECORD_AUDIO)
                             != PackageManager.PERMISSION_GRANTED) {
                 Toast.makeText(this,
-                        "First open HA TV Voice, then SETTINGS > Floating voice overlay",
+                        "First open Julia Voice, then SETTINGS > Floating voice overlay",
                         Toast.LENGTH_LONG).show();
                 startActivity(new Intent(this, VoiceActivity.class));
                 finish();
