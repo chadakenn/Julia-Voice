@@ -1,0 +1,109 @@
+package com.example.tvvoiceprobe;
+
+import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Path;
+import android.os.Handler;
+import android.os.Looper;
+import android.view.View;
+
+/**
+ * Tiny, original procedural TV waveform. Animation reflects assistant state,
+ * not recorded sound amplitude; no audio is sampled here.
+ */
+public final class VoiceWaveView extends View {
+    public static final int IDLE = 0;
+    public static final int CONNECTING = 1;
+    public static final int LISTENING = 2;
+    public static final int THINKING = 3;
+    public static final int SPEAKING = 4;
+
+    private final Paint brush = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint baseline = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private int mode = IDLE;
+    private boolean running;
+    private long frame = 0L;
+    private final Runnable redraw = new Runnable() {
+        @Override public void run() {
+            if (!running) return;
+            frame++;
+            invalidate();
+            handler.postDelayed(this, 42);
+        }
+    };
+
+    public VoiceWaveView(Context context) {
+        super(context);
+        setFocusable(false);
+        baseline.setColor(0x2144d9fd);
+        baseline.setStrokeWidth(dp(1));
+    }
+
+    private int dp(int value) {
+        return Math.round(value * getResources().getDisplayMetrics().density);
+    }
+
+    public void setMode(int next) {
+        mode = next;
+        invalidate();
+    }
+
+    @Override protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        running = true;
+        handler.post(redraw);
+    }
+
+    @Override protected void onDetachedFromWindow() {
+        running = false;
+        handler.removeCallbacks(redraw);
+        super.onDetachedFromWindow();
+    }
+
+    @Override protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), dp(88));
+    }
+
+    @Override protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+        final float width = getWidth();
+        final float height = getHeight();
+        if (width < 2 || height < 2) return;
+
+        float middle = height * 0.52f;
+        canvas.drawLine(0, middle, width, middle, baseline);
+        float phase = frame * 0.105f;
+        float intensity = mode == LISTENING ? 1.0f
+                : mode == SPEAKING ? 0.9f
+                : mode == THINKING ? 0.60f
+                : mode == CONNECTING ? 0.30f : 0.21f;
+        int[] colors = {0xff39defc, 0xff8963ff, 0xffdb63f2, 0xff4267ec};
+        for (int layer = 0; layer < colors.length; layer++) {
+            Path path = new Path();
+            float amplitude = (height * 0.33f) * intensity
+                    * (0.66f + 0.18f * layer);
+            float frequency = 2.4f + layer * 0.65f;
+            for (int i = 0; i <= 96; i++) {
+                float x = width * i / 96f;
+                float t = i / 96f;
+                float envelope = (float) Math.pow(Math.sin(Math.PI * t), 1.7);
+                float wave = (float) (Math.sin(t * Math.PI * 2 * frequency
+                        + phase * (0.9 + 0.11 * layer) + layer * 1.2)
+                        + 0.27 * Math.sin(t * Math.PI * 2 * 1.3 - phase * 0.7));
+                float y = middle + wave * amplitude * envelope;
+                if (i == 0) path.moveTo(x, y);
+                else path.lineTo(x, y);
+            }
+            brush.setStyle(Paint.Style.STROKE);
+            brush.setStrokeCap(Paint.Cap.ROUND);
+            brush.setStrokeJoin(Paint.Join.ROUND);
+            brush.setStrokeWidth(dp(layer == 0 ? 2 : 1));
+            brush.setColor(colors[layer]);
+            brush.setAlpha(layer == 0 ? 225 : 148);
+            canvas.drawPath(path, brush);
+        }
+    }
+}
