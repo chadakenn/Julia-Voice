@@ -2,6 +2,14 @@
 
 This is an experimental Android TV / Google TV app. Each entry distinguishes **shipped code** from **tested on the onn 4K Pro**.
 
+## v0.8-star-shortcut-fix (2026-10-20) — onn ⭐ picker fallback reliability
+
+- The onn 4K Pro's native ⭐ shortcut picker lists **Julia Voice** but hides the package's separate Julia Voice Overlay launcher entry (confirmed by user photo).
+- The **explicit opt-in** under **SETTINGS → Overlay style and voice settings → ⭐ picker fallback** remains **OFF by default**. Once enabled, a normal launcher open should request the floating overlay; the microphone and draw-over-other-apps permissions must still be granted.
+- Fixed startup detection for launchers that omit `CATEGORY_LAUNCHER` or `CATEGORY_LEANBACK_LAUNCHER` while keeping `ACTION_MAIN`, and handled a new launch intent when Android reuses an existing `VoiceActivity`.
+- Bumped Android `versionCode` to **8** and `versionName` to `0.8-star-shortcut-fix`. Application ID and release-signing key unchanged.
+- **Not yet field-tested on the onn TV**. A successful signed build is not proof that Google's specific ⭐ launch route delivers a detectable intent. Public stable release requires owner approval.
+
 ## v0.7-julia-branding (2026-10-20) — Julia Voice identity
 
 - **Repo rename:** GitHub now reports `chadakenn/Julia-Voice`. Fixed v0.7 release download verification for canonical capitalization (`Julia-Voice`) and documented the one-time manual upgrade needed by some installed v0.6 builds. No public v0.7 release has been published.
