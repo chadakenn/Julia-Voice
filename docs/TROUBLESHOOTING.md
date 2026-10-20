@@ -1,11 +1,11 @@
-# Troubleshooting: HA TV Voice on Google TV
+# Troubleshooting: Julia Voice on Google TV
 
 ## "Conflicts with another app" / "App not installed"
 
 Android requires the **same package ID and signing certificate** for an update.
 
 - Original artifacts were `onn-tv-ha-assist-alpha` / `app-debug.apk` and changed signing keys across GitHub runners.
-- New permanent artifacts are `onn-tv-ha-assist-signed` / `app-release.apk`, backed by the private repo keystore.
+- New permanent artifacts are `julia-voice-signed` / `app-release.apk`, backed by the private repo keystore.
 - To change from **old debug** to **new release**, download and verify the successful signed build *first*, then **uninstall old debug app once**, and install release. **The local HA URL and encrypted token are deleted by uninstall**, so you'll need to re-enter them.
 - To update from **signed release** to a newer **signed release**, do **not** uninstall; Android should retain settings. If installation conflicts, investigate rather than deleting the app.
 
