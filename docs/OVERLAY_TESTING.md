@@ -1,4 +1,4 @@
-# Floating TV voice overlay: v0.4 prototype
+# Floating Julia Voice overlay: v0.4 prototype
 
 > **First hardware milestone reached (2026-10-20):** onn 4K Pro showed the floating panel above **Google TV Home** and displayed “Connected and authenticated. Select TALK.” The panel's microphone capture, speaker TTS, CLOSE/BACK behavior and appearance over playing video remain **untested**. This is NOT yet Frigate PiP, a persistent satellite, or an always-on wake-word assistant.
 
@@ -8,13 +8,13 @@
 - While the panel is visible, the Android service runs as a **microphone-type foreground service** with an ongoing notification. **Microphone recording begins only when TALK is selected**, and stops on STOP, server STT/VAD ending, or when you dismiss the overlay.
 - The overlay obtains its **encrypted Home Assistant settings** from the app's existing Android Keystore store. No second token setup should be necessary after installing a *signed* update over another signed version.
 - Two ways to start it:
-  1. Open the regular **HA TV Voice Alpha** → **SETTINGS → Open floating voice overlay (experimental)**.
-  2. After permission setup, launch the **HA Voice Overlay** shortcut shown as a separate TV app entry. If Google TV offers an installed-app action for the programmable **⭐ button**, this shortcut is the one to choose.
+  1. Open the regular **Julia Voice** → **SETTINGS → Open floating voice overlay (experimental)**.
+  2. After permission setup, launch the **Julia Voice Overlay** shortcut shown as a separate TV app entry. If Google TV offers an installed-app action for the programmable **⭐ button**, this shortcut is the one to choose.
 - CLOSE or Back dismisses the window and stops the service, including its mic capture and connection. This is opt-in, not auto-started at boot.
 
 ## Install
 
-Install the latest **successful** [signed GitHub Actions build](../.github/workflows/build-apk.yml), artifact `onn-tv-ha-assist-signed`, ZIP containing `app-release.apk`.
+Install the latest **successful** [signed GitHub Actions build](../.github/workflows/build-apk.yml), artifact `julia-voice-signed`, ZIP containing `app-release.apk`.
 
 **Important: `versionCode=4`, `versionName=0.4-overlay-prototype`.** If you already installed v0.3 *signed* release, this APK should install **over it without uninstalling or retyping your HA token**. The private release signing key is the same, and versionCode increased.
 
@@ -22,14 +22,14 @@ Install the latest **successful** [signed GitHub Actions build](../.github/workf
 
 ## Verified so far
 
-- ✅ Screenshot confirms a visible translucent **Home Assistant TV Voice** panel at the upper-right of Google TV Home.
+- ✅ Screenshot confirms a visible translucent **Julia Voice** panel at the upper-right of Google TV Home.
 - ✅ Overlay displays **Connected and authenticated. Select TALK.**
 - ✅ TALK, STOP and CLOSE buttons are visible; TALK appears highlighted, but button activation is **not yet verified**.
 - ⏳ Test audio capture, STT, reply and TTS inside the overlay; D-pad and BACK exit, then overlay over YouTube or another ordinary video app.
 
 ## First test (avoid disrupting movies)
 
-1. Launch the updated **HA TV Voice Alpha**; check the normal foreground voice conversation still works.
+1. Launch the updated **Julia Voice**; check the normal foreground voice conversation still works.
 2. Select **SETTINGS → Open floating voice overlay (experimental)**. Grant Android's **Display over other apps** permission if it offers that setting. Some TV firmware may not expose it.
 3. Reopen the app and select the same overlay action after granting permission. If the microphone runtime permission prompt appears, approve it.
 4. The app should return to the previous task, and a small translucent panel should appear near the **top-right**. Depending on the TV task manager, you may be looking at the TV launcher rather than a previously playing app. That is a firmware limitation to test, not a guarantee of playback preservation.
@@ -43,12 +43,12 @@ Install the latest **successful** [signed GitHub Actions build](../.github/workf
 **The onn 4K Pro has a native customizable star button that can launch a favorite installed app.** Its exact choices vary by Google TV firmware. The native star-button feature is our first choice, before installing any remapper.
 
 1. On your onn remote, **press and hold ⭐ for about 1–2 seconds**. If it opens the shortcut picker, choose **Open favorite app**.
-2. Look for **HA Voice Overlay** in the installed apps list. Select it and complete the **Create shortcut** confirmation. **Do not pick “HA TV Voice Alpha”** if the separate overlay entry is available.
+2. Look for **Julia Voice Overlay** in the installed apps list. Select it and complete the **Create shortcut** confirmation. **Do not pick “Julia Voice”** if the separate overlay entry is available.
 3. If a long press doesn't open the shortcut picker because ⭐ is already configured for TV input switching, try **Google TV Settings → Remotes & Accessories → Set up remote buttons → Customizable button**. (Menu wording may vary.)
 4. Once configured, launch **YouTube** or another harmless non-DRM app, start a video, and **briefly press ⭐**. Ideally the quick-launch activity starts the already-authorized foreground overlay, then returns to the video.
 5. Use the overlay's TALK / STOP to ask a question and CLOSE or BACK to dismiss. Confirm whether video remains visible, whether it pauses, and whether playback is interrupted or ducked.
 
-**Important implementation caveat:** although our APK declares a separate `HA Voice Overlay` launcher activity, Google's favorite-app picker might collapse launcher entries to their **parent Android package**. If **HA Voice Overlay** is missing, or ⭐ always launches the full-screen HA TV Voice Alpha, send us a photo of the app picker instead of installing more tools. We may need a separate-package launcher, an activity shortcut, or a vetted third-party button mapper. The working voice app and its token remain intact.
+**Important implementation caveat:** although our APK declares a separate `Julia Voice Overlay` launcher activity, Google's favorite-app picker might collapse launcher entries to their **parent Android package**. If **Julia Voice Overlay** is missing, or ⭐ always launches the full-screen Julia Voice, send us a photo of the app picker instead of installing more tools. We may need a separate-package launcher, an activity shortcut, or a vetted third-party button mapper. The working voice app and its token remain intact.
 
 The microphone button still invokes Google Assistant. **This does not remap the mic button or grant access to the Bluetooth remote mic.**
 
@@ -64,6 +64,6 @@ Sources for native ⭐ behavior: [onn 4K Pro review and star button long press](
 
 ## Troubleshooting
 
-If nothing appears, return to the main app and check **Settings → Display over other apps** permission, and whether an onn/Google TV permission screen is supported. If the TV returns home rather than the prior app, test launching the **HA Voice Overlay** shortcut from another app. If voice transcription fails, verify whether the original full-screen TALK / STOP continues to work.
+If nothing appears, return to the main app and check **Settings → Display over other apps** permission, and whether an onn/Google TV permission screen is supported. If the TV returns home rather than the prior app, test launching the **Julia Voice Overlay** shortcut from another app. If voice transcription fails, verify whether the original full-screen TALK / STOP continues to work.
 
 For bug reports provide firmware/OS version, whether overlay permission existed, whether the panel appeared over a **normal non-DRM app**, D-pad behavior, and any status error **without posting HA tokens or signing secrets**.
