@@ -2,7 +2,7 @@
 
 **Native Home Assistant Assist on Google TV / Android TV**, initially tested on the **onn 4K Pro**. This project aims to let you talk to Home Assistant without replacing your TV launcher or permanently covering streaming apps.
 
-> **Status: v0.5 Glass voice prototype (2026-10-20).** **Confirmed on real onn 4K Pro:** Home Assistant heard “What time is it?”, displayed “5:07 AM” and played speech through the TV speakers. The v0.4 floating overlay was visible over Google TV Home and authenticated. **New, still untested on TV in v0.5:** dark Glass waveform card, auto-listen on launch, voice-pause auto-stop, skin selection and ⭐ launcher compatibility. Frigate PiP, HA announcements and wake words are future work.
+> **Status: v0.6 in-app updater alpha (2026-10-20).** **Confirmed on real onn 4K Pro:** Home Assistant understood a spoken question, displayed the answer and played it through TV speakers; the v0.4 floating overlay appeared over Google TV Home. **v0.5:** Glass waveform and auto-listen (still needs field testing). **v0.6:** periodic GitHub Release checks, APK download, SHA-256 verification, and user-approved Android installation. **The updater is built and signed, but is not yet tested on the TV.** Frigate PiP, HA announcements and wake words are future work.
 
 ## What's working and what's next
 
@@ -20,6 +20,7 @@
 | v0.5 Glass skin, animated waveform and Classic option | 🔶 Signed build passed; await onn field test |
 | v0.5 auto-listen/auto-stop + reply auto-hide | 🔶 Signed build passed; await onn field test |
 | Dedicated **HA Voice Overlay** launcher or main-app ⭐ fallback | 🔶 Built, mapping depends on onn firmware |
+| GitHub Release update check, download, checksum verification and Android installer | 🔶 v0.6 builds successfully; device test pending |
 | HA media_player announcements, Frigate person-triggered PiP, dashboard on request | 📋 Planned |
 
 The **Google voice button currently opens Google's assistant**, not this app. A regular remote can control TALK / STOP, and the onn box microphone has produced working STT audio. We are **not claiming access to the Bluetooth remote microphone**.
@@ -34,7 +35,7 @@ The **Google voice button currently opens Google's assistant**, not this app. A 
 4. **Only if you still have the original debug-signed app installed:** uninstall that old app **once**, then install `app-release.apk`. This clears the previous encrypted Home Assistant settings and you'll have to enter your token again. **Do not uninstall until you have the signed APK available.**
 5. **All future signed updates** should install directly over the signed app and preserve the saved HA connection, provided the permanent signing key remains unchanged and `versionCode` increases when necessary.
 
-📘 [Full installation / migration guide](docs/INSTALL.md) · [Signing and key backup](docs/SIGNING.md) · [Troubleshooting](docs/TROUBLESHOOTING.md)
+📘 [In-app updates and first v0.6 install](docs/UPDATES.md) · [Full installation / migration guide](docs/INSTALL.md) · [Signing and key backup](docs/SIGNING.md) · [Troubleshooting](docs/TROUBLESHOOTING.md)
 
 ## First Home Assistant conversation
 
@@ -60,7 +61,7 @@ More detail: [Field test results and checklist](docs/TESTING.md), [security note
 
 ## Roadmap
 
-1. **Now (v0.5):** test ⭐ shortcut launch, auto-listen, Glass/Classic selection, actual reply speech, auto-hide and playback over YouTube while preserving credentials. [Home test instructions](docs/V0_5_TESTING.md).
+1. **Now (v0.6):** install signed updater over v0.5 once; test GitHub Releases check and Android install permission. The first published v0.6 will report up to date; download/install testing requires a newer release. [Updater guide](docs/UPDATES.md). Continue v0.5 Glass/⭐ testing as desired.
 2. **Next:** refine ⭐ shortcut selection where firmware permits, overlay placement, audio focus, ambient-TV-noise tolerance, skins and recovery based on actual results.
 3. **Afterward:** dedicated HA `media_player` with automation-driven chimes/TTS (e.g. “The washer is done”); secure companion channel.
 4. **Then:** Frigate/go2rtc camera views, filtered doorbell-person PiP and optional spoken alerts; on-demand dashboards.
