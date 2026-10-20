@@ -28,8 +28,8 @@ Distinguish what has actually worked on hardware from compiled features. A green
 The permanently signed **[build #39](https://github.com/chadakenn/onn-tv-voice-remote./actions/runs/39400677478)** completed compilation and APK signature verification. The following are **not yet hardware-verified**:
 
 - [ ] Signed v0.4 installs *over* signed v0.3 while preserving encrypted HA credentials
-- [ ] Google TV exposes and grants “Display over other apps” permission
-- [ ] Floating panel appears near upper-right while launcher/another TV app is visible
+- [x] Overlay permission is effective: Google TV displayed our floating panel above its launcher (exact permission-screen steps not documented)
+- [x] Floating panel appeared in the upper-right **over Google TV Home**, connected and authenticated to HA; behavior over other apps still needs checking
 - [ ] D-pad selects TALK / STOP / CLOSE; BACK dismisses panel and releases controls
 - [ ] Microphone capture, HA transcript, reply and TV TTS work through the floating panel
 - [ ] Closing the overlay stops the foreground-service notification and microphone activity
