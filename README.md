@@ -49,6 +49,12 @@ Prerequisites: a reachable Home Assistant server, a working **Assist pipeline** 
 
 The **proven v0.3** full-screen conversation continues to work; **v0.4** proved the overlay displays over Google TV Home. **v0.5** brings auto-listening after the explicit ⭐/app launch, a Glass waveform skin, optional Classic skin, a best-effort silence detector, configurable automatic dismissal and a TV-app-picker fallback. Google TV real-world behavior and audio/video coexistence still require testing. This is not a system Assistant replacement, wake-word listener, HA media_player or Frigate client. See the [v0.5 home test checklist](docs/V0_5_TESTING.md).
 
+## Home Assistant companion tools
+
+We installed [**Tools for Assist (`llm_intents`)**](https://github.com/skye-harris/llm_intents) on the **Home Assistant side** to support **online searches and weather information** for our AI assistant.
+
+This integration runs on the Home Assistant server, **not inside the Android TV APK**. HA TV Voice sends speech to the configured Home Assistant Assist pipeline; the conversation agent and its configured tools handle requests for live information. Installing the integration alone does not guarantee every tool is enabled or available to the selected agent. Web searches require network access and the corresponding search-provider configuration.
+
 ## Architecture and privacy
 
 - **Android Java**, Android TV-compatible D-pad UI, `AudioRecord` with `VOICE_RECOGNITION` at **16 kHz mono PCM16**, OkHttp authenticated WebSocket `/api/websocket`.
