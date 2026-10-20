@@ -2,7 +2,7 @@
 
 **Native Home Assistant Assist on Google TV / Android TV**, initially tested on the **onn 4K Pro**. This project aims to let you talk to Home Assistant without replacing your TV launcher or permanently covering streaming apps.
 
-> **Status: v0.4 overlay prototype (2026-10-20).** **Real device success (v0.3):** the onn 4K Pro connected to Home Assistant, transcribed “What time is it?”, displayed the answer “5:07 AM”, **and played it through the TV speakers**. **New in v0.4:** opt-in floating Assist panel and a separate ⭐ shortcut launch entry. **Both still need testing on Google TV hardware.** HA announcement/media-player integration and Frigate PiP are future work.
+> **Status: v0.4 overlay prototype (2026-10-20).** **Real device success (v0.3):** the onn 4K Pro connected to Home Assistant, transcribed “What time is it?”, displayed the answer “5:07 AM”, **and played it through the TV speakers**. **New in v0.4:** opt-in floating Assist panel and a separate ⭐ shortcut launch entry. **The floating panel is now confirmed visible and HA-authenticated over Google TV Home**, but overlay talk/TTS over video and ⭐ mapping still need testing. HA announcement/media-player integration and Frigate PiP are future work.
 
 ## What's working and what's next
 
@@ -16,7 +16,7 @@
 | Play HA TTS through TV speakers | ✅ Tested; spoken reply heard |
 | Permanently signed APK build | ✅ GitHub Actions run [#31](../../actions/runs/39397223494) successful |
 | First debug-to-signed migration and in-place signed update | ⏳ Hardware confirmation pending |
-| Opt-in floating voice panel with TALK / STOP / CLOSE, foreground microphone service | 🔶 Built v0.4; awaiting TV testing |
+| Opt-in floating voice panel with TALK / STOP / CLOSE, foreground microphone service | ✅ Visible and HA-authenticated over Google TV Home; voice controls not yet tested |
 | Dedicated **HA Voice Overlay** launcher for optional ⭐ mapping | 🔶 Built; mapping depends on onn firmware |
 | HA media_player announcements, Frigate person-triggered PiP, dashboard on request | 📋 Planned |
 
@@ -44,7 +44,7 @@ Prerequisites: a reachable Home Assistant server, a working **Assist pipeline** 
 4. The **HOME ASSISTANT SAYS** answer appears above **YOU SAID**. Both on-screen answer and spoken TTS have been confirmed on the onn box in a first end-to-end test.
 5. If speech-to-text works but no sound comes out, see [Troubleshooting](docs/TROUBLESHOOTING.md). Keep tokens out of screenshots.
 
-The **proven v0.3** conversation runs in the foreground. In **v0.4** we added an **experimental floating overlay** started only on request, with a visible foreground service and a dedicated launcher entry. Its behavior over streaming apps is **unverified**. This is still not a system Assistant replacement, wake-word listener, HA media_player or Frigate client. See [Overlay test instructions](docs/OVERLAY_TESTING.md).
+The **proven v0.3** conversation runs in the foreground. In **v0.4** we added an **experimental floating overlay** started only on request, with a visible foreground service and a dedicated launcher entry. Its placement over Google TV Home is **verified**; behavior over streaming apps, panel microphone and spoken TTS is **unverified**. This is still not a system Assistant replacement, wake-word listener, HA media_player or Frigate client. See [Overlay test instructions](docs/OVERLAY_TESTING.md).
 
 ## Architecture and privacy
 
