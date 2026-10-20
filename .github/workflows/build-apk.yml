@@ -1,4 +1,4 @@
-name: Build HA TV Voice Alpha APK
+name: Build HA TV Voice Signed APK
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  signed-release:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -30,11 +30,35 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Build Assist alpha APK
-        run: gradle --no-daemon :app:assembleDebug
-      - name: Upload installable APK
+
+      # Android updates MUST use the exact same keystore on every build.
+      # Do not publish a new disposable debug APK to users.
+      - name: Restore private release-signing key
+        env:
+          TV_KEY_B64: ${{ secrets.TV_SIGNING_KEYSTORE_B64 }}
+          TV_SIGNING_PASSWORD: ${{ secrets.TV_SIGNING_PASSWORD }}
+        shell: bash
+        run: |
+          if [[ -z "$TV_KEY_B64" || -z "$TV_SIGNING_PASSWORD" ]]; then
+            echo "::error::Set repository Actions secrets TV_SIGNING_KEYSTORE_B64 and TV_SIGNING_PASSWORD. See docs/SIGNING.md"
+            exit 1
+          fi
+          printf '%s' "$TV_KEY_B64" | base64 --decode > "$RUNNER_TEMP/tv-voice-signing.p12"
+          chmod 600 "$RUNNER_TEMP/tv-voice-signing.p12"
+          keytool -list -storetype PKCS12 -keystore "$RUNNER_TEMP/tv-voice-signing.p12" -storepass "$TV_SIGNING_PASSWORD" -alias tvvoice > /dev/null
+          echo "TV_SIGNING_KEYSTORE_PATH=$RUNNER_TEMP/tv-voice-signing.p12" >> "$GITHUB_ENV"
+
+      - name: Build signed release APK
+        env:
+          TV_SIGNING_PASSWORD: ${{ secrets.TV_SIGNING_PASSWORD }}
+        run: gradle --no-daemon :app:assembleRelease
+
+      - name: Verify APK signature
+        run: "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose app/build/outputs/apk/release/app-release.apk
+
+      - name: Upload installable signed APK
         uses: actions/upload-artifact@v4
         with:
-          name: onn-tv-ha-assist-alpha
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: onn-tv-ha-assist-signed
+          path: app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
