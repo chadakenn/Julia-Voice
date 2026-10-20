@@ -31,9 +31,16 @@ import java.util.concurrent.Executors;
  * Validates the release checksum and then lets Android enforce package signature.
  */
 public final class UpdateManager {
+    // Support migration of the repository to chadakenn/julia-voice.
+    // New APKs prefer the new canonical address once the owner renames the repo.
+    // Keep the old path while the repository still has its original name.
     private static final String LATEST =
+            "https://api.github.com/repos/chadakenn/julia-voice/releases/latest";
+    private static final String LEGACY_LATEST =
             "https://api.github.com/repos/chadakenn/onn-tv-voice-remote./releases/latest";
     private static final String RELEASE_PREFIX =
+            "https://github.com/chadakenn/julia-voice/releases/download/";
+    private static final String LEGACY_RELEASE_PREFIX =
             "https://github.com/chadakenn/onn-tv-voice-remote./releases/download/";
     private static final long MAX_APK_BYTES = 150L * 1024L * 1024L;
     private final Activity activity;
@@ -80,7 +87,7 @@ public final class UpdateManager {
         busy = true;
         background.execute(() -> {
             try {
-                JSONObject release = new JSONObject(readText(LATEST, 750000));
+                JSONObject release = new JSONObject(readLatestReleaseMetadata());
                 if (release.optBoolean("draft") || release.optBoolean("prerelease")) {
                     throw new IllegalStateException("No stable release is available.");
                 }
@@ -266,8 +273,24 @@ public final class UpdateManager {
     private void post(Runnable runnable) { ui.post(runnable); }
 
     private void validateAssetUrl(String url, String tag, String filename) {
-        if (!url.equals(RELEASE_PREFIX + tag + "/" + filename)) {
+        // Require the exact known repo path and file name. This also permits
+        // transitional releases from the original repo before renaming.
+        if (!url.equals(RELEASE_PREFIX + tag + "/" + filename)
+                && !url.equals(LEGACY_RELEASE_PREFIX + tag + "/" + filename)) {
             throw new IllegalArgumentException("Unexpected release asset URL.");
+        }
+    }
+
+    private String readLatestReleaseMetadata() throws Exception {
+        try {
+            return readText(LATEST, 750000);
+        } catch (IllegalStateException error) {
+            // The canonical repository will legitimately return 404 until the
+            // owner performs the rename in GitHub's Settings.
+            if (error.getMessage() == null || !error.getMessage().contains("404")) {
+                throw error;
+            }
+            return readText(LEGACY_LATEST, 750000);
         }
     }
 
