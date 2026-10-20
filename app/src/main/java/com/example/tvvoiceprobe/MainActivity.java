@@ -283,7 +283,7 @@ public class MainActivity extends Activity {
                 probing = false;
                 log("Mic test ended. Audio was NOT stored or sent anywhere.");
             }
-        }, "tv-voice-probe").start();
+        }, "julia-voice-diagnostics").start();
     }
 
     private void log(String message) {
