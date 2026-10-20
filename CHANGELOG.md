@@ -2,6 +2,16 @@
 
 This is an experimental Android TV / Google TV app. Each entry distinguishes **shipped code** from **tested on the onn 4K Pro**.
 
+## v0.4-overlay-prototype (2026-10-20) — Opt-in floating TV voice
+
+- Added an **experimental small, translucent floating voice panel** with D-pad TALK / STOP / CLOSE, recognized speech, HA text answer and speech output.
+- Implemented `VoiceOverlayService` as an **explicitly user-started, microphone-typed Android foreground service**. It is not an always-on microphone; recording starts only during TALK, and stopping the overlay closes the service.
+- Added consent flow for **Display over other apps** and microphone permission. No overlay is started without permission.
+- Added a separate launcher entry **HA Voice Overlay**, which may be selectable as the onn ⭐ programmable remote shortcut **if the TV firmware allows app launch selection**.
+- Version upgraded to `0.4-overlay-prototype` / Android `versionCode 4`. The package ID and **permanent release signing key** are unchanged, so signed-v0.3 users should be able to **update in place** without losing tokens.
+- Signed GitHub Actions **[build #39](https://github.com/chadakenn/onn-tv-voice-remote./actions/runs/39400677478)** passed compilation, private key restoration and APK signature verification, and published `onn-tv-ha-assist-signed`.
+- **Hardware testing still required:** overlay permission availability on onn Google TV, floating window display over launcher/streaming apps, D-pad focus and TTS during a video, shortcut remapping, task return behavior and in-place credential retention. See [overlay test instructions](docs/OVERLAY_TESTING.md).
+
 ## 2026-10-20 — Full voice conversation confirmed; GPLv3 selected
 
 - ✅ **Real TV end-to-end success:** the onn 4K Pro understood “What time is it?”, displayed Home Assistant's reply **“5:07 AM”**, and **played TTS through the TV speakers**.
