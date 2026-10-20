@@ -31,7 +31,7 @@ Private signing key/password must stay off GitHub source control. Repository Act
 - `TV_SIGNING_KEYSTORE_B64`: private PKCS12 keystore encoded in base64, alias `tvvoice`
 - `TV_SIGNING_PASSWORD`: keystore and key password
 
-See [signing and recovery](SIGNING.md). First signed APK was verified in [run #31](https://github.com/chadakenn/onn-tv-voice-remote./actions/runs/39397223494). [Run #32](https://github.com/chadakenn/onn-tv-voice-remote./actions/runs/39397723153) should not be used as a fixed artifact link unless verified independently; always prefer the **latest successful** signed run.
+See [signing and recovery](SIGNING.md). First signed APK was verified in [run #31](https://github.com/chadakenn/onn-tv-voice-remote./actions/runs/39397223494). Always prefer the **latest successful** signed run for new installers.
 
 **Release checklist:**
 
