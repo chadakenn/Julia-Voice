@@ -219,6 +219,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         addAction(toolbar, "TALK", this::startListening);
         addAction(toolbar, "STOP", this::stopListening);
         addAction(toolbar, "CLOSE", this::stopSelf);
+        addAction(toolbar, "SETTINGS", this::openMainSettings);
         panel.addView(toolbar);
 
         int screenWidth = getResources().getDisplayMetrics().widthPixels;
@@ -286,6 +287,18 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         if (wave != null) wave.setMode(VoiceWaveView.LISTENING);
         status("LISTENING • Speak toward the onn box");
         assist.talk(preferences.autoListen());
+    }
+
+    private void openMainSettings() {
+        // Explicit Activity intent has no MAIN/launcher action, so the optional
+        // ⭐ fallback cannot trap the user in a launch-overlay loop.
+        try {
+            Intent open = new Intent(this, VoiceActivity.class);
+            open.setAction("com.example.tvvoiceprobe.OPEN_SETTINGS");
+            open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            startActivity(open);
+        } catch (Exception ignored) { }
+        stopSelf();
     }
 
     private void stopListening() {
