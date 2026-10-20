@@ -6,15 +6,15 @@
 
 **Your voice. Your home. Your AI.**
 
-**Julia Voice** (formerly **HA TV Voice**) is a local-first, open-source voice interface for Home Assistant. **Julia** is the assistant's name, and the project is growing from its first Android TV app into a platform-neutral voice interface.
+**Julia Voice** is a local-first, open-source voice interface for Home Assistant. **Julia** is the assistant's name, and the project is growing from its first Android TV app into a platform-neutral voice interface.
 
 **Native Home Assistant Assist on Google TV / Android TV**, initially tested on the **onn 4K Pro**. This project aims to let you talk to Home Assistant without replacing your TV launcher or permanently covering streaming apps.
 
 > **Status: v0.7 Julia Voice branding in development (2026-10-20).** **Confirmed on real onn 4K Pro:** Home Assistant understood a spoken question, displayed the answer and played it through TV speakers; the v0.4 floating overlay appeared over Google TV Home. **v0.5:** Glass waveform and auto-listen (still needs field testing). **v0.6:** periodic GitHub Release checks, APK download, SHA-256 verification, and user-approved Android installation. **The v0.7 rename, new launcher icon/TV banner and startup screen are source-code changes under CI test; the v0.6 updater still needs on-device installation testing.** Frigate PiP, HA announcements and wake words are future work.
 
-## Project name and compatibility
+## Compatibility and updates
 
-**Julia Voice** is the project's chosen working name. The **GitHub repository URL**, Android `applicationId` (`com.example.tvvoiceprobe`), APK signing key, and existing v0.6 release URLs remain unchanged for now so current installations, credentials, and the in-app updater keep working. The published v0.6 APK still displays its original **HA TV Voice Alpha** label. The repository's **v0.7 source** changes the launcher labels to Julia Voice, adds a wave icon, TV launcher banner and a brief startup screen, but **this new APK is not yet published as a stable GitHub Release or hardware-tested**.
+**Julia Voice** keeps the existing GitHub repository URL, Android `applicationId` (`com.example.tvvoiceprobe`), release-signing key and published v0.6 download addresses to preserve existing installations and automatic-update compatibility. The public v0.6 APK predates the visual rebrand. The v0.7 development APK includes Julia Voice launcher labels, waveform icon, TV banner and welcome screen. **v0.7 has passed CI but is not yet published as a stable GitHub Release or tested on TV.**
 
 A preliminary public search found other uses of "Julia" in AI and "Julia Voice" in music; no comprehensive trademark clearance or domain check has been completed. This README reflects our development branding rather than a claim of exclusive rights.
 
@@ -71,7 +71,7 @@ The image previews below are **illustrative reconstructions based on those actua
 
 | Assist conversation preview | Floating overlay preview |
 | --- | --- |
-| ![Illustrated original full-screen TV voice conversation showing question and answer](docs/screenshots/conversation-preview.svg) | ![Illustrated original floating Home Assistant TV voice panel on the Google TV launcher](docs/screenshots/overlay-preview.svg) |
+| ![Illustrated original full-screen TV voice conversation showing question and answer](docs/screenshots/conversation-preview.svg) | ![Illustrated original floating Julia Voice panel on the Google TV launcher](docs/screenshots/overlay-preview.svg) |
 
 ## What's working and what's next
 
@@ -88,7 +88,7 @@ The image previews below are **illustrative reconstructions based on those actua
 | Floating overlay on Google TV Home | ✅ v0.4 shown and authenticated on onn box |
 | v0.5 Glass skin, animated waveform and Classic option | 🔶 Signed build passed; await onn field test |
 | v0.5 auto-listen/auto-stop + reply auto-hide | 🔶 Signed build passed; await onn field test |
-| Dedicated **HA Voice Overlay** launcher or main-app ⭐ fallback | 🔶 Built, mapping depends on onn firmware |
+| Dedicated **Julia Voice Overlay** launcher or main-app ⭐ fallback | 🔶 Built, mapping depends on onn firmware |
 | GitHub Release update check, download, checksum verification and Android installer | 🔶 v0.6 builds successfully; device test pending |
 | HA media_player announcements, Frigate person-triggered PiP, dashboard on request | 📋 Planned |
 
@@ -96,7 +96,7 @@ The **Google voice button currently opens Google's assistant**, not this app. A 
 
 ## Download and install
 
-**Get the current public signed APK:** [**HA TV Voice v0.6**](https://github.com/chadakenn/onn-tv-voice-remote./releases/tag/v0.6) · [**Direct APK download**](https://github.com/chadakenn/onn-tv-voice-remote./releases/download/v0.6/app-release.apk).
+**Get the current public signed APK:** [**Julia Voice v0.6**](https://github.com/chadakenn/onn-tv-voice-remote./releases/tag/v0.6) · [**Direct APK download**](https://github.com/chadakenn/onn-tv-voice-remote./releases/download/v0.6/app-release.apk).
 
 1. Download `app-release.apk` and install it using **Send Files to TV**, USB, or ADB (one-time migration to the update-enabled build). Allow Android's installation prompt.
 2. If you're **already using an APK signed by our permanent release key (v0.3 or newer)**, **install over it; do not uninstall**. The HA URL and encrypted token should remain saved.
@@ -111,7 +111,7 @@ GitHub Releases are intentionally published only after an owner-approved workflo
 
 Prerequisites: a reachable Home Assistant server, a working **Assist pipeline** with STT/conversation agent (and TTS if you want spoken answers), and a **long-lived access token**.
 
-1. Open **HA TV Voice Alpha**, then **SETTINGS → Configure Home Assistant**. Enter HA URL and token; choose **Save and connect**. Google TV's phone remote keyboard can help, but clipboard paste varies.
+1. Open **Julia Voice**, then **SETTINGS → Configure Home Assistant**. Enter HA URL and token; choose **Save and connect**. Google TV's phone remote keyboard can help, but clipboard paste varies.
 2. Wait for **Connected and authenticated**.
 3. Select **TALK**, wait for **LISTENING**, speak toward the **onn 4K Pro box** (not the Google remote mic), then select **STOP**.
 4. The **HOME ASSISTANT SAYS** answer appears above **YOU SAID**. Both on-screen answer and spoken TTS have been confirmed on the onn box in a first end-to-end test.
