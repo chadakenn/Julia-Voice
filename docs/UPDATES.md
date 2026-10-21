@@ -16,11 +16,11 @@ The installed v0.10 and earlier updater may reject a release asset under the ren
 
 ## Release URL compatibility
 
-The corrected **v0.11** updater prefers `https://api.github.com/repos/chadakenn/Kellies-Voice/releases/latest` and allows its release APK assets at `https://github.com/chadakenn/Kellies-Voice/releases/download/`.
+The updater requests `https://api.github.com/repos/chadakenn/Kellies-Voice/releases/latest` and allows release APK assets only at `https://github.com/chadakenn/Kellies-Voice/releases/download/`.
 
-The previous **Julia-Voice** API and download URL prefix remain an explicit, narrow fallback for migration. The updater still checks the exact expected asset name, tag/version, HTTPS host, APK size and SHA-256 hash, then lets Android verify the package signing certificate before installation. There are no automatic or silent installs.
+The old **Julia-Voice** URL is no longer a fallback. It did not help TVs still running v0.10 or earlier — those builds have the old prefix compiled in and still need the one-time sideload above. A fallback in the new app only mattered when `Kellies-Voice` itself returned 404, which would also let a recreated `Julia-Voice` repository offer a download. After the SHA-256 check, the app now rejects an APK whose package name is not `com.example.tvvoiceprobe` or whose signing certificate does not match the installed app, before Android's installer opens.
 
-The GitHub rename has **already occurred**. Do not create a new repository at the old `Julia-Voice` path, which could interfere with redirects. For local clones, use `git remote set-url origin https://github.com/chadakenn/Kellies-Voice.git`.
+The GitHub rename has **already occurred**. Do not create a new repository at the old `Julia-Voice` path. For local clones, use `git remote set-url origin https://github.com/chadakenn/Kellies-Voice.git`.
 
 ## Public release, only with owner approval
 
