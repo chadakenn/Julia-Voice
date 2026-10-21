@@ -487,18 +487,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
     private void playTts(String address) {
         if (connection == null || closing) return;
         try {
-            HttpUrl base = HttpUrl.parse(connection.url);
-            if (base == null) throw new IllegalStateException("Bad HA address");
-            HttpUrl playback = base.resolve(address);
-            if (playback == null) throw new IllegalArgumentException("Invalid speech media path");
-            if (!playback.host().equals(base.host()) || playback.port() != base.port()
-                    || !playback.scheme().equals(base.scheme())) {
-                if (!playback.encodedPath().startsWith("/api/tts_proxy/")) {
-                    throw new SecurityException("Unexpected TTS server");
-                }
-                playback = base.newBuilder().encodedPath(playback.encodedPath())
-                        .encodedQuery(playback.encodedQuery()).build();
-            }
+            HttpUrl playback = TtsUrls.allowedPlaybackUrl(connection.url, address);
             if (player != null) player.release();
             player = new MediaPlayer();
             player.setAudioAttributes(new AudioAttributes.Builder()
