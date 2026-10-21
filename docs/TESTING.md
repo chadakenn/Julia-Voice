@@ -4,6 +4,23 @@ Updated: **2026-10-20**. Device: user's **onn 4K Pro / Google TV**, with the And
 
 Distinguish what has actually worked on hardware from compiled features. A green build is **not** proof of behavior on a TV.
 
+## v0.12 overlay layout / copper settings acceptance (pending hardware)
+
+Signed [build #108](https://github.com/chadakenn/Kellies-Voice/actions/runs/39598350715) passed compilation and APK signature verification. This **does not** yet establish TV compatibility.
+
+- [ ] Install `kellies-voice-signed/app-release.apk` over the working TV version without uninstalling; existing credentials and ⭐ fallback remain
+- [ ] Main SETTINGS opens a copper/charcoal D-pad menu; UP/DOWN/OK and Android BACK navigate without accidentally selecting the TALK button behind the dialog
+- [ ] SETTINGS → Overlay appearance & position shows position, size, auto-hide, style, auto-listen and ⭐ fallback
+- [ ] Default Glass placement and medium size look unchanged from the previous installed app
+- [ ] Confirm all four corners, center and bottom center without clipping near the TV's overscan/safe area
+- [ ] Confirm small/medium/large fit the screen and the TALK / STOP / CLOSE / SETTINGS buttons are still reachable
+- [ ] Confirm auto-hide occurs **after spoken TTS completes** at 5, 7, 10 and 20 seconds, and stays visible for Never
+- [ ] Verify unplugging Home Assistant or losing connectivity doesn't reset the stored position/size; verify reopening overlay applies changes
+- [ ] Check overlays above YouTube and the Google TV home screen, and verify microphone service stops on CLOSE/BACK
+- [ ] Verify source retains original Android package ID and signing key and updater still checks exact approved GitHub release paths
+
+**Not implemented:** remote control of TV settings from Home Assistant, assistant announcement popups, Frigate snapshots/live feed, or weather cards. See [future design](REMOTE_CONFIGURATION_PLAN.md).
+
 ## Proven on the onn 4K Pro
 
 | Area | Observation | Status |
