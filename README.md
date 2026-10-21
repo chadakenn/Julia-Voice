@@ -8,7 +8,7 @@
 
 Kellie's Voice is a local-first, open-source voice companion for Home Assistant, starting with Google TV and Android TV. Ask a question or control a room using the floating overlay, without replacing the TV launcher.
 
-**Current status:** v0.13 development APK adds automatic Home Assistant reconnection and immediate recovery when reopening the TV app, alongside v0.12's configurable overlay and copper-styled settings. These improvements still need physical onn 4K Pro verification. Public v0.6 remains the last explicitly published GitHub Release; normal pushes produce signed development artifacts only.
+**Current status:** v0.14 development APK stabilizes automatic Home Assistant reconnects, in-flight voice requests, overlay reply timing, authenticated TTS URL handling, signed-update verification, and automatic update retries. Reconciled PRs #1, #2, #4, #9, #10 and #11 were merged with passing host unit tests; **v0.14 must still be tested on the onn 4K Pro**. Public v0.6 remains the last separately approved GitHub Release. Signed Actions artifacts are development APKs, not public releases.
 
 ## Download and upgrade safely
 
@@ -23,7 +23,7 @@ The signed Android package ID stays `com.example.tvvoiceprobe` and the signing k
 - The welcome splash includes a **single small portrait of Kellie** ([brand portrait](docs/branding/kellie-portrait.webp)), while the floating TV overlay remains icon-only and unobtrusive. The photo-rich marketing comps are also available separately from the app.
 - Built-in Home Assistant/Ollama conversation routing and saved voice preferences remain intact.
 
-## Home Assistant connection resilience (v0.13)
+## Home Assistant connection resilience (v0.13 and v0.14)
 
 - Opens an authenticated WebSocket automatically when the full-screen app starts with saved credentials; no manual Reconnect should be needed.
 - Sends WebSocket keepalive pings every 25 seconds and reconnects after unexpected disconnections (2, 4, 8, 16, then up to 30 seconds between attempts).
@@ -151,7 +151,7 @@ More detail: [Field test results and checklist](docs/TESTING.md), [security note
 
 ## Roadmap
 
-1. **Now (v0.11 development / v0.6 published):** test v0.11's rename-safe updater and the warm branding on the TV. The public v0.6 Release is available; on-device update installation still needs testing and requires a newer release. [Updater guide](docs/UPDATES.md). Continue v0.5 Glass/⭐ testing as desired.
+1. **Current development (v0.14 / public v0.6):** test automatic Home Assistant reconnection, reliable reply dismissal, the copper settings, and APK update safety on the onn 4K Pro. GitHub Actions produces signed development APKs; no public release has been published from these PRs. [Updater guide](docs/UPDATES.md).
 2. **Next:** refine ⭐ shortcut selection where firmware permits, overlay placement, audio focus, ambient-TV-noise tolerance, skins and recovery based on actual results.
 3. **Afterward:** dedicated HA `media_player` with automation-driven chimes/TTS (e.g. “The washer is done”); secure companion channel.
 4. **Then:** Frigate/go2rtc camera views, filtered doorbell-person PiP and optional spoken alerts; on-demand dashboards.

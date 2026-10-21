@@ -1,6 +1,6 @@
 # Project vision: Kellie's Voice
 
-**Project identity:** Kellie's Voice is named after **Julia**, the original local AI assistant. Tagline: **Your voice. Your home. Your AI.** Its first client is the Home Assistant Android TV voice app, but the brand intentionally extends beyond televisions. The repository is now `chadakenn/Julia-Voice`; the Android package identifier and signing key remain unchanged to preserve signed updates.
+**Project identity:** Kellie's Voice is a warm charcoal-and-copper Home Assistant voice assistant for Google TV, named for Kellie. Tagline: **Your home. Your voice. Your way.** The official repository is `chadakenn/Kellies-Voice`; Android's original package ID and release signing key remain unchanged.
 
 ## Product definition
 
@@ -130,7 +130,8 @@ Reference project features we want to evaluate: Assist pipeline routing, convers
 - **Unknown:** Does the system permit an overlay on top of all desired TV/DRM apps? Provide an activity-based fallback where necessary.
 - **Unknown:** Which Frigate/go2rtc camera transport is fastest and reliably decoded by the onn box?
 - **Implemented and hardware-verified:** foreground HA Assist connection, microphone audio streaming, speech transcript, answer-first TV UI and spoken TTS playback (first successful end-to-end question). Android Keystore credential storage and permanent signed release builds are implemented.
-- **Not yet implemented / not verified:** dedicated HA media_player entity, automation announcements, app overlay, Frigate PiP, cameras, dashboards, button launcher shortcut, background voice, media focus and repeated-session stability. Signed update retaining credentials also needs field confirmation. See [field tests](TESTING.md).
+- **Implemented, not fully field-verified:** the floating voice overlay, Glass and Classic skins, overlay position/size/auto-hide settings, and the separate overlay launcher plus the optional main-launcher ⭐ fallback. v0.4 showed the panel over Google TV Home. Capture, spoken replies, D-pad, auto-hide, and behavior over playing video still need the onn checklist.
+- **Not yet implemented / not verified:** dedicated HA media_player entity, automation announcements, Frigate PiP, cameras, dashboards, background voice, media focus and repeated-session stability. Signed update retaining credentials also needs field confirmation. See [field tests](TESTING.md).
 - **Licensing:** This app is now **GPL-3.0-only**, with the full [project LICENSE](../LICENSE). Voice Satellite is AGPL-3.0 and Ava is Apache-2.0; both have been used as research references. Any future source incorporation needs deliberate license and attribution review.
 - **No root / no firmware replacement** for initial work; do not promise every OEM limitation can be bypassed.
 

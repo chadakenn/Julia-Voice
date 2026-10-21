@@ -2,6 +2,17 @@
 
 This is an experimental Android TV / Google TV app. Each entry distinguishes **shipped code** from **tested on the onn 4K Pro**.
 
+## v0.14-reliability-hardening (2026-10-21) — Merge-tested stabilization
+
+- Merged and reconciled [#9](https://github.com/chadakenn/Kellies-Voice/pull/9): checks the downloaded APK's package name and signing certificate before starting Android's installer, and removes the obsolete Julia-Voice release fallback.
+- Merged [#4](https://github.com/chadakenn/Kellies-Voice/pull/4): records an automatic update-check timestamp only after a successful check, so offline errors can be retried on the next launch.
+- Rebased and merged [#10](https://github.com/chadakenn/Kellies-Voice/pull/10): shared URL validation helpers, 11 host-side tests, and a repaired Android SDK setup in GitHub Actions. The tests now pass in CI.
+- Rebased and merged [#2](https://github.com/chadakenn/Kellies-Voice/pull/2): typed Assist lifecycle callbacks control overlay dismissal instead of parsing status strings. Reply playback preparation cancels idle auto-hide and text-only replies use the saved timeout.
+- Rebased and merged [#1](https://github.com/chadakenn/Kellies-Voice/pull/1): prevents a dropped/stale WebSocket from leaving a stuck voice request, and reports an Assist request acceptance result to the overlay. Preserves v0.13 bounded automatic reconnect and explicit-user auto-listening safeguards.
+- Rebased and merged [#11](https://github.com/chadakenn/Kellies-Voice/pull/11): fixes outdated documentation and retained v0.4 test history without implying that v0.14 has been hardware-tested.
+- Builds remain permanently signed with the same original `com.example.tvvoiceprobe` application ID. `versionCode` advances to **14**, `versionName` to `0.14-reliability-hardening`.
+- **Not yet verified on physical TV:** upgrade, websocket reconnection after TV sleep, TTS completion timing, APK pre-install identity check. UI/audio/foreground-service PRs #3, #5, #6, #7 and #8 are still held for reconciliation and device testing. No GitHub Release was automatically published.
+
 ## v0.13-ha-auto-reconnect (2026-10-21) — Self-healing Home Assistant sessions
 
 - The authenticated WebSocket now **automatically reconnects** after an unexpected close, network interruption or Home Assistant restart with delays of 2, 4, 8, 16 and up to 30 seconds. Existing 25-second WebSocket pings remain enabled to detect dead connections.
