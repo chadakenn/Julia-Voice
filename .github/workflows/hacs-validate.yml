@@ -1,0 +1,32 @@
+name: Validate HACS integration
+
+on:
+  pull_request:
+    paths:
+      - 'hacs.json'
+      - 'info.md'
+      - 'custom_components/kellies_voice/**'
+      - '.github/workflows/hacs-validate.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'hacs.json'
+      - 'info.md'
+      - 'custom_components/kellies_voice/**'
+      - '.github/workflows/hacs-validate.yml'
+  workflow_dispatch:
+
+jobs:
+  hacs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate HACS integration
+        uses: hacs/action@main
+        with:
+          category: integration
+          # This mixed Android TV/HA repository has no custom HA brand asset
+          # or repo topics yet. Those catalog-publishing checks are not needed
+          # to test integration structure for private HACS custom-repo usage.
+          ignore: "topics brands"
