@@ -1,0 +1,62 @@
+{
+  "config": {
+    "flow_title": "{name}",
+    "step": {
+      "confirm": {
+        "title": "Add {name}",
+        "description": "Home Assistant will be able to change this TV's overlay position, size, style, auto-hide, and auto-listen. It will not start the microphone, change the login, or install updates."
+      }
+    },
+    "abort": {
+      "already_configured": "This TV is already added.",
+      "no_id": "The TV did not identify itself. Turn Home Assistant layout off and on in Kellie's Voice, then try again.",
+      "use_discovery": "Open Kellie's Voice on the TV and turn on Home Assistant layout. Leave the app open. This integration then shows up here as a discovered device."
+    }
+  },
+  "services": {
+    "announce": {
+      "name": "Announce",
+      "description": "Show a short text announcement on one configured TV, or on every configured TV when no device id is given. This does not start the microphone.",
+      "fields": {
+        "title": {
+          "name": "Title",
+          "description": "Short heading, 65 characters at most."
+        },
+        "text": {
+          "name": "Text",
+          "description": "Announcement text, 500 characters at most."
+        },
+        "duration_seconds": {
+          "name": "Duration (seconds)",
+          "description": "How long the message stays up, from 4 to 45 seconds."
+        },
+        "device_id": {
+          "name": "TV device id",
+          "description": "One configured TV. Leave empty to send to every configured Kellie's Voice TV."
+        }
+      }
+    },
+    "show_camera": {
+      "name": "Show camera",
+      "description": "Ask a configured TV to open a Home Assistant camera entity. This does not start the microphone or send a stream URL.",
+      "fields": {
+        "entity_id": {
+          "name": "Camera",
+          "description": "A camera entity, such as camera.front_door."
+        },
+        "title": {
+          "name": "Title",
+          "description": "Short heading, 65 characters at most."
+        },
+        "duration_seconds": {
+          "name": "Duration (seconds)",
+          "description": "How long the popup stays up, from 4 to 45 seconds."
+        },
+        "device_id": {
+          "name": "TV device id",
+          "description": "One configured TV. Leave empty to send to every configured Kellie's Voice TV."
+        }
+      }
+    }
+  }
+}
