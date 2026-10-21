@@ -10,8 +10,8 @@ android {
         applicationId 'com.example.tvvoiceprobe'
         minSdk 26
         targetSdk 35
-        versionCode 10
-        versionName '0.10-kellies-voice-brand'
+        versionCode 11
+        versionName '0.11-release-url-fix'
     }
 
     // The keystore is private and supplied from GitHub Actions secrets.
