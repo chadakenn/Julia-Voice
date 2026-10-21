@@ -190,6 +190,8 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         actions.clear();
         selected = 0;
         boolean glass = OverlayPreferences.SKIN_GLASS.equals(preferences.skin());
+        // Night Signal keeps its compact geometry, but uses warm brass accents
+        // to avoid the generic cyan/violet AI appearance.
         boolean signal = OverlayPreferences.SKIN_SIGNAL.equals(preferences.skin());
 
         panel = new VoicePanel();
@@ -199,28 +201,28 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         panel.setFocusableInTouchMode(true);
         GradientDrawable background = new GradientDrawable(
                 GradientDrawable.Orientation.TL_BR,
-                signal ? new int[] {0xf210161c, 0xf2141c24}
+                signal ? new int[] {0xf21B1512, 0xf2261B15}
                         : glass ? new int[] {0xe8201513, 0xf0291a17, 0xed150f0d}
                         : new int[] {0xf02A1A16, 0xf017100e});
         background.setCornerRadius(dp(signal ? 8 : glass ? 22 : 14));
-        background.setStroke(dp(1), signal ? 0xff35505c : glass ? 0x88E7A981 : 0xffD9946F);
+        background.setStroke(dp(1), signal ? 0xff805F48 : glass ? 0x88E7A981 : 0xffD9946F);
         panel.setBackground(background);
         panel.setElevation(dp(signal ? 10 : 14));
 
         if (signal) {
             View rule = new View(this);
-            rule.setBackgroundColor(0xff8FCBD8);
+            rule.setBackgroundColor(0xffE1B27B);
             panel.addView(rule, new LinearLayout.LayoutParams(-1, dp(3)));
         }
 
         TextView top = label(signal ? "KELLIE'S VOICE" : glass ? "✦  KELLIE'S VOICE" : "🎙  KELLIE'S VOICE",
                 signal ? 13 : glass ? 15 : 19,
-                signal ? 0xff9EC9D6 : glass ? 0xffF5D6BD : 0xffE6AB82);
+                signal ? 0xffE7C39B : glass ? 0xffF5D6BD : 0xffE6AB82);
         top.setLetterSpacing(signal ? 0.18f : 0.12f);
         panel.addView(top);
 
         statusView = label("CONNECTING...", signal ? 13 : glass ? 14 : 15,
-                signal ? 0xffC9D7DE : 0xffF7E8DA);
+                signal ? 0xffF0DDC7 : 0xffF7E8DA);
         panel.addView(statusView);
 
         wave = new VoiceWaveView(this);
@@ -230,16 +232,16 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
 
         if (glass || signal) {
             panel.addView(label(signal ? "You said" : "YOU SAID", 11,
-                    signal ? 0xff7E949C : 0xffD1AC92));
+                    signal ? 0xffAF9881 : 0xffD1AC92));
         }
         transcriptView = label("Say something when listening starts...",
                 signal ? 16 : glass ? 17 : 16,
-                signal ? 0xffD5E2E8 : glass ? 0xffF7E9E0 : 0xffEBCDB9);
+                signal ? 0xffF0E2D0 : glass ? 0xffF7E9E0 : 0xffEBCDB9);
         transcriptView.setMaxLines(2);
         panel.addView(transcriptView);
 
         panel.addView(label(signal ? "Home Assistant" : "HOME ASSISTANT SAYS", 11,
-                signal ? 0xff7E949C : glass ? 0xffD1AC92 : 0xffC89A7B));
+                signal ? 0xffAF9881 : glass ? 0xffD1AC92 : 0xffC89A7B));
         answerView = label("Ready for your question",
                 signal ? 26 : glass ? 23 : 19, 0xffffffff);
         answerView.setMaxLines(4);
@@ -331,7 +333,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         button.setText(name);
         button.setTextSize(signal ? 14 : 13);
         button.setAllCaps(false);
-        button.setTextColor(signal ? 0xffE7F2F5 : 0xffffffff);
+        button.setTextColor(signal ? 0xffF8E8D6 : 0xffffffff);
         button.setFocusable(true);
         button.setFocusableInTouchMode(true);
         button.setMinHeight(0);
@@ -347,9 +349,9 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
             if (focused) selected = index;
             if (signal) {
                 GradientDrawable chip = new GradientDrawable();
-                chip.setColor(focused ? 0xff1C333C : 0x00000000);
+                chip.setColor(focused ? 0xff433027 : 0x00000000);
                 chip.setCornerRadius(dp(8));
-                chip.setStroke(Math.max(1, dp(1)), focused ? 0xff9EC9D6 : 0xff3C5560);
+                chip.setStroke(Math.max(1, dp(1)), focused ? 0xffE7C39B : 0xff7B5A45);
                 button.setBackground(chip);
                 button.setBackgroundTintList(null);
             } else {
