@@ -1,6 +1,7 @@
 """Checks for announcement and camera event inputs. No Home Assistant install required."""
 
 import importlib.util
+import json
 import pathlib
 import unittest
 
@@ -15,6 +16,16 @@ _SPEC.loader.exec_module(validation)
 
 
 class ValidationTests(unittest.TestCase):
+    def test_custom_integration_english_translations(self):
+        # Custom HA integrations load translations/en.json, not strings.json.
+        source = json.loads((_COMPONENT / "strings.json").read_text(encoding="utf-8"))
+        shipped = json.loads((_COMPONENT / "translations" / "en.json").read_text(encoding="utf-8"))
+        self.assertEqual(source, shipped)
+        self.assertIn("use_discovery", shipped["config"]["abort"])
+        self.assertIn("confirm", shipped["config"]["step"])
+        self.assertIn("announce", shipped["services"])
+        self.assertIn("show_camera", shipped["services"])
+
     def test_title_and_text_limits(self):
         self.assertEqual(validation.clean_title("  Washer   done "), "Washer done")
         with self.assertRaises(ValueError):
