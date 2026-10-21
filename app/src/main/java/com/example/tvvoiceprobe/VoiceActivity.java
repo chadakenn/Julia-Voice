@@ -52,11 +52,29 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
     private HaAssistClient assist;
     private CredentialStore.Connection settings;
     private MediaPlayer player;
+    private SpeechFocus speechFocus;
     private boolean playing;
     private boolean warningPending;
     private UpdateManager updater;
     private boolean manualUpdateCheck;
     private boolean transparentShortcut;
+    private boolean initialConnectionRequested;
+
+    @Override protected void onStart() {
+        super.onStart();
+        HaDiscovery.setWanted(this, new OverlayPreferences(this).haManage());
+        HaDiscovery.acquire(this);
+        if (assist != null) assist.setLayoutSync(new OverlayPreferences(this).haManage());
+        // Reuse saved credentials without asking for a manual Reconnect click.
+        // No microphone is activated here, just the authenticated socket.
+        if (transparentShortcut || assist == null || settings == null) return;
+        if (!initialConnectionRequested) {
+            initialConnectionRequested = true;
+            assist.connect(settings.url, settings.token);
+        } else {
+            assist.ensureConnected();
+        }
+    }
 
     @Override public void onCreate(Bundle state) {
         // The onn ⭐ picker starts the package's main Activity. When its
@@ -78,10 +96,12 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         assist = new HaAssistClient(this, this);
         updater = new UpdateManager(this, new UpdateManager.Listener() {
             @Override public void onUpToDate(String message) {
+                rememberUpdateCheck();
                 if (manualUpdateCheck) status(message);
                 manualUpdateCheck = false;
             }
             @Override public void onAvailable(String version, String notes) {
+                rememberUpdateCheck();
                 manualUpdateCheck = false;
                 if (isFinishing() || isDestroyed()) return;
                 new AlertDialog.Builder(VoiceActivity.this)
@@ -179,10 +199,14 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
             android.content.SharedPreferences checks =
                     getSharedPreferences("tv_voice_update_checks", MODE_PRIVATE);
             if (now - checks.getLong("last_checked", 0) >= 24L * 60 * 60 * 1000) {
-                checks.edit().putLong("last_checked", now).apply();
                 root.post(() -> updater.check());
             }
         }
+    }
+
+    private void rememberUpdateCheck() {
+        getSharedPreferences("tv_voice_update_checks", MODE_PRIVATE)
+                .edit().putLong("last_checked", System.currentTimeMillis()).apply();
     }
 
     private boolean canStartOverlayImmediately() {
@@ -413,8 +437,11 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                 "Connect / reconnect",
                 "Start new conversation",
                 "Hardware microphone diagnostics",
+                "Microphone sensitivity: " + OverlayPreferences.noiseLabel(
+                        new OverlayPreferences(this).noise()),
                 "Open floating voice overlay",
                 "Overlay appearance & position",
+                "Home Assistant layout: " + (new OverlayPreferences(this).haManage() ? "ON" : "OFF"),
                 "Check for app updates",
                 "Install downloaded update",
                 "Forget saved connection"
@@ -427,17 +454,66 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                         case 1: connect(); break;
                         case 2: newConversation(); break;
                         case 3: startActivity(new Intent(this, MainActivity.class)); break;
-                        case 4: launchOverlay(); break;
-                        case 5: showOverlayPreferences(); break;
-                        case 6:
+                        case 4: chooseMicSensitivity(); break;
+                        case 5: launchOverlay(); break;
+                        case 6: showOverlayPreferences(); break;
+                        case 7: chooseHaLayout(); break;
+                        case 8:
                             manualUpdateCheck = true;
                             status("Checking GitHub Releases...");
                             updater.check();
                             break;
-                        case 7: promptInstallUpdate(); break;
-                        case 8: confirmForget(); break;
+                        case 9: promptInstallUpdate(); break;
+                        case 10: confirmForget(); break;
                         default: break;
                     }
+                });
+    }
+
+    private void chooseHaLayout() {
+        OverlayPreferences prefs = new OverlayPreferences(this);
+        boolean on = prefs.haManage();
+        showCopperMenu("SETTINGS  ✦  HOME ASSISTANT",
+                "Lets Home Assistant change position, size, style, auto-hide, and auto-listen. It cannot start the microphone or change the login. Leave this app open, then click Add on the discovered TV.",
+                new String[] {
+                        on ? "Turn Home Assistant layout OFF" : "Turn Home Assistant layout ON",
+                        "Keep current setting"
+                }, which -> {
+                    if (which == 0) {
+                        prefs.setHaManage(!on);
+                        HaDiscovery.setWanted(this, prefs.haManage());
+                        if (assist != null) assist.setLayoutSync(prefs.haManage());
+                        status(prefs.haManage()
+                                ? "Layout control on. In Home Assistant, click Add on Kellie's Voice."
+                                : "Home Assistant layout control off.");
+                    }
+                    showSettingsMenu();
+                });
+    }
+
+    private void pushLayout(String setting) {
+        if (assist != null && new OverlayPreferences(this).haManage()) {
+            assist.publishLayout(setting);
+        }
+    }
+
+    private void chooseMicSensitivity() {
+        OverlayPreferences prefs = new OverlayPreferences(this);
+        final String[] values = {
+                OverlayPreferences.NOISE_QUIET, OverlayPreferences.NOISE_NORMAL,
+                OverlayPreferences.NOISE_TV
+        };
+        String[] options = new String[values.length];
+        for (int i = 0; i < values.length; i++) {
+            options[i] = (values[i].equals(prefs.noise()) ? "✓  " : "     ")
+                    + OverlayPreferences.noiseLabel(values[i]);
+        }
+        showCopperMenu("SETTINGS  ✦  MICROPHONE",
+                "Controls the automatic pause detector. STOP still ends listening.",
+                options, which -> {
+                    prefs.setNoise(values[which]);
+                    status("Microphone sensitivity: " + OverlayPreferences.noiseLabel(prefs.noise()));
+                    showSettingsMenu();
                 });
     }
 
@@ -463,8 +539,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                 "Position: " + OverlayPreferences.positionLabel(prefs.position()),
                 "Size: " + OverlayPreferences.sizeLabel(prefs.size()),
                 "Auto-hide after answer: " + prefs.hideLabel(),
-                "Appearance: " + (OverlayPreferences.SKIN_GLASS.equals(prefs.skin())
-                        ? "Copper Glass" : "Compact Charcoal"),
+                "Appearance: " + OverlayPreferences.skinLabel(prefs.skin()),
                 "Auto-listen on launch: " + (prefs.autoListen() ? "ON" : "OFF"),
                 "⭐ picker fallback: " + (prefs.mainLauncherOpensOverlay() ? "ON" : "OFF")
         };
@@ -478,6 +553,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                         case 3: chooseOverlaySkin(prefs); break;
                         case 4:
                             prefs.setAutoListen(!prefs.autoListen());
+                            pushLayout(HaLayout.AUTO_LISTEN);
                             status("Auto-listen: " + (prefs.autoListen() ? "ON" : "OFF"));
                             showOverlayPreferences();
                             break;
@@ -521,6 +597,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         showCopperMenu("OVERLAY  ✦  POSITION",
                 "Choose where the floating voice card appears.", labels, which -> {
                     prefs.setPosition(positions[which]);
+                    pushLayout(HaLayout.POSITION);
                     status("Overlay position saved. Reopen the overlay to apply.");
                     showOverlayPreferences();
                 });
@@ -540,6 +617,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         showCopperMenu("OVERLAY  ✦  SIZE",
                 "Small saves screen space. Large makes text easier to read.", options, which -> {
                     prefs.setSize(values[which]);
+                    pushLayout(HaLayout.SIZE);
                     status("Overlay size saved. Reopen the overlay to apply.");
                     showOverlayPreferences();
                 });
@@ -558,21 +636,33 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         showCopperMenu("OVERLAY  ✦  AUTO-HIDE",
                 "Starts counting after Kellie's spoken reply finishes.", options, which -> {
                     prefs.setHideSeconds(values[which]);
+                    pushLayout(HaLayout.AUTO_HIDE);
                     status("Auto-hide saved: " + prefs.hideLabel());
                     showOverlayPreferences();
                 });
     }
 
     private void chooseOverlaySkin(OverlayPreferences prefs) {
+        final String[] values = {
+                OverlayPreferences.SKIN_GLASS,
+                OverlayPreferences.SKIN_CLASSIC,
+                OverlayPreferences.SKIN_SIGNAL
+        };
+        String[] labels = {
+                "Copper Glass (rounded, animated)",
+                "Compact Charcoal (smaller text)",
+                "Night Signal (warm ink, brass bar meter)"
+        };
+        for (int i = 0; i < labels.length; i++) {
+            if (values[i].equals(prefs.skin())) labels[i] = "✓  " + labels[i];
+            else labels[i] = "     " + labels[i];
+        }
         showCopperMenu("OVERLAY  ✦  STYLE",
-                "Both styles use Kellie's charcoal and copper branding.",
-                new String[] {
-                        "Copper Glass (rounded, animated)",
-                        "Compact Charcoal (smaller text)"
-                }, which -> {
-                    prefs.setSkin(which == 0 ? OverlayPreferences.SKIN_GLASS
-                            : OverlayPreferences.SKIN_CLASSIC);
-                    status("Appearance saved. Reopen the overlay to apply.");
+                "Choose Copper Glass, Compact Charcoal, or the warm Night Signal look. Reopen the overlay to apply.",
+                labels, which -> {
+                    prefs.setSkin(values[which]);
+                    pushLayout(HaLayout.STYLE);
+                    status("Appearance saved: " + OverlayPreferences.skinLabel(prefs.skin()));
                     showOverlayPreferences();
                 });
     }
@@ -695,16 +785,25 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
 
     private void connect() {
         if (settings == null) { configure(); return; }
+        initialConnectionRequested = true;
         assist.connect(settings.url, settings.token);
         updateConnectionLabel();
     }
 
     private void startTalk() {
+        if (assist != null && !assist.isConnected()) {
+            assist.ensureConnected();
+            status("Reconnecting to Home Assistant. Try TALK when connected.");
+            return;
+        }
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, MIC_PERMISSION_REQUEST);
         } else {
             recognized.setText("Listening...");
             response.setText("Waiting for Home Assistant...");
+            if (player != null) { player.release(); player = null; }
+            if (speechFocus != null) speechFocus.release();
+            assist.setRoomNoise(new OverlayPreferences(this).noise());
             assist.talk();
         }
     }
@@ -721,6 +820,8 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
     }
 
     private void newConversation() {
+        if (player != null) { player.release(); player = null; }
+        if (speechFocus != null) speechFocus.release();
         assist.disconnect();
         recognized.setText("Nothing yet");
         response.setText("Ready for a fresh conversation.");
@@ -739,6 +840,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                 .setPositiveButton("Forget", (d, w) -> {
                     assist.disconnect();
                     if (player != null) { player.release(); player = null; }
+                    if (speechFocus != null) speechFocus.release();
                     store.clear();
                     settings = null;
                     updateConnectionLabel();
@@ -766,21 +868,11 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
     private void playTts(String address) {
         if (settings == null) return;
         try {
-            HttpUrl base = HttpUrl.parse(settings.url);
-            HttpUrl playback = base.resolve(address);
-            if (playback == null) throw new IllegalArgumentException("Invalid TTS audio URL");
-            // Only load from our configured HA endpoint, never send HA credentials elsewhere.
-            if (!playback.host().equals(base.host()) || playback.port() != base.port()
-                    || !playback.scheme().equals(base.scheme())) {
-                // HA sometimes emits its internal URL. Rewrite only known HA TTS proxy paths.
-                if (!playback.encodedPath().startsWith("/api/tts_proxy/")) {
-                    throw new SecurityException("Refusing unknown audio server");
-                }
-                playback = base.newBuilder()
-                        .encodedPath(playback.encodedPath())
-                        .encodedQuery(playback.encodedQuery()).build();
-            }
+            HttpUrl playback = TtsUrls.allowedPlaybackUrl(settings.url, address);
             if (player != null) { player.release(); player = null; }
+            if (speechFocus == null) speechFocus = new SpeechFocus(this);
+            speechFocus.release();
+            speechFocus.acquire();
             player = new MediaPlayer();
             player.setAudioAttributes(new AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_ASSISTANT)
@@ -789,19 +881,30 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
             headers.put("Authorization", "Bearer " + settings.token);
             player.setDataSource(this, Uri.parse(playback.toString()), headers);
             player.setOnPreparedListener(p -> { status("Speaking..."); p.start(); });
-            player.setOnCompletionListener(p -> status("Finished. Select TALK for another question."));
+            player.setOnCompletionListener(p -> {
+                if (speechFocus != null) speechFocus.release();
+                status("Finished. Select TALK for another question.");
+            });
             player.setOnErrorListener((p, what, extra) -> {
+                if (speechFocus != null) speechFocus.release();
                 status("TTS playback failed. The text answer is still above.");
                 return true;
             });
             player.prepareAsync();
         } catch (Exception e) {
+            if (speechFocus != null) speechFocus.release();
             status("Could not play TTS. The text answer is still above.");
         }
     }
 
+    @Override protected void onStop() {
+        HaDiscovery.release(this);
+        super.onStop();
+    }
+
     @Override protected void onDestroy() {
         if (player != null) { player.release(); player = null; }
+        if (speechFocus != null) speechFocus.release();
         if (assist != null) assist.shutdown();
         super.onDestroy();
     }

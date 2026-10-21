@@ -1,4 +1,6 @@
-# Floating Julia Voice overlay: v0.4 prototype
+# Floating overlay field log (v0.4)
+
+> **Current development build (v0.13+):** download artifact **`kellies-voice-signed`** from the latest successful [Build Kellie's Voice Signed APK](../.github/workflows/build-apk.yml) run and install `app-release.apk` **over** the existing signed app. Do not look for `julia-voice-signed`, and do not uninstall. The notes below are the **v0.4** onn session, from when the in-app name was briefly Julia Voice. They are not the current test plan.
 
 > **First hardware milestone reached (2026-10-20):** onn 4K Pro showed the floating panel above **Google TV Home** and displayed “Connected and authenticated. Select TALK.” The panel's microphone capture, speaker TTS, CLOSE/BACK behavior and appearance over playing video remain **untested**. This is NOT yet Frigate PiP, a persistent satellite, or an always-on wake-word assistant.
 
@@ -14,11 +16,9 @@
 
 ## Install
 
-Install the latest **successful** [signed GitHub Actions build](../.github/workflows/build-apk.yml), artifact `julia-voice-signed`, ZIP containing `app-release.apk`.
+Install the latest **successful** [signed GitHub Actions build](../.github/workflows/build-apk.yml), artifact `kellies-voice-signed`, ZIP containing `app-release.apk`.
 
-**Important: `versionCode=4`, `versionName=0.4-overlay-prototype`.** If you already installed v0.3 *signed* release, this APK should install **over it without uninstalling or retyping your HA token**. The private release signing key is the same, and versionCode increased.
-
-**Do not uninstall the working signed app to install this update.** If it reports a signature conflict, stop and report it: we need to diagnose signing before modifying/removing the old app.
+The checklist under this heading was written for **`versionCode` 4 / `0.4-overlay-prototype`**. Later signed builds use a higher `versionCode` and the same release key, so they still install over that APK without retyping the Home Assistant token. If Android reports a signature conflict, stop. Do not clear app data.
 
 ## Verified so far
 

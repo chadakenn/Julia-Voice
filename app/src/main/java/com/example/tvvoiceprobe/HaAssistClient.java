@@ -6,9 +6,16 @@ import android.content.pm.PackageManager;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
+import android.media.audiofx.AcousticEchoCanceler;
+import android.media.audiofx.NoiseSuppressor;
+import android.os.Handler;
+import android.os.Looper;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -35,10 +42,16 @@ public final class HaAssistClient {
         default void ready() { }
         default void listening() { }
         default void processing() { }
+        default void haLayout(String setting) { }
+        default void localSilence() { }
+        default void runEnded() { }
+        /** Unexpected socket loss; in-progress Assist run has been reset. */
+        default void connectionLost() { }
     }
 
     private final Context context;
     private final Events events;
+    private final SpeechFocus listeningFocus;
     private final OkHttpClient http = new OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
             .pingInterval(25, TimeUnit.SECONDS)
@@ -50,61 +63,162 @@ public final class HaAssistClient {
     private volatile boolean endRequested;
     private volatile boolean captureStarted;
     private volatile boolean autoEndSpeech;
+    private volatile String roomNoise = OverlayPreferences.NOISE_NORMAL;
     private final AtomicBoolean recording = new AtomicBoolean(false);
     private final AtomicBoolean ended = new AtomicBoolean(false);
     private volatile String conversationId;
     private volatile int commandId = 1;
-    private volatile boolean disposed;
+    private volatile boolean layoutSync;
+    private volatile boolean layoutSubscribed;
+    private volatile int layoutStatesId = -1;
+    private final Map<String, String> layoutEntities = new HashMap<>();
+    private volatile boolean disposed = true;
+
+    // Keep one authenticated WebSocket alive only for the lifetime of the
+    // explicit activity/overlay. Android can suspend or kill the app, so this
+    // is self-healing, not an always-running background assistant service.
+    private String savedBaseUrl;
+    private String savedToken;
+    private boolean reconnectEnabled;
+    private boolean reconnectScheduled;
+    private boolean connecting;
+    private int failures;
+    private final Handler reconnectHandler = new Handler(Looper.getMainLooper());
+    private final Runnable reconnectTask = () -> {
+        synchronized (HaAssistClient.this) {
+            reconnectScheduled = false;
+            if (reconnectEnabled && !disposed && !authenticated && !connecting) {
+                openConnection();
+            }
+        }
+    };
 
     public HaAssistClient(Context context, Events events) {
         this.context = context.getApplicationContext();
         this.events = events;
+        this.listeningFocus = new SpeechFocus(this.context);
     }
 
     public boolean isConnected() { return authenticated; }
 
+    /** Explicit start/reconfigure. Tokens never enter logs or retry messages. */
     public synchronized void connect(String baseUrl, String token) {
         disconnect();
-        disposed = false;
-        if (token == null || token.trim().isEmpty()) {
-            events.status("Missing Home Assistant access token");
+        if (baseUrl == null || token == null || token.trim().isEmpty()) {
+            events.status("Missing Home Assistant address or access token.");
             return;
         }
         try {
             okhttp3.HttpUrl parsed = okhttp3.HttpUrl.parse(baseUrl);
-            if (parsed == null || (!"https".equals(parsed.scheme()) && !"http".equals(parsed.scheme()))) {
-                throw new IllegalArgumentException("Use a full http:// or https:// Home Assistant address");
+            if (parsed == null ||
+                    (!"https".equals(parsed.scheme()) && !"http".equals(parsed.scheme()))) {
+                throw new IllegalArgumentException("Use a full Home Assistant http:// or https:// address.");
             }
-            // User supplies the HA base address, not a manually entered WebSocket endpoint.
-            okhttp3.HttpUrl url = parsed.newBuilder()
-                    .addPathSegments("api/websocket")
-                    .build(); // OkHttp newWebSocket() accepts HTTP(S) URLs and upgrades internally.
-            events.status("Connecting to Home Assistant...");
-            socket = http.newWebSocket(new Request.Builder().url(url).build(), new WebSocketListener() {
+            // Reject a URL with credentials in it. Use only the saved HA access token.
+            if (!parsed.username().isEmpty() || !parsed.password().isEmpty()) {
+                throw new IllegalArgumentException("Do not put credentials in the Home Assistant URL.");
+            }
+            savedBaseUrl = baseUrl;
+            savedToken = token;
+            disposed = false;
+            reconnectEnabled = true;
+            failures = 0;
+            openConnection();
+        } catch (Exception error) {
+            events.status("Invalid Home Assistant address. Check settings.");
+        }
+    }
+
+    /**
+     * When the app returns to the foreground, reconnect if Android interrupted
+     * its socket. Never start a microphone or a voice request here.
+     */
+    public synchronized void ensureConnected() {
+        if (disposed || !reconnectEnabled || authenticated || connecting
+                || savedToken == null) return;
+        // Foreground user activity should reconnect immediately instead of
+        // waiting out a previous 30-second background backoff timer.
+        if (reconnectScheduled) {
+            reconnectHandler.removeCallbacks(reconnectTask);
+            reconnectScheduled = false;
+        }
+        openConnection();
+    }
+
+    private synchronized void openConnection() {
+        if (disposed || !reconnectEnabled || connecting || authenticated
+                || savedBaseUrl == null || savedToken == null) return;
+        try {
+            okhttp3.HttpUrl base = okhttp3.HttpUrl.parse(savedBaseUrl);
+            if (base == null) throw new IllegalStateException("Missing HA URL");
+            okhttp3.HttpUrl url = base.newBuilder()
+                    .addPathSegments("api/websocket").build();
+            final String authToken = savedToken;
+            connecting = true;
+            events.status(failures == 0 ? "Connecting to Home Assistant..."
+                    : "Reconnecting to Home Assistant...");
+            socket = http.newWebSocket(new Request.Builder().url(url).build(),
+                    new WebSocketListener() {
                 @Override public void onOpen(WebSocket ws, Response response) {
-                    events.status("Connected to server, waiting for authentication...");
+                    if (isCurrent(ws)) {
+                        events.status("Connected to server, waiting for authentication...");
+                    }
                 }
 
                 @Override public void onMessage(WebSocket ws, String message) {
-                    try { receive(ws, new JSONObject(message), token); }
-                    catch (Exception e) { events.status("Unexpected Home Assistant response"); }
+                    if (!isCurrent(ws)) return;
+                    try { receive(ws, new JSONObject(message), authToken); }
+                    catch (Exception e) {
+                        if (isCurrent(ws)) events.status("Unexpected Home Assistant response.");
+                    }
                 }
 
-                @Override public void onFailure(WebSocket ws, Throwable error, Response response) {
-                    authenticated = false;
-                    recording.set(false);
-                    events.status("Connection failed. Check HA address, network and certificate.");
+                @Override public void onFailure(WebSocket ws, Throwable error,
+                        Response response) {
+                    connectionLost(ws);
                 }
 
                 @Override public void onClosed(WebSocket ws, int code, String reason) {
-                    authenticated = false;
-                    recording.set(false);
-                    if (!disposed) events.status("Disconnected from Home Assistant");
+                    connectionLost(ws);
                 }
             });
-        } catch (Exception e) {
-            events.status("Connection setup error: " + e.getMessage());
+        } catch (Exception error) {
+            connecting = false;
+            scheduleReconnect();
         }
+    }
+
+    private synchronized boolean isCurrent(WebSocket ws) {
+        return !disposed && reconnectEnabled && ws == socket;
+    }
+
+    private void connectionLost(WebSocket ws) {
+        synchronized (this) {
+            // The old socket can close AFTER a new one authenticated. Never
+            // allow its callback to mark the replacement disconnected.
+            if (ws != socket || disposed) return;
+            socket = null;
+            authenticated = false;
+            connecting = false;
+            layoutSubscribed = false;
+            layoutStatesId = -1;
+            layoutEntities.clear();
+            stopForRunEnd();
+            if (reconnectEnabled) scheduleReconnect();
+        }
+        events.connectionLost();
+    }
+
+    private synchronized void scheduleReconnect() {
+        if (disposed || !reconnectEnabled || reconnectScheduled) return;
+        // 2, 4, 8, 16, 30 seconds with a cap; prevents rapid connection loops
+        // when HA restarts or the TV's Wi-Fi is down.
+        int attempt = Math.min(failures++, 4);
+        long delay = Math.min(30000L, 2000L * (1L << attempt));
+        reconnectScheduled = true;
+        events.status("Home Assistant disconnected. Retrying automatically in "
+                + (delay / 1000L) + " seconds...");
+        reconnectHandler.postDelayed(reconnectTask, delay);
     }
 
     private void receive(WebSocket ws, JSONObject msg, String token) throws Exception {
@@ -118,25 +232,58 @@ public final class HaAssistClient {
             return;
         }
         if ("auth_ok".equals(type)) {
-            authenticated = true;
-            events.status("Connected and authenticated. Select TALK.");
+            synchronized (this) {
+                if (!isCurrent(ws)) return;
+                authenticated = true;
+                connecting = false;
+                failures = 0;
+                reconnectHandler.removeCallbacks(reconnectTask);
+                reconnectScheduled = false;
+            }
+            events.status("Connected and authenticated. Ready.");
             events.ready();
+            requestLayout();
             return;
         }
         if ("auth_invalid".equals(type)) {
-            authenticated = false;
+            synchronized (this) {
+                if (!isCurrent(ws)) return;
+                authenticated = false;
+                connecting = false;
+                reconnectEnabled = false; // Invalid credentials cannot heal by retrying.
+                recording.set(false);
+                stopForRunEnd();
+                reconnectHandler.removeCallbacks(reconnectTask);
+                reconnectScheduled = false;
+            }
             events.status("Authentication rejected. Check the long-lived access token.");
             ws.close(1000, "invalid auth");
             return;
         }
         if ("result".equals(type)) {
-            if (msg.optInt("id", -1) == currentRunId && !msg.optBoolean("success", false)) {
+            int id = msg.optInt("id", -1);
+            if (id == layoutStatesId) {
+                layoutStatesId = -1;
+                if (msg.optBoolean("success", false)) {
+                    JSONArray states = msg.optJSONArray("result");
+                    if (states != null) ingestStates(states);
+                }
+                return;
+            }
+            if (id == currentRunId && !msg.optBoolean("success", false)) {
                 JSONObject error = msg.optJSONObject("error");
                 events.status("Assist request rejected: " +
                         (error == null ? "Check the selected pipeline" : error.optString("message", "Unknown error")));
                 stopForRunEnd();
             }
             return;
+        }
+        if ("event".equals(type)) {
+            JSONObject event = msg.optJSONObject("event");
+            if (event != null && "state_changed".equals(event.optString("event_type"))) {
+                if (layoutSync) ingestState(event.optJSONObject("data"));
+                return;
+            }
         }
         if (!"event".equals(type) || msg.optInt("id", -1) != currentRunId) return;
         JSONObject event = msg.optJSONObject("event");
@@ -210,14 +357,21 @@ public final class HaAssistClient {
             case "run-end":
                 stopForRunEnd();
                 events.status("Ready for another question.");
+                events.runEnded();
                 break;
             default:
                 break;
         }
     }
 
-    public synchronized void talk() {
-        talk(false);
+    public void setRoomNoise(String mode) {
+        roomNoise = OverlayPreferences.NOISE_QUIET.equals(mode)
+                || OverlayPreferences.NOISE_TV.equals(mode)
+                ? mode : OverlayPreferences.NOISE_NORMAL;
+    }
+
+    public synchronized boolean talk() {
+        return talk(false);
     }
 
     /**
@@ -225,19 +379,19 @@ public final class HaAssistClient {
      * silence detection to finish after an utterance. Manual STOP remains
      * available if TV playback sound confuses the detector.
      */
-    public synchronized void talk(boolean autoStopOnSilence) {
+    public synchronized boolean talk(boolean autoStopOnSilence) {
         if (!authenticated || socket == null) {
             events.status("Connect to Home Assistant first.");
-            return;
+            return false;
         }
         if (currentRunId != -1) {
             events.status("Finish the current conversation first.");
-            return;
+            return false;
         }
         if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO)
                 != PackageManager.PERMISSION_GRANTED) {
             events.status("Microphone permission is required.");
-            return;
+            return false;
         }
         try {
             JSONObject request = new JSONObject();
@@ -256,15 +410,22 @@ public final class HaAssistClient {
             autoEndSpeech = autoStopOnSilence;
             ended.set(false);
             currentRunId = id;
+            // Duck YouTube before the Assist server replies and before opening
+            // the microphone. The automatic fade needs a head start.
+            listeningFocus.acquire();
             if (!socket.send(request.toString())) {
                 currentRunId = -1;
+                listeningFocus.release();
                 events.status("Couldn't send Assist request.");
-            } else {
-                events.status("Preparing to listen...");
+                return false;
             }
+            events.status("Preparing to listen...");
+            return true;
         } catch (Exception e) {
             currentRunId = -1;
+            listeningFocus.release();
             events.status("Couldn't start Assist pipeline.");
+            return false;
         }
     }
 
@@ -282,11 +443,15 @@ public final class HaAssistClient {
     }
 
     private void beginCapture(int runId) {
-        if (captureStarted || runId != currentRunId || handlerId < 0) return;
-        captureStarted = true;
-        recording.set(true);
+        synchronized (this) {
+            if (captureStarted || runId != currentRunId || handlerId < 0 || disposed) return;
+            captureStarted = true;
+            recording.set(true);
+        }
         new Thread(() -> {
             AudioRecord recorder = null;
+            AcousticEchoCanceler echo = null;
+            NoiseSuppressor noise = null;
             try {
                 int minimum = AudioRecord.getMinBufferSize(16000,
                         AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
@@ -296,11 +461,32 @@ public final class HaAssistClient {
                         Math.max(minimum * 2, 6400));
                 if (recorder.getState() != AudioRecord.STATE_INITIALIZED)
                     throw new IllegalStateException("AudioRecord initialization failed");
+                // Android TV firmware may or may not expose hardware echo
+                // cancellation / noise suppression. Never let optional
+                // effects break an otherwise working microphone.
+                int session = recorder.getAudioSessionId();
+                try {
+                    if (AcousticEchoCanceler.isAvailable()) {
+                        echo = AcousticEchoCanceler.create(session);
+                        if (echo != null) echo.setEnabled(true);
+                    }
+                } catch (RuntimeException ignored) {
+                    if (echo != null) { echo.release(); echo = null; }
+                }
+                try {
+                    if (NoiseSuppressor.isAvailable()) {
+                        noise = NoiseSuppressor.create(session);
+                        if (noise != null) noise.setEnabled(true);
+                    }
+                } catch (RuntimeException ignored) {
+                    if (noise != null) { noise.release(); noise = null; }
+                }
                 recorder.startRecording();
                 if (recorder.getRecordingState() != AudioRecord.RECORDSTATE_RECORDING)
                     throw new IllegalStateException("Microphone recording was not started");
                 events.status("LISTENING. Speak toward the onn box; select STOP when done.");
                 events.listening();
+                final String noiseMode = roomNoise;
                 byte[] pcm = new byte[3200]; // 100 ms at 16kHz, mono, 16-bit
                 long observedMs = 0L;
                 long voiceMs = 0L;
@@ -325,23 +511,33 @@ public final class HaAssistClient {
                             power += normalized * normalized;
                         }
                         double rms = Math.sqrt(power / Math.max(1, read / 2));
-                        // Adapt a quiet noise-floor estimate, but don't chase
-                        // loud speech or a TV program's temporary peaks.
-                        if (!heardUtterance && rms < backgroundRms * 2.2) {
+                        boolean television = OverlayPreferences.NOISE_TV.equals(noiseMode);
+                        boolean quietRoom = OverlayPreferences.NOISE_QUIET.equals(noiseMode);
+                        // TV mode learns its background for the first 600 ms;
+                        // Normal mode retains existing thresholds and behavior.
+                        if (television && observedMs < 600) {
+                            backgroundRms = backgroundRms * 0.8 + rms * 0.2;
+                        } else if (!heardUtterance && rms < backgroundRms * 2.2) {
                             backgroundRms = backgroundRms * 0.96 + rms * 0.04;
                         }
-                        boolean voice = rms > Math.max(0.0045, backgroundRms * 2.4);
-                        if (!heardUtterance) {
-                            voiceMs = voice ? voiceMs + chunkMs : Math.max(0, voiceMs - chunkMs);
-                            if (voiceMs >= 180) heardUtterance = true;
-                        } else {
-                            quietMs = voice ? 0 : quietMs + chunkMs;
-                        }
-                        // Don't finish before sending the final chunk.
-                        if (heardUtterance && quietMs >= 1550 && observedMs >= 1100) {
-                            events.status("Voice pause detected. Processing your question...");
-                            endRequested = true;
-                            recording.set(false);
+                        if (!(television && observedMs < 600)) {
+                            double floor = quietRoom ? 0.003 : television ? 0.01 : 0.0045;
+                            double times = quietRoom ? 1.9 : television ? 3.0 : 2.4;
+                            long needVoice = quietRoom ? 140 : television ? 280 : 180;
+                            long needQuiet = quietRoom ? 1100 : television ? 2000 : 1550;
+                            boolean voice = rms > Math.max(floor, backgroundRms * times);
+                            if (!heardUtterance) {
+                                voiceMs = voice ? voiceMs + chunkMs : Math.max(0, voiceMs - chunkMs);
+                                if (voiceMs >= needVoice) heardUtterance = true;
+                            } else {
+                                quietMs = voice ? 0 : quietMs + chunkMs;
+                            }
+                            if (heardUtterance && quietMs >= needQuiet && observedMs >= 1100) {
+                                events.status("Voice pause detected. Processing your question...");
+                                events.localSilence();
+                                endRequested = true;
+                                recording.set(false);
+                            }
                         }
                     }
                     WebSocket ws = socket;
@@ -358,8 +554,12 @@ public final class HaAssistClient {
                 recording.set(false);
                 if (recorder != null) {
                     try { recorder.stop(); } catch (Exception ignored) { }
-                    recorder.release();
                 }
+                if (echo != null) echo.release();
+                if (noise != null) noise.release();
+                if (recorder != null) recorder.release();
+                // A stale capture thread must never release a newer run's focus.
+                if (runId == currentRunId) listeningFocus.release();
                 sendEndOfAudio(runId);
             }
         }, "ha-assist-audio").start();
@@ -373,16 +573,131 @@ public final class HaAssistClient {
 
     private void stopForRunEnd() {
         recording.set(false);
+        listeningFocus.release();
         handlerId = -1;
         currentRunId = -1;
         captureStarted = false;
         endRequested = false;
     }
 
+    public synchronized void setLayoutSync(boolean enabled) {
+        layoutSync = enabled;
+        if (!enabled) {
+            layoutEntities.clear();
+            return;
+        }
+        requestLayout();
+    }
+
+    /** Push one local preference into its Home Assistant control, if that control exists. */
+    public void publishLayout(String setting) {
+        if (!HaLayout.known(setting)) return;
+        String option;
+        String entity;
+        boolean switchEntity;
+        synchronized (this) {
+            if (!layoutSync || !authenticated || socket == null) return;
+            entity = layoutEntities.get(setting);
+            if (entity == null) return;
+            option = HaLayout.wireValue(new OverlayPreferences(context), setting);
+            if (option == null) return;
+            switchEntity = entity.startsWith("switch.");
+            try {
+                JSONObject call = new JSONObject();
+                call.put("id", commandId++);
+                call.put("type", "call_service");
+                call.put("domain", switchEntity ? "switch" : "select");
+                call.put("service", switchEntity ? ("on".equals(option) ? "turn_on" : "turn_off") : "select_option");
+                JSONObject target = new JSONObject();
+                target.put("entity_id", entity);
+                call.put("target", target);
+                JSONObject data = new JSONObject();
+                data.put("entity_id", entity);
+                if (!switchEntity) data.put("option", option);
+                call.put("service_data", data);
+                socket.send(call.toString());
+            } catch (Exception ignored) { }
+        }
+    }
+
+    private synchronized void requestLayout() {
+        if (!layoutSync || !authenticated || socket == null) return;
+        try {
+            if (!layoutSubscribed) {
+                JSONObject subscribe = new JSONObject();
+                subscribe.put("id", commandId++);
+                subscribe.put("type", "subscribe_events");
+                subscribe.put("event_type", "state_changed");
+                if (!socket.send(subscribe.toString())) return;
+                layoutSubscribed = true;
+            }
+            JSONObject states = new JSONObject();
+            layoutStatesId = commandId++;
+            states.put("id", layoutStatesId);
+            states.put("type", "get_states");
+            socket.send(states.toString());
+        } catch (Exception ignored) { }
+    }
+
+    private void ingestStates(JSONArray states) {
+        for (int i = 0; i < states.length(); i++) {
+            JSONObject state = states.optJSONObject(i);
+            if (state != null) ingestOne(state);
+        }
+    }
+
+    private void ingestState(JSONObject data) {
+        if (data == null) return;
+        JSONObject state = data.optJSONObject("new_state");
+        if (state == null) return;
+        if (!state.has("entity_id")) {
+            try {
+                state.put("entity_id", data.optString("entity_id"));
+            } catch (Exception ignored) {
+                return;
+            }
+        }
+        ingestOne(state);
+    }
+
+    private void ingestOne(JSONObject state) {
+        String changed;
+        synchronized (this) {
+            if (!layoutSync) return;
+            JSONObject attributes = state.optJSONObject("attributes");
+            if (attributes == null) return;
+            OverlayPreferences prefs = new OverlayPreferences(context);
+            if (!prefs.deviceId().equals(attributes.optString("kellie_device_id"))) return;
+            String setting = attributes.optString("kellie_setting");
+            if (!HaLayout.known(setting)) return;
+            String entityId = state.optString("entity_id");
+            if (!entityId.isEmpty()) layoutEntities.put(setting, entityId);
+            int generation = attributes.optInt("kellie_generation", 0);
+            if (generation <= 0) {
+                publishLayout(setting);
+                return;
+            }
+            String raw = state.optString("state");
+            if ("unavailable".equals(raw) || "unknown".equals(raw) || raw.isEmpty()) return;
+            changed = HaLayout.apply(prefs, setting, raw) ? setting : null;
+        }
+        if (changed != null) events.haLayout(changed);
+    }
+
     public synchronized void disconnect() {
         disposed = true;
+        reconnectEnabled = false;
+        reconnectHandler.removeCallbacks(reconnectTask);
+        reconnectScheduled = false;
+        connecting = false;
+        failures = 0;
+        savedBaseUrl = null;
+        savedToken = null;
         authenticated = false;
         conversationId = null;
+        layoutSubscribed = false;
+        layoutStatesId = -1;
+        layoutEntities.clear();
         stopForRunEnd();
         WebSocket ws = socket;
         socket = null;

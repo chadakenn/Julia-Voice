@@ -19,6 +19,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.provider.Settings;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -59,10 +60,13 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
     private CredentialStore.Connection connection;
     private OverlayPreferences preferences;
     private MediaPlayer player;
+    private SpeechFocus speechFocus;
     private int selected = 0;
     private boolean listening = false;
+    private boolean speaking = false;
     private boolean firstAutoListenPending = false;
     private boolean firstAutoListenStarted = false;
+    private long autoListenDeadlineMs;
     private boolean closing = false;
 
     private final Runnable endListeningTimeout = () -> {
@@ -89,7 +93,18 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
                 focus(0);
                 // Pressing the shortcut again may start the next question,
                 // but never restarts the mic while an utterance is underway.
-                if (!listening && assist != null && assist.isConnected()
+                if (assist != null && !assist.isConnected()) {
+                    // Pressing ⭐ again while HA is restarting is another
+                    // explicit request. Reconnect and listen only briefly
+                    // after this request, never unexpectedly hours later.
+                    if (preferences != null && preferences.autoListen()) {
+                        firstAutoListenPending = true;
+                        firstAutoListenStarted = false;
+                        autoListenDeadlineMs = SystemClock.elapsedRealtime() + 30000L;
+                    }
+                    assist.ensureConnected();
+                    status("Reconnecting to Home Assistant...");
+                } else if (!listening && assist != null && assist.isConnected()
                         && preferences != null && preferences.autoListen()) {
                     startListening();
                 }
@@ -106,6 +121,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         preferences = new OverlayPreferences(this);
         firstAutoListenPending = preferences.autoListen();
         firstAutoListenStarted = false;
+        autoListenDeadlineMs = SystemClock.elapsedRealtime() + 30000L;
         try {
             createNotificationChannel();
             Intent openApp = new Intent(this, VoiceActivity.class);
@@ -140,6 +156,9 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
             }
             showPanel();
             assist = new HaAssistClient(this, this);
+            assist.setLayoutSync(preferences.haManage());
+            HaDiscovery.setWanted(this, preferences.haManage());
+            HaDiscovery.acquire(this);
             assist.connect(connection.url, connection.token);
         } catch (Exception ignored) {
             // Do not print private tokens or HA URL into logs.
@@ -178,41 +197,63 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         actions.clear();
         selected = 0;
         boolean glass = OverlayPreferences.SKIN_GLASS.equals(preferences.skin());
+        // Night Signal keeps its compact geometry, but uses warm brass accents
+        // to avoid the generic cyan/violet AI appearance.
+        boolean signal = OverlayPreferences.SKIN_SIGNAL.equals(preferences.skin());
 
         panel = new VoicePanel();
         panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setPadding(dp(22), dp(14), dp(22), dp(14));
+        panel.setPadding(dp(signal ? 20 : 22), dp(signal ? 12 : 14), dp(22), dp(14));
         panel.setFocusable(true);
         panel.setFocusableInTouchMode(true);
         GradientDrawable background = new GradientDrawable(
                 GradientDrawable.Orientation.TL_BR,
-                glass ? new int[] {0xe8201513, 0xf0291a17, 0xed150f0d}
+                signal ? new int[] {0xf21B1512, 0xf2261B15}
+                        : glass ? new int[] {0xe8201513, 0xf0291a17, 0xed150f0d}
                         : new int[] {0xf02A1A16, 0xf017100e});
-        background.setCornerRadius(dp(glass ? 22 : 14));
-        background.setStroke(dp(1), glass ? 0x88E7A981 : 0xffD9946F);
+        background.setCornerRadius(dp(signal ? 8 : glass ? 22 : 14));
+        background.setStroke(dp(1), signal ? 0xff805F48 : glass ? 0x88E7A981 : 0xffD9946F);
         panel.setBackground(background);
-        panel.setElevation(dp(14));
+        panel.setElevation(dp(signal ? 10 : 14));
 
-        TextView top = label(glass ? "✦  KELLIE'S VOICE" : "🎙  KELLIE'S VOICE",
-                glass ? 15 : 19, glass ? 0xffF5D6BD : 0xffE6AB82);
-        top.setLetterSpacing(0.12f);
+        if (signal) {
+            View rule = new View(this);
+            rule.setBackgroundColor(0xffE1B27B);
+            panel.addView(rule, new LinearLayout.LayoutParams(-1, dp(3)));
+        }
+
+        TextView top = label(signal ? "KELLIE'S VOICE" : glass ? "✦  KELLIE'S VOICE" : "🎙  KELLIE'S VOICE",
+                signal ? 13 : glass ? 15 : 19,
+                signal ? 0xffE7C39B : glass ? 0xffF5D6BD : 0xffE6AB82);
+        top.setLetterSpacing(signal ? 0.18f : 0.12f);
         panel.addView(top);
 
-        statusView = label("CONNECTING...", glass ? 14 : 15, 0xffF7E8DA);
+        statusView = label("CONNECTING...", signal ? 13 : glass ? 14 : 15,
+                signal ? 0xffF0DDC7 : 0xffF7E8DA);
         panel.addView(statusView);
 
         wave = new VoiceWaveView(this);
+        wave.setLook(signal ? VoiceWaveView.LOOK_SIGNAL : VoiceWaveView.LOOK_COPPER);
         wave.setMode(VoiceWaveView.CONNECTING);
-        panel.addView(wave, new LinearLayout.LayoutParams(-1, dp(glass ? 88 : 68)));
+        panel.addView(wave, new LinearLayout.LayoutParams(-1, dp(glass ? 88 : signal ? 64 : 68)));
 
+        // One scrolling region keeps long Assist answers readable while the
+        // TALK/STOP/CLOSE/SETTINGS buttons remain visible and remote-friendly.
         LinearLayout words = new LinearLayout(this);
         words.setOrientation(LinearLayout.VERTICAL);
-        if (glass) words.addView(label("YOU SAID", 11, 0xffD1AC92));
+        if (glass || signal) {
+            words.addView(label(signal ? "You said" : "YOU SAID", 11,
+                    signal ? 0xffAF9881 : 0xffD1AC92));
+        }
         transcriptView = label("Say something when listening starts...",
-                glass ? 17 : 16, glass ? 0xffF7E9E0 : 0xffEBCDB9);
+                signal ? 16 : glass ? 17 : 16,
+                signal ? 0xffF0E2D0 : glass ? 0xffF7E9E0 : 0xffEBCDB9);
         words.addView(transcriptView);
-        words.addView(label("HOME ASSISTANT SAYS", 11, glass ? 0xffD1AC92 : 0xffC89A7B));
-        answerView = label("Ready for your question", glass ? 23 : 19, 0xffffffff);
+
+        words.addView(label(signal ? "Home Assistant" : "HOME ASSISTANT SAYS", 11,
+                signal ? 0xffAF9881 : glass ? 0xffD1AC92 : 0xffC89A7B));
+        answerView = label("Ready for your question",
+                signal ? 26 : glass ? 23 : 19, 0xffffffff);
         words.addView(answerView);
 
         answerScroll = new ScrollView(this);
@@ -222,22 +263,25 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         answerScroll.setVerticalScrollBarEnabled(true);
         answerScroll.addView(words);
         float textFraction = OverlayPreferences.SIZE_SMALL.equals(preferences.size()) ? 0.28f
-                : OverlayPreferences.SIZE_LARGE.equals(preferences.size()) ? 0.48f : 0.36f;
-        int textHeight = Math.max(dp(120),
+                : OverlayPreferences.SIZE_LARGE.equals(preferences.size()) ? 0.44f : 0.34f;
+        int textHeight = Math.max(dp(110),
                 (int) (getResources().getDisplayMetrics().heightPixels * textFraction));
         panel.addView(answerScroll, new LinearLayout.LayoutParams(-1, textHeight));
 
         LinearLayout toolbar = new LinearLayout(this);
         toolbar.setOrientation(LinearLayout.HORIZONTAL);
-        addAction(toolbar, "TALK", this::startListening);
-        addAction(toolbar, "STOP", this::stopListening);
-        addAction(toolbar, "CLOSE", this::stopSelf);
-        addAction(toolbar, "SETTINGS", this::openMainSettings);
+        addAction(toolbar, "TALK", this::startListening, signal);
+        addAction(toolbar, "STOP", this::stopListening, signal);
+        addAction(toolbar, "CLOSE", this::stopSelf, signal);
+        addAction(toolbar, "SETTINGS", this::openMainSettings, signal);
         panel.addView(toolbar);
 
         int screenWidth = getResources().getDisplayMetrics().widthPixels;
         int baseWidthDp;
-        if (OverlayPreferences.SIZE_SMALL.equals(preferences.size())) {
+        if (signal) {
+            baseWidthDp = OverlayPreferences.SIZE_SMALL.equals(preferences.size()) ? 440
+                    : OverlayPreferences.SIZE_LARGE.equals(preferences.size()) ? 880 : 640;
+        } else if (OverlayPreferences.SIZE_SMALL.equals(preferences.size())) {
             baseWidthDp = glass ? 470 : 385;
         } else if (OverlayPreferences.SIZE_LARGE.equals(preferences.size())) {
             baseWidthDp = glass ? 940 : 760;
@@ -287,10 +331,16 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
                 params.y = dp(42);
                 break;
             default:
-                params.gravity = glass ? (Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL)
-                        : (Gravity.TOP | Gravity.END);
-                params.y = dp(glass ? 42 : 45);
-                if (!glass) params.x = dp(18);
+                if (signal) {
+                    params.gravity = Gravity.BOTTOM | Gravity.START;
+                    params.x = dp(28);
+                    params.y = dp(36);
+                } else {
+                    params.gravity = glass ? (Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL)
+                            : (Gravity.TOP | Gravity.END);
+                    params.y = dp(glass ? 42 : 45);
+                    if (!glass) params.x = dp(18);
+                }
                 break;
         }
         params.setTitle("Kellie's Voice");
@@ -298,26 +348,41 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         panel.post(() -> focus(0));
     }
 
-    private void addAction(LinearLayout parent, String name, Runnable runnable) {
+    private void addAction(LinearLayout parent, String name, Runnable runnable, boolean signal) {
         final int index = actions.size();
         Button button = new Button(this);
         button.setText(name);
-        button.setTextSize(13);
+        button.setTextSize(signal ? 14 : 13);
         button.setAllCaps(false);
-        button.setTextColor(0xffffffff);
+        button.setTextColor(signal ? 0xffF8E8D6 : 0xffffffff);
         button.setFocusable(true);
         button.setFocusableInTouchMode(true);
         button.setMinHeight(0);
         button.setMinimumHeight(0);
-        button.setBackgroundTintList(ColorStateList.valueOf(0xff574039));
+        if (signal) {
+            button.setBackgroundTintList(null);
+            button.setPadding(dp(6), 0, dp(6), 0);
+        } else {
+            button.setBackgroundTintList(ColorStateList.valueOf(0xff574039));
+        }
         button.setOnClickListener(v -> runnable.run());
         button.setOnFocusChangeListener((v, focused) -> {
             if (focused) selected = index;
-            button.setBackgroundTintList(ColorStateList.valueOf(
-                    focused ? 0xffBB7958 : 0xff574039));
+            if (signal) {
+                GradientDrawable chip = new GradientDrawable();
+                chip.setColor(focused ? 0xff433027 : 0x00000000);
+                chip.setCornerRadius(dp(8));
+                chip.setStroke(Math.max(1, dp(1)), focused ? 0xffE7C39B : 0xff7B5A45);
+                button.setBackground(chip);
+                button.setBackgroundTintList(null);
+            } else {
+                button.setBackgroundTintList(ColorStateList.valueOf(
+                        focused ? 0xffBB7958 : 0xff574039));
+            }
         });
+        if (signal) button.getOnFocusChangeListener().onFocusChange(button, false);
         actions.add(button);
-        parent.addView(button, new LinearLayout.LayoutParams(0, dp(42), 1f));
+        parent.addView(button, new LinearLayout.LayoutParams(0, dp(signal ? 40 : 42), 1f));
     }
 
     private void focus(int index) {
@@ -328,8 +393,15 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
 
     private void startListening() {
         if (closing) return;
-        if (assist == null || !assist.isConnected()) {
-            status("Connecting to Home Assistant. Try again shortly.");
+        if (assist == null) return;
+        if (!assist.isConnected()) {
+            // TALK is a direct user request, so resume listening if the
+            // reconnect succeeds soon; expire it to avoid surprise mic use.
+            firstAutoListenPending = true;
+            firstAutoListenStarted = false;
+            autoListenDeadlineMs = SystemClock.elapsedRealtime() + 30000L;
+            assist.ensureConnected();
+            status("Reconnecting to Home Assistant. I'll listen when connected.");
             return;
         }
         if (listening) return;
@@ -340,12 +412,20 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
             player.release();
             player = null;
         }
+        if (speechFocus != null) speechFocus.release();
         listening = true;
+        speaking = false;
         transcriptView.setText("Listening to your voice...");
         answerView.setText("...");
         if (wave != null) wave.setMode(VoiceWaveView.LISTENING);
         status("LISTENING • Speak toward the onn box");
-        assist.talk(preferences.autoListen());
+        assist.setRoomNoise(preferences.noise());
+        if (!assist.talk(preferences.autoListen())) {
+            listening = false;
+            main.removeCallbacks(endListeningTimeout);
+            if (wave != null) wave.setMode(
+                    assist.isConnected() ? VoiceWaveView.IDLE : VoiceWaveView.CONNECTING);
+        }
     }
 
     private void openMainSettings() {
@@ -384,7 +464,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
                 case KeyEvent.KEYCODE_DPAD_UP:
                     if (down) {
                         if (answerScroll != null && answerScroll.hasFocus()) {
-                            answerScroll.scrollBy(0, -dp(56));
+                            answerScroll.smoothScrollBy(0, -dp(60));
                         } else if (selected == 0 && answerScroll != null) {
                             answerScroll.requestFocus();
                         } else {
@@ -402,9 +482,10 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
                     if (down) {
                         if (answerScroll != null && answerScroll.hasFocus()) {
                             View child = answerScroll.getChildAt(0);
-                            int content = child == null ? 0 : child.getHeight();
-                            boolean more = answerScroll.getScrollY() + answerScroll.getHeight() < content - dp(8);
-                            if (more) answerScroll.scrollBy(0, dp(56));
+                            int height = child == null ? 0 : child.getHeight();
+                            boolean more = answerScroll.getScrollY()
+                                    + answerScroll.getHeight() < height - dp(8);
+                            if (more) answerScroll.smoothScrollBy(0, dp(60));
                             else focus(0);
                         } else {
                             focus(selected + 1);
@@ -426,14 +507,56 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         }
     }
 
+    @Override public void haLayout(String setting) {
+        if (!HaLayout.changesPanel(setting)) return;
+        main.post(() -> {
+            if (!closing) refreshPanel();
+        });
+    }
+
+    private void refreshPanel() {
+        if (windowManager == null || panel == null) return;
+        CharSequence said = transcriptView == null ? "" : transcriptView.getText();
+        CharSequence answer = answerView == null ? "" : answerView.getText();
+        CharSequence line = statusView == null ? "" : statusView.getText();
+        boolean wasListening = listening;
+        try {
+            windowManager.removeView(panel);
+        } catch (Exception ignored) { }
+        panel = null;
+        showPanel();
+        if (transcriptView != null) transcriptView.setText(said);
+        if (answerView != null) answerView.setText(answer);
+        if (statusView != null) statusView.setText(line);
+        if (wave != null) {
+            wave.setMode(wasListening ? VoiceWaveView.LISTENING : (speaking ? VoiceWaveView.SPEAKING : VoiceWaveView.IDLE));
+        }
+    }
+
+    @Override public void connectionLost() {
+        main.post(() -> {
+            if (closing) return;
+            listening = false;
+            main.removeCallbacks(endListeningTimeout);
+            main.removeCallbacks(dismissAfterReply);
+            // Preserve only a recent, explicitly requested auto-listen.
+            if (SystemClock.elapsedRealtime() > autoListenDeadlineMs) {
+                firstAutoListenPending = false;
+            }
+            if (!speaking && wave != null) wave.setMode(VoiceWaveView.CONNECTING);
+        });
+    }
+
     @Override public void ready() {
         main.post(() -> {
             if (closing) return;
             if (wave != null) wave.setMode(VoiceWaveView.IDLE);
-            if (firstAutoListenPending && !firstAutoListenStarted) {
+            if (firstAutoListenPending && !firstAutoListenStarted
+                    && SystemClock.elapsedRealtime() <= autoListenDeadlineMs) {
                 firstAutoListenStarted = true;
                 startListening();
             } else {
+                firstAutoListenPending = false;
                 status("Connected. Select TALK.");
             }
         });
@@ -457,21 +580,27 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         });
     }
 
+    @Override public void localSilence() {
+        main.post(() -> {
+            listening = false;
+            main.removeCallbacks(endListeningTimeout);
+            if (!closing && wave != null) wave.setMode(VoiceWaveView.THINKING);
+        });
+    }
+
+    @Override public void runEnded() {
+        main.post(() -> {
+            if (closing) return;
+            if (!speaking) {
+                if (wave != null) wave.setMode(VoiceWaveView.IDLE);
+                scheduleIdleDismiss();
+            }
+        });
+    }
+
     @Override public void status(String message) {
         main.post(() -> {
-            if (closing || statusView == null) return;
-            statusView.setText(message);
-            if (message.contains("Ready for another question")) {
-                if (wave != null) wave.setMode(VoiceWaveView.IDLE);
-                scheduleFallbackDismiss();
-            } else if (message.startsWith("Speaking...")) {
-                main.removeCallbacks(dismissAfterReply);
-                if (wave != null) wave.setMode(VoiceWaveView.SPEAKING);
-            } else if (message.contains("Voice pause detected")) {
-                listening = false;
-                main.removeCallbacks(endListeningTimeout);
-                if (wave != null) wave.setMode(VoiceWaveView.THINKING);
-            }
+            if (!closing && statusView != null) statusView.setText(message);
         });
     }
 
@@ -485,7 +614,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         main.post(() -> {
             if (!closing && answerView != null) {
                 answerView.setText(value);
-                if (answerScroll != null) answerScroll.scrollTo(0, 0);
+                if (answerScroll != null) answerScroll.post(() -> answerScroll.scrollTo(0, 0));
             }
         });
     }
@@ -497,29 +626,23 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         });
     }
 
-    private void scheduleFallbackDismiss() {
-        if (preferences != null && preferences.autoHide()) {
-            main.removeCallbacks(dismissAfterReply);
-            main.postDelayed(dismissAfterReply, 25000);
-        }
+    private void scheduleIdleDismiss() {
+        if (closing || preferences == null || !preferences.autoHide()) return;
+        main.removeCallbacks(dismissAfterReply);
+        main.postDelayed(dismissAfterReply, preferences.hideSeconds() * 1000L);
     }
 
     private void playTts(String address) {
         if (connection == null || closing) return;
         try {
-            HttpUrl base = HttpUrl.parse(connection.url);
-            if (base == null) throw new IllegalStateException("Bad HA address");
-            HttpUrl playback = base.resolve(address);
-            if (playback == null) throw new IllegalArgumentException("Invalid speech media path");
-            if (!playback.host().equals(base.host()) || playback.port() != base.port()
-                    || !playback.scheme().equals(base.scheme())) {
-                if (!playback.encodedPath().startsWith("/api/tts_proxy/")) {
-                    throw new SecurityException("Unexpected TTS server");
-                }
-                playback = base.newBuilder().encodedPath(playback.encodedPath())
-                        .encodedQuery(playback.encodedQuery()).build();
-            }
+            // TTS may take a moment to prepare; do not dismiss while buffering.
+            speaking = true;
+            main.removeCallbacks(dismissAfterReply);
+            HttpUrl playback = TtsUrls.allowedPlaybackUrl(connection.url, address);
             if (player != null) player.release();
+            if (speechFocus == null) speechFocus = new SpeechFocus(this);
+            speechFocus.release(); // Release any previous TTS focus before replay.
+            speechFocus.acquire();
             player = new MediaPlayer();
             player.setAudioAttributes(new AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_ASSISTANT)
@@ -533,30 +656,36 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
                 p.start();
             });
             player.setOnCompletionListener(p -> {
+                speaking = false;
+                if (speechFocus != null) speechFocus.release();
                 status("Done. Press ⭐ again or choose TALK.");
                 if (wave != null) wave.setMode(VoiceWaveView.IDLE);
-                if (preferences.autoHide()) {
-                    main.removeCallbacks(dismissAfterReply);
-                    main.postDelayed(dismissAfterReply, preferences.hideSeconds() * 1000L);
-                }
+                scheduleIdleDismiss();
             });
             player.setOnErrorListener((p, what, extra) -> {
+                speaking = false;
+                if (speechFocus != null) speechFocus.release();
                 status("Speech playback failed; answer is still shown.");
-                scheduleFallbackDismiss();
+                scheduleIdleDismiss();
                 return true;
             });
             player.prepareAsync();
         } catch (Exception ignored) {
+            speaking = false;
+            if (speechFocus != null) speechFocus.release();
             status("Could not play speech. The answer is still shown.");
-            scheduleFallbackDismiss();
+            scheduleIdleDismiss();
         }
     }
 
     @Override public void onDestroy() {
         closing = true;
+        HaDiscovery.release(this);
+        speaking = false;
         main.removeCallbacksAndMessages(null);
         if (assist != null) { assist.shutdown(); assist = null; }
         if (player != null) { player.release(); player = null; }
+        if (speechFocus != null) speechFocus.release();
         if (windowManager != null && panel != null) {
             try { windowManager.removeViewImmediate(panel); }
             catch (Exception ignored) { }
