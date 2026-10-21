@@ -6,6 +6,7 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
     <uses-feature android:name="android.software.leanback" android:required="false" />
@@ -51,5 +52,12 @@
         <service android:name=".VoiceOverlayService"
             android:exported="false"
             android:foregroundServiceType="microphone" />
+        <!-- Opt-in foreground TV alert receiver: never accesses the microphone. -->
+        <service android:name=".TvEventsService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Display user-enabled Home Assistant announcements and camera snapshots over Android TV" />
+        </service>
     </application>
 </manifest>

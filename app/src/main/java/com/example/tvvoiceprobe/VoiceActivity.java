@@ -76,6 +76,15 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         HaDiscovery.setWanted(this, new OverlayPreferences(this).haManage());
         HaDiscovery.acquire(this);
         if (assist != null) assist.setLayoutSync(new OverlayPreferences(this).haManage());
+        // User opted in earlier: resume the receiver only when this Activity
+        // is explicitly brought back. The service owns no microphone.
+        if (!transparentShortcut && new OverlayPreferences(this).tvEvents() && settings != null
+                && Settings.canDrawOverlays(this)) {
+            try {
+                startForegroundService(new Intent(this, TvEventsService.class)
+                        .setAction(TvEventsService.ACTION_START));
+            } catch (RuntimeException ignored) { }
+        }
         // Reuse saved credentials without asking for a manual Reconnect click.
         // No microphone is activated here, just the authenticated socket.
         if (transparentShortcut || assist == null || settings == null) return;
@@ -452,6 +461,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                 "Open floating voice overlay",
                 "Overlay appearance & position",
                 "Home Assistant layout: " + (new OverlayPreferences(this).haManage() ? "ON" : "OFF"),
+                "TV announcements & cameras: " + (new OverlayPreferences(this).tvEvents() ? "ON" : "OFF"),
                 "Check for app updates",
                 "Install downloaded update",
                 "Forget saved connection"
@@ -468,13 +478,14 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                         case 5: launchOverlay(); break;
                         case 6: showOverlayPreferences(); break;
                         case 7: chooseHaLayout(); break;
-                        case 8:
+                        case 8: chooseTvNotifications(); break;
+                        case 9:
                             manualUpdateCheck = true;
                             status("Checking GitHub Releases...");
                             updater.check();
                             break;
-                        case 9: promptInstallUpdate(); break;
-                        case 10: confirmForget(); break;
+                        case 10: promptInstallUpdate(); break;
+                        case 11: confirmForget(); break;
                         default: break;
                     }
                 });
@@ -496,6 +507,67 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                         status(prefs.haManage()
                                 ? "Layout control on. In Home Assistant, click Add on Kellie's Voice."
                                 : "Home Assistant layout control off.");
+                    }
+                    showSettingsMenu();
+                });
+    }
+
+    private void chooseTvNotifications() {
+        OverlayPreferences prefs = new OverlayPreferences(this);
+        boolean enabled = prefs.tvEvents();
+        showCopperMenu("SETTINGS  ✦  TV ALERTS",
+                "Opt-in announcements and Frigate camera snapshots over TV. No microphone is used. "
+                        + "The receiver shows a persistent notification and may stop if Android suspends it.",
+                new String[] {
+                        enabled ? "Turn TV notifications OFF" : "Turn TV notifications ON",
+                        "Preview announcement",
+                        "Back to Settings"
+                }, which -> {
+                    if (which == 0) {
+                        if (enabled) {
+                            prefs.setTvEvents(false);
+                            stopService(new Intent(this, TvEventsService.class));
+                            status("TV announcements and camera popups disabled.");
+                        } else if (settings == null) {
+                            status("Configure Home Assistant before enabling TV notifications.");
+                        } else if (!Settings.canDrawOverlays(this)) {
+                            status("Grant 'Display over other apps' before enabling TV alerts.");
+                            new AlertDialog.Builder(this)
+                                    .setTitle("Allow TV announcement popups")
+                                    .setMessage("Android must allow Kellie's Voice to display overlays over video. "
+                                            + "Return here to enable alerts afterward.")
+                                    .setNegativeButton("Later", null)
+                                    .setPositiveButton("Open permission", (d, w) -> {
+                                        try {
+                                            startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                                    Uri.parse("package:" + getPackageName())));
+                                        } catch (Exception ignored) {
+                                            status("Could not open Android's overlay permission screen.");
+                                        }
+                                    }).show();
+                        } else {
+                            prefs.setTvEvents(true);
+                            try {
+                                startForegroundService(new Intent(this, TvEventsService.class)
+                                        .setAction(TvEventsService.ACTION_START));
+                                status("TV alerts enabled. Listening for Home Assistant events.");
+                            } catch (RuntimeException ignored) {
+                                prefs.setTvEvents(false);
+                                status("Android couldn't start the TV alert receiver.");
+                            }
+                        }
+                    } else if (which == 1) {
+                        if (prefs.tvEvents()) {
+                            try {
+                                startForegroundService(new Intent(this, TvEventsService.class)
+                                        .setAction(TvEventsService.ACTION_PREVIEW));
+                                status("Previewing the announcement overlay.");
+                            } catch (RuntimeException ignored) {
+                                status("Couldn't open the preview. Check Android overlay permission.");
+                            }
+                        } else {
+                            status("Turn on TV notifications to preview them.");
+                        }
                     }
                     showSettingsMenu();
                 });
@@ -818,6 +890,13 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
             store.save(url, token);
             settings = store.load();
             updateConnectionLabel();
+            if (new OverlayPreferences(this).tvEvents()) {
+                stopService(new Intent(this, TvEventsService.class));
+                try {
+                    startForegroundService(new Intent(this, TvEventsService.class)
+                            .setAction(TvEventsService.ACTION_START));
+                } catch (RuntimeException ignored) { }
+            }
             connect();
         } catch (Exception e) {
             status("Couldn't safely save connection. Try again.");
@@ -882,6 +961,8 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                     assist.disconnect();
                     if (player != null) { player.release(); player = null; }
                     if (speechFocus != null) speechFocus.release();
+                    new OverlayPreferences(this).setTvEvents(false);
+                    stopService(new Intent(this, TvEventsService.class));
                     store.clear();
                     settings = null;
                     updateConnectionLabel();
