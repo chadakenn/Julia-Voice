@@ -20,7 +20,7 @@ The signed Android package ID stays `com.example.tvvoiceprobe` and the signing k
 
 - Charcoal, copper, warm ivory and rose-gold instead of blue or purple.
 - New scalable GitHub header, Android launcher icon, TV launcher banner, animated waveform and startup splash.
-- Kellie's photo-inspired concept renders remain separate from these lightweight vector UI elements. The TV overlay stays uncluttered and does not plaster a portrait on every interaction.
+- The welcome splash includes a **single small portrait of Kellie** ([brand portrait](docs/branding/kellie-portrait.webp)), while the floating TV overlay remains icon-only and unobtrusive. The photo-rich marketing comps are also available separately from the app.
 - Built-in Home Assistant/Ollama conversation routing and saved voice preferences remain intact.
 
 ## onn ⭐ TV remote shortcut
