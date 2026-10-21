@@ -6,6 +6,9 @@ import android.content.pm.PackageManager;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
+import android.media.audiofx.AcousticEchoCanceler;
+import android.media.audiofx.AutomaticGainControl;
+import android.media.audiofx.NoiseSuppressor;
 
 import org.json.JSONObject;
 
@@ -287,6 +290,10 @@ public final class HaAssistClient {
         recording.set(true);
         new Thread(() -> {
             AudioRecord recorder = null;
+            AcousticEchoCanceler echo = null;
+            NoiseSuppressor noise = null;
+            AutomaticGainControl gain = null;
+            SpeechFocus focus = new SpeechFocus(context);
             try {
                 int minimum = AudioRecord.getMinBufferSize(16000,
                         AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
@@ -299,6 +306,21 @@ public final class HaAssistClient {
                 recorder.startRecording();
                 if (recorder.getRecordingState() != AudioRecord.RECORDSTATE_RECORDING)
                     throw new IllegalStateException("Microphone recording was not started");
+                int session = recorder.getAudioSessionId();
+                // Best-effort. TV firmware often has no AEC; ducking still helps.
+                if (AcousticEchoCanceler.isAvailable()) {
+                    echo = AcousticEchoCanceler.create(session);
+                    if (echo != null) echo.setEnabled(true);
+                }
+                if (NoiseSuppressor.isAvailable()) {
+                    noise = NoiseSuppressor.create(session);
+                    if (noise != null) noise.setEnabled(true);
+                }
+                if (AutomaticGainControl.isAvailable()) {
+                    gain = AutomaticGainControl.create(session);
+                    if (gain != null) gain.setEnabled(true);
+                }
+                focus.acquire();
                 events.status("LISTENING. Speak toward the onn box; select STOP when done.");
                 events.listening();
                 byte[] pcm = new byte[3200]; // 100 ms at 16kHz, mono, 16-bit
@@ -356,6 +378,10 @@ public final class HaAssistClient {
                 events.status("Microphone streaming failed: " + e.getMessage());
             } finally {
                 recording.set(false);
+                focus.release();
+                if (echo != null) echo.release();
+                if (noise != null) noise.release();
+                if (gain != null) gain.release();
                 if (recorder != null) {
                     try { recorder.stop(); } catch (Exception ignored) { }
                     recorder.release();

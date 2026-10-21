@@ -52,6 +52,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
     private HaAssistClient assist;
     private CredentialStore.Connection settings;
     private MediaPlayer player;
+    private SpeechFocus speechFocus;
     private boolean playing;
     private boolean warningPending;
     private UpdateManager updater;
@@ -705,6 +706,8 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         } else {
             recognized.setText("Listening...");
             response.setText("Waiting for Home Assistant...");
+            if (player != null) { player.release(); player = null; }
+            if (speechFocus != null) speechFocus.release();
             assist.talk();
         }
     }
@@ -739,6 +742,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                 .setPositiveButton("Forget", (d, w) -> {
                     assist.disconnect();
                     if (player != null) { player.release(); player = null; }
+                    if (speechFocus != null) speechFocus.release();
                     store.clear();
                     settings = null;
                     updateConnectionLabel();
@@ -781,6 +785,8 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                         .encodedQuery(playback.encodedQuery()).build();
             }
             if (player != null) { player.release(); player = null; }
+            if (speechFocus == null) speechFocus = new SpeechFocus(this);
+            speechFocus.acquire();
             player = new MediaPlayer();
             player.setAudioAttributes(new AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_ASSISTANT)
@@ -789,19 +795,25 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
             headers.put("Authorization", "Bearer " + settings.token);
             player.setDataSource(this, Uri.parse(playback.toString()), headers);
             player.setOnPreparedListener(p -> { status("Speaking..."); p.start(); });
-            player.setOnCompletionListener(p -> status("Finished. Select TALK for another question."));
+            player.setOnCompletionListener(p -> {
+                if (speechFocus != null) speechFocus.release();
+                status("Finished. Select TALK for another question.");
+            });
             player.setOnErrorListener((p, what, extra) -> {
+                if (speechFocus != null) speechFocus.release();
                 status("TTS playback failed. The text answer is still above.");
                 return true;
             });
             player.prepareAsync();
         } catch (Exception e) {
+            if (speechFocus != null) speechFocus.release();
             status("Could not play TTS. The text answer is still above.");
         }
     }
 
     @Override protected void onDestroy() {
         if (player != null) { player.release(); player = null; }
+        if (speechFocus != null) speechFocus.release();
         if (assist != null) assist.shutdown();
         super.onDestroy();
     }

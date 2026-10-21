@@ -57,6 +57,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
     private CredentialStore.Connection connection;
     private OverlayPreferences preferences;
     private MediaPlayer player;
+    private SpeechFocus speechFocus;
     private int selected = 0;
     private boolean listening = false;
     private boolean firstAutoListenPending = false;
@@ -328,6 +329,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
             player.release();
             player = null;
         }
+        if (speechFocus != null) speechFocus.release();
         listening = true;
         transcriptView.setText("Listening to your voice...");
         answerView.setText("...");
@@ -477,6 +479,8 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
                         .encodedQuery(playback.encodedQuery()).build();
             }
             if (player != null) player.release();
+            if (speechFocus == null) speechFocus = new SpeechFocus(this);
+            speechFocus.acquire();
             player = new MediaPlayer();
             player.setAudioAttributes(new AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_ASSISTANT)
@@ -490,6 +494,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
                 p.start();
             });
             player.setOnCompletionListener(p -> {
+                if (speechFocus != null) speechFocus.release();
                 status("Done. Press ⭐ again or choose TALK.");
                 if (wave != null) wave.setMode(VoiceWaveView.IDLE);
                 if (preferences.autoHide()) {
@@ -498,12 +503,14 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
                 }
             });
             player.setOnErrorListener((p, what, extra) -> {
+                if (speechFocus != null) speechFocus.release();
                 status("Speech playback failed; answer is still shown.");
                 scheduleFallbackDismiss();
                 return true;
             });
             player.prepareAsync();
         } catch (Exception ignored) {
+            if (speechFocus != null) speechFocus.release();
             status("Could not play speech. The answer is still shown.");
             scheduleFallbackDismiss();
         }
@@ -514,6 +521,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         main.removeCallbacksAndMessages(null);
         if (assist != null) { assist.shutdown(); assist = null; }
         if (player != null) { player.release(); player = null; }
+        if (speechFocus != null) speechFocus.release();
         if (windowManager != null && panel != null) {
             try { windowManager.removeViewImmediate(panel); }
             catch (Exception ignored) { }
