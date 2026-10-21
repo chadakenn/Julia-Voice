@@ -356,7 +356,12 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         answerView.setText("...");
         if (wave != null) wave.setMode(VoiceWaveView.LISTENING);
         status("LISTENING • Speak toward the onn box");
-        assist.talk(preferences.autoListen());
+        if (!assist.talk(preferences.autoListen())) {
+            listening = false;
+            main.removeCallbacks(endListeningTimeout);
+            if (wave != null) wave.setMode(
+                    assist.isConnected() ? VoiceWaveView.IDLE : VoiceWaveView.CONNECTING);
+        }
     }
 
     private void openMainSettings() {
@@ -407,6 +412,20 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
                     return super.dispatchKeyEvent(event);
             }
         }
+    }
+
+    @Override public void connectionLost() {
+        main.post(() -> {
+            if (closing) return;
+            listening = false;
+            main.removeCallbacks(endListeningTimeout);
+            main.removeCallbacks(dismissAfterReply);
+            // Preserve only a recent, explicitly requested auto-listen.
+            if (SystemClock.elapsedRealtime() > autoListenDeadlineMs) {
+                firstAutoListenPending = false;
+            }
+            if (!speaking && wave != null) wave.setMode(VoiceWaveView.CONNECTING);
+        });
     }
 
     @Override public void ready() {

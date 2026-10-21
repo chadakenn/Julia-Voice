@@ -39,6 +39,8 @@ public final class HaAssistClient {
         default void processing() { }
         default void localSilence() { }
         default void runEnded() { }
+        /** Unexpected socket loss; in-progress Assist run has been reset. */
+        default void connectionLost() { }
     }
 
     private final Context context;
@@ -188,6 +190,7 @@ public final class HaAssistClient {
             stopForRunEnd();
             if (reconnectEnabled) scheduleReconnect();
         }
+        events.connectionLost();
     }
 
     private synchronized void scheduleReconnect() {
@@ -328,8 +331,8 @@ public final class HaAssistClient {
         }
     }
 
-    public synchronized void talk() {
-        talk(false);
+    public synchronized boolean talk() {
+        return talk(false);
     }
 
     /**
@@ -337,19 +340,19 @@ public final class HaAssistClient {
      * silence detection to finish after an utterance. Manual STOP remains
      * available if TV playback sound confuses the detector.
      */
-    public synchronized void talk(boolean autoStopOnSilence) {
+    public synchronized boolean talk(boolean autoStopOnSilence) {
         if (!authenticated || socket == null) {
             events.status("Connect to Home Assistant first.");
-            return;
+            return false;
         }
         if (currentRunId != -1) {
             events.status("Finish the current conversation first.");
-            return;
+            return false;
         }
         if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO)
                 != PackageManager.PERMISSION_GRANTED) {
             events.status("Microphone permission is required.");
-            return;
+            return false;
         }
         try {
             JSONObject request = new JSONObject();
@@ -371,12 +374,14 @@ public final class HaAssistClient {
             if (!socket.send(request.toString())) {
                 currentRunId = -1;
                 events.status("Couldn't send Assist request.");
-            } else {
-                events.status("Preparing to listen...");
+                return false;
             }
+            events.status("Preparing to listen...");
+            return true;
         } catch (Exception e) {
             currentRunId = -1;
             events.status("Couldn't start Assist pipeline.");
+            return false;
         }
     }
 
@@ -394,9 +399,11 @@ public final class HaAssistClient {
     }
 
     private void beginCapture(int runId) {
-        if (captureStarted || runId != currentRunId || handlerId < 0) return;
-        captureStarted = true;
-        recording.set(true);
+        synchronized (this) {
+            if (captureStarted || runId != currentRunId || handlerId < 0 || disposed) return;
+            captureStarted = true;
+            recording.set(true);
+        }
         new Thread(() -> {
             AudioRecord recorder = null;
             try {
