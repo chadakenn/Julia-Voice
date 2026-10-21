@@ -33,7 +33,7 @@ The permanently signed **[build #39](https://github.com/chadakenn/Julia-Voice/ac
 - [ ] D-pad selects TALK / STOP / CLOSE; BACK dismisses panel and releases controls
 - [ ] Microphone capture, HA transcript, reply and TV TTS work through the floating panel
 - [ ] Closing the overlay stops the foreground-service notification and microphone activity
-- [ ] The separate Julia Voice Overlay launcher starts overlay while another TV app is visible
+- [ ] The separate Kellie's Voice Overlay launcher starts overlay while another TV app is visible
 - [ ] Optional onn ⭐ app shortcut can target the overlay launcher if firmware supports it
 - [ ] Test a non-DRM video app first; DRM/Netflix overlays and audio focus remain unknown
 
