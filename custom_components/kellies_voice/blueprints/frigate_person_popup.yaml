@@ -1,0 +1,71 @@
+blueprint:
+  name: Kellie's Voice Frigate person popup
+  description: >
+    When a Frigate person sensor turns on, ask a Kellie's Voice TV to show
+    that camera. Replace the inputs with your own camera and person sensor.
+    The TV app has to be listening for kellies_voice_camera_popup before a
+    picture appears. This blueprint does not start the microphone.
+  domain: automation
+  input:
+    person_sensor:
+      name: Person sensor
+      description: Frigate person occupancy sensor, such as binary_sensor.front_door_person_occupancy.
+      selector:
+        entity:
+          filter:
+            domain: binary_sensor
+    camera:
+      name: Camera
+      description: The camera entity to show. This is usually the matching Frigate camera.
+      selector:
+        entity:
+          filter:
+            domain: camera
+    title:
+      name: Title
+      default: Someone is at the door
+    duration_seconds:
+      name: Popup duration (seconds)
+      default: 20
+      selector:
+        number:
+          min: 4
+          max: 45
+          mode: box
+    device_id:
+      name: TV device id
+      description: Leave blank to send the popup to every configured Kellie's Voice TV.
+      default: ""
+    cooldown_seconds:
+      name: Cooldown (seconds)
+      description: Wait this long before another person detection can open the camera again.
+      default: 90
+      selector:
+        number:
+          min: 0
+          max: 3600
+          mode: box
+
+mode: single
+max_exceeded: silent
+
+trigger:
+  - trigger: state
+    entity_id: !input person_sensor
+    to: "on"
+
+variables:
+  camera_entity: !input camera
+  popup_title: !input title
+  popup_duration: !input duration_seconds
+  tv_device: !input device_id
+
+action:
+  - action: kellies_voice.show_camera
+    data:
+      entity_id: "{{ camera_entity }}"
+      title: "{{ popup_title }}"
+      duration_seconds: "{{ popup_duration | int }}"
+      device_id: "{{ tv_device }}"
+  - delay:
+      seconds: !input cooldown_seconds

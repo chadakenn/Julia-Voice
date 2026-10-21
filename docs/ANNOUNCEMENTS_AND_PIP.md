@@ -1,6 +1,6 @@
 # Home Assistant media player, announcements and Frigate picture-in-picture
 
-Status (2026-10-20): **future feature design, not a shipped announcement/PiP capability**. The separate foreground Android TV Assist alpha already authenticates to Home Assistant and streams microphone audio for speech-to-text. It **does not** yet expose a dedicated `media_player`, run an announcement service, or display Frigate cameras. See [verified tests](TESTING.md).
+Status (2026-10-21): **Home Assistant can fire announcement and camera events, and the Android development app can display them when Settings → TV announcements & cameras is ON.** Layout discovery is unchanged. The events are `kellies_voice_announcement` and `kellies_voice_camera_popup`, sent by the actions `kellies_voice.announce` and `kellies_voice.show_camera`. Install and test steps are in [the integration README](../custom_components/kellies_voice/README.md). This does not expose a `media_player`, play TTS, or stream live Frigate video. Camera alerts show a single authenticated Home Assistant snapshot.
 
 ## Intent
 

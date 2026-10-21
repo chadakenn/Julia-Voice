@@ -22,3 +22,15 @@ SELECTS = (
     ("style", "Overlay style", STYLES, "mdi:palette"),
     ("auto_hide", "Overlay auto-hide", HIDE_TIMES, "mdi:timer-outline"),
 )
+
+EVENT_ANNOUNCEMENT = "kellies_voice_announcement"
+EVENT_CAMERA_POPUP = "kellies_voice_camera_popup"
+SERVICE_ANNOUNCE = "announce"
+SERVICE_SHOW_CAMERA = "show_camera"
+
+MAX_TITLE_LENGTH = 65
+MAX_TEXT_LENGTH = 500
+MIN_DURATION_SECONDS = 4
+MAX_DURATION_SECONDS = 45
+DEFAULT_ANNOUNCE_SECONDS = 10
+DEFAULT_CAMERA_SECONDS = 20

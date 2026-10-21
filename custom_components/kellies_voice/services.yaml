@@ -1,0 +1,49 @@
+announce:
+  fields:
+    title:
+      required: true
+      example: Washer
+      selector:
+        text:
+    text:
+      required: true
+      example: The washer is done.
+      selector:
+        text:
+          multiline: true
+    duration_seconds:
+      example: 10
+      selector:
+        number:
+          min: 4
+          max: 45
+          mode: box
+    device_id:
+      example: ""
+      selector:
+        text:
+show_camera:
+  fields:
+    entity_id:
+      required: true
+      example: camera.front_door
+      selector:
+        entity:
+          filter:
+            domain: camera
+    title:
+      required: true
+      example: Front door
+      selector:
+        text:
+    duration_seconds:
+      example: 20
+      selector:
+        number:
+          min: 4
+          max: 45
+          mode: box
+    device_id:
+      example: ""
+      selector:
+        text:
