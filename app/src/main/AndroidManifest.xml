@@ -16,6 +16,7 @@
         android:usesCleartextTraffic="true"
         android:allowBackup="false">
         <activity android:name=".VoiceActivity" android:exported="true"
+            android:launchMode="singleTask"
             android:theme="@style/KellieVoiceLauncherTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
