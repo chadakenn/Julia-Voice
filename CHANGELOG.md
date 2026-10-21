@@ -2,6 +2,16 @@
 
 This is an experimental Android TV / Google TV app. Each entry distinguishes **shipped code** from **tested on the onn 4K Pro**.
 
+## v0.12-overlay-layout (2026-10-21) — Phase 1 TV layout and settings
+
+- Added seven positions for the floating overlay: keep existing location, top-left, top-right, bottom-left, bottom-right, center, and bottom-center. Preserved the previous Glass vs. Classic default gravity unless a position is explicitly selected.
+- Added three overlay width presets: small, medium (same as previous), and large, clamped to fit the TV screen.
+- Added configurable auto-hide delay after speech: 5, 7 (original), 10, 20 seconds, or never. Existing `auto_hide`, auto-listen, skin and ⭐ shortcut preferences remain backward-compatible.
+- Replaced plain TV alert-list settings and appearance dialogs with copper/charcoal D-pad-friendly menus. Microphone consent, token storage, foreground overlay permissions, and the signed updater are unchanged.
+- Documented a future Home Assistant per-device configuration dashboard. This is a plan only; the app does not yet accept remotely pushed settings.
+- Updated Android `versionCode` to **12**, `versionName` to `0.12-overlay-layout`. The app ID and release-signing key are unchanged.
+- **CI signed build #108 passed, including APK signature verification; still requires field testing on the onn 4K Pro.** No public release was published.
+
 ## v0.11-release-url-fix (2026-10-21) — Completed repository rename
 
 - Repository is now `chadakenn/Kellies-Voice`. The v0.10 updater anticipated a lowercase `kellies-voice` path, but GitHub Release asset URLs expose the canonical capitalized spelling. Fixed exact URL checks so the updater can download verified releases after renaming.
