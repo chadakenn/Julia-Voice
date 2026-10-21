@@ -6,7 +6,19 @@ Home Assistant never connects to the TV for layout changes. The TV advertises it
 
 Announcement and camera actions stay inside Home Assistant too. They fire events. They do not open a port on the TV, and they do not put tokens or stream passwords in the event.
 
-## Add it
+## Install with HACS (recommended)
+
+[![Open Kellie's Voice in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=chadakenn&repository=Kellies-Voice&category=integration)
+
+1. Make sure HACS is installed in your Home Assistant instance.
+2. Click **[Open in HACS](https://my.home-assistant.io/redirect/hacs_repository/?owner=chadakenn&repository=Kellies-Voice&category=integration)**, select your Home Assistant instance, and confirm the custom integration repository.
+3. Select **Download**. Under **Need a different version?**, select **`main`** (if necessary, enable beta/development versions first). The existing `v0.6` GitHub Release is an Android-app release, not this HA integration.
+4. Restart Home Assistant, then turn on **Home Assistant layout** inside the Kellie's Voice TV app. The TV should appear in **Settings → Devices & services → Discovered**. Click **Add**.
+5. Optionally turn on **TV announcements & cameras** on the TV to receive HA announcements and Frigate camera snapshots.
+
+This custom-repository shortcut avoids manually copying Python files. It does not bypass HACS approval or the Home Assistant restart. HACS installs only the Home Assistant component, not the TV APK.
+
+## Manual installation
 
 1. Copy this folder to `config/custom_components/kellies_voice` on the Home Assistant machine. Include `services.yaml`, `services.py`, and the `blueprints` folder.
 2. Restart Home Assistant.

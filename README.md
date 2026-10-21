@@ -6,6 +6,17 @@
 
 **Your home. Your voice. Your way.**
 
+## Install the Home Assistant integration with HACS 🏠
+
+[![Open Kellie's Voice in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=chadakenn&repository=Kellies-Voice&category=integration)
+
+**[Open Kellie's Voice in HACS](https://my.home-assistant.io/redirect/hacs_repository/?owner=chadakenn&repository=Kellies-Voice&category=integration)** to add this repository as a custom **Integration**. HACS must already be installed in Home Assistant. When the download dialog offers versions, **select `main` under "Need a different version?"** (enable beta/development versions if needed). The older GitHub **v0.6 Release belongs to the Android TV app** and does not contain the current Home Assistant integration.
+
+After downloading, restart Home Assistant. On the TV, enable **Kellie's Voice → Settings → Home Assistant layout**; in Home Assistant, go to **Settings → Devices & services → Discovered** and add your TV. Enable **Settings → TV announcements & cameras** on the TV for visual announcements and Frigate snapshot popups.
+
+HACS installs only the Home Assistant integration, **not the Android APK**. If you do not use HACS, follow the [manual integration installation guide](custom_components/kellies_voice/README.md).
+
+
 Kellie's Voice is a local-first, open-source voice companion for Home Assistant, starting with Google TV and Android TV. Ask a question or control a room using the floating overlay, without replacing the TV launcher.
 
 **Current status:** v0.14 development APK stabilizes automatic Home Assistant reconnects, in-flight voice requests, overlay reply timing, authenticated TTS URL handling, signed-update verification, and automatic update retries. Reconciled PRs #1, #2, #4, #9, #10 and #11 were merged with passing host unit tests; **v0.14 must still be tested on the onn 4K Pro**. Public v0.6 remains the last separately approved GitHub Release. Signed Actions artifacts are development APKs, not public releases.
