@@ -1,5 +1,9 @@
 # Home Assistant-managed TV configuration (future phase)
 
+## Layout discovery
+
+`custom_components/kellies_voice` is the Home Assistant side. Turn on **Settings → Home Assistant layout** on the TV and it shows up as a discovered device. After Add, Home Assistant can change overlay position, size, style, auto-hide, and auto-listen. It cannot start the microphone, change the token, or install an update. Install steps are in [custom_components/kellies_voice/README.md](../custom_components/kellies_voice/README.md).
+
 ## What is implemented in v0.12
 
 The TV has an on-device copper/charcoal settings menu, backed by a single validated `OverlayPreferences` adapter. Supported position values: `default`, `top_left`, `top_right`, `bottom_left`, `bottom_right`, `center`, and `bottom_center`. Supported sizes: `small`, `medium`, `large`. Supported spoken-reply auto-hide delays: `0` (never), `5`, `7` (legacy default), `10`, and `20` seconds. Existing auto-listen, skin, and onn ⭐ fallback settings are preserved.

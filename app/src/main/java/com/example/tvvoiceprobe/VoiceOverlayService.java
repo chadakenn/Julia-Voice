@@ -154,6 +154,9 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
             }
             showPanel();
             assist = new HaAssistClient(this, this);
+            assist.setLayoutSync(preferences.haManage());
+            HaDiscovery.setWanted(this, preferences.haManage());
+            HaDiscovery.acquire(this);
             assist.connect(connection.url, connection.token);
         } catch (Exception ignored) {
             // Do not print private tokens or HA URL into logs.
@@ -458,6 +461,32 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         }
     }
 
+    @Override public void haLayout(String setting) {
+        if (!HaLayout.changesPanel(setting)) return;
+        main.post(() -> {
+            if (!closing) refreshPanel();
+        });
+    }
+
+    private void refreshPanel() {
+        if (windowManager == null || panel == null) return;
+        CharSequence said = transcriptView == null ? "" : transcriptView.getText();
+        CharSequence answer = answerView == null ? "" : answerView.getText();
+        CharSequence line = statusView == null ? "" : statusView.getText();
+        boolean wasListening = listening;
+        try {
+            windowManager.removeView(panel);
+        } catch (Exception ignored) { }
+        panel = null;
+        showPanel();
+        if (transcriptView != null) transcriptView.setText(said);
+        if (answerView != null) answerView.setText(answer);
+        if (statusView != null) statusView.setText(line);
+        if (wave != null) {
+            wave.setMode(wasListening ? VoiceWaveView.LISTENING : (speaking ? VoiceWaveView.SPEAKING : VoiceWaveView.IDLE));
+        }
+    }
+
     @Override public void connectionLost() {
         main.post(() -> {
             if (closing) return;
@@ -602,6 +631,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
 
     @Override public void onDestroy() {
         closing = true;
+        HaDiscovery.release(this);
         speaking = false;
         main.removeCallbacksAndMessages(null);
         if (assist != null) { assist.shutdown(); assist = null; }
