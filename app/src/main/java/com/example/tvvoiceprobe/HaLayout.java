@@ -33,8 +33,7 @@ public final class HaLayout {
                 if (OverlayPreferences.SIZE_LARGE.equals(prefs.size())) return "Large";
                 return "Medium";
             case STYLE:
-                return OverlayPreferences.SKIN_CLASSIC.equals(prefs.skin())
-                        ? "Compact Charcoal" : "Copper Glass";
+                return OverlayPreferences.skinLabel(prefs.skin());
             case AUTO_HIDE:
                 return prefs.autoHide() ? prefs.hideSeconds() + " seconds" : "Never";
             case AUTO_LISTEN:
@@ -135,6 +134,9 @@ public final class HaLayout {
             case "Compact Charcoal":
             case OverlayPreferences.SKIN_CLASSIC:
                 return OverlayPreferences.SKIN_CLASSIC;
+            case "Night Signal":
+            case OverlayPreferences.SKIN_SIGNAL:
+                return OverlayPreferences.SKIN_SIGNAL;
             default:
                 return null;
         }

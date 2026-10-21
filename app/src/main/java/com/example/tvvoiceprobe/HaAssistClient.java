@@ -6,6 +6,8 @@ import android.content.pm.PackageManager;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
+import android.media.audiofx.AcousticEchoCanceler;
+import android.media.audiofx.NoiseSuppressor;
 import android.os.Handler;
 import android.os.Looper;
 
@@ -41,10 +43,15 @@ public final class HaAssistClient {
         default void listening() { }
         default void processing() { }
         default void haLayout(String setting) { }
+        default void localSilence() { }
+        default void runEnded() { }
+        /** Unexpected socket loss; in-progress Assist run has been reset. */
+        default void connectionLost() { }
     }
 
     private final Context context;
     private final Events events;
+    private final SpeechFocus listeningFocus;
     private final OkHttpClient http = new OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
             .pingInterval(25, TimeUnit.SECONDS)
@@ -88,6 +95,7 @@ public final class HaAssistClient {
     public HaAssistClient(Context context, Events events) {
         this.context = context.getApplicationContext();
         this.events = events;
+        this.listeningFocus = new SpeechFocus(this.context);
     }
 
     public boolean isConnected() { return authenticated; }
@@ -197,6 +205,7 @@ public final class HaAssistClient {
             stopForRunEnd();
             if (reconnectEnabled) scheduleReconnect();
         }
+        events.connectionLost();
     }
 
     private synchronized void scheduleReconnect() {
@@ -347,14 +356,15 @@ public final class HaAssistClient {
             case "run-end":
                 stopForRunEnd();
                 events.status("Ready for another question.");
+                events.runEnded();
                 break;
             default:
                 break;
         }
     }
 
-    public synchronized void talk() {
-        talk(false);
+    public synchronized boolean talk() {
+        return talk(false);
     }
 
     /**
@@ -362,19 +372,19 @@ public final class HaAssistClient {
      * silence detection to finish after an utterance. Manual STOP remains
      * available if TV playback sound confuses the detector.
      */
-    public synchronized void talk(boolean autoStopOnSilence) {
+    public synchronized boolean talk(boolean autoStopOnSilence) {
         if (!authenticated || socket == null) {
             events.status("Connect to Home Assistant first.");
-            return;
+            return false;
         }
         if (currentRunId != -1) {
             events.status("Finish the current conversation first.");
-            return;
+            return false;
         }
         if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO)
                 != PackageManager.PERMISSION_GRANTED) {
             events.status("Microphone permission is required.");
-            return;
+            return false;
         }
         try {
             JSONObject request = new JSONObject();
@@ -393,15 +403,22 @@ public final class HaAssistClient {
             autoEndSpeech = autoStopOnSilence;
             ended.set(false);
             currentRunId = id;
+            // Duck YouTube before the Assist server replies and before opening
+            // the microphone. The automatic fade needs a head start.
+            listeningFocus.acquire();
             if (!socket.send(request.toString())) {
                 currentRunId = -1;
+                listeningFocus.release();
                 events.status("Couldn't send Assist request.");
-            } else {
-                events.status("Preparing to listen...");
+                return false;
             }
+            events.status("Preparing to listen...");
+            return true;
         } catch (Exception e) {
             currentRunId = -1;
+            listeningFocus.release();
             events.status("Couldn't start Assist pipeline.");
+            return false;
         }
     }
 
@@ -419,11 +436,15 @@ public final class HaAssistClient {
     }
 
     private void beginCapture(int runId) {
-        if (captureStarted || runId != currentRunId || handlerId < 0) return;
-        captureStarted = true;
-        recording.set(true);
+        synchronized (this) {
+            if (captureStarted || runId != currentRunId || handlerId < 0 || disposed) return;
+            captureStarted = true;
+            recording.set(true);
+        }
         new Thread(() -> {
             AudioRecord recorder = null;
+            AcousticEchoCanceler echo = null;
+            NoiseSuppressor noise = null;
             try {
                 int minimum = AudioRecord.getMinBufferSize(16000,
                         AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
@@ -433,6 +454,26 @@ public final class HaAssistClient {
                         Math.max(minimum * 2, 6400));
                 if (recorder.getState() != AudioRecord.STATE_INITIALIZED)
                     throw new IllegalStateException("AudioRecord initialization failed");
+                // Android TV firmware may or may not expose hardware echo
+                // cancellation / noise suppression. Never let optional
+                // effects break an otherwise working microphone.
+                int session = recorder.getAudioSessionId();
+                try {
+                    if (AcousticEchoCanceler.isAvailable()) {
+                        echo = AcousticEchoCanceler.create(session);
+                        if (echo != null) echo.setEnabled(true);
+                    }
+                } catch (RuntimeException ignored) {
+                    if (echo != null) { echo.release(); echo = null; }
+                }
+                try {
+                    if (NoiseSuppressor.isAvailable()) {
+                        noise = NoiseSuppressor.create(session);
+                        if (noise != null) noise.setEnabled(true);
+                    }
+                } catch (RuntimeException ignored) {
+                    if (noise != null) { noise.release(); noise = null; }
+                }
                 recorder.startRecording();
                 if (recorder.getRecordingState() != AudioRecord.RECORDSTATE_RECORDING)
                     throw new IllegalStateException("Microphone recording was not started");
@@ -477,6 +518,7 @@ public final class HaAssistClient {
                         // Don't finish before sending the final chunk.
                         if (heardUtterance && quietMs >= 1550 && observedMs >= 1100) {
                             events.status("Voice pause detected. Processing your question...");
+                            events.localSilence();
                             endRequested = true;
                             recording.set(false);
                         }
@@ -495,8 +537,12 @@ public final class HaAssistClient {
                 recording.set(false);
                 if (recorder != null) {
                     try { recorder.stop(); } catch (Exception ignored) { }
-                    recorder.release();
                 }
+                if (echo != null) echo.release();
+                if (noise != null) noise.release();
+                if (recorder != null) recorder.release();
+                // A stale capture thread must never release a newer run's focus.
+                if (runId == currentRunId) listeningFocus.release();
                 sendEndOfAudio(runId);
             }
         }, "ha-assist-audio").start();
@@ -510,6 +556,7 @@ public final class HaAssistClient {
 
     private void stopForRunEnd() {
         recording.set(false);
+        listeningFocus.release();
         handlerId = -1;
         currentRunId = -1;
         captureStarted = false;

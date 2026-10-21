@@ -13,7 +13,7 @@ POSITIONS = [
     "Bottom center",
 ]
 SIZES = ["Small", "Medium", "Large"]
-STYLES = ["Copper Glass", "Compact Charcoal"]
+STYLES = ["Copper Glass", "Compact Charcoal", "Night Signal"]
 HIDE_TIMES = ["Never", "5 seconds", "7 seconds", "10 seconds", "20 seconds"]
 
 SELECTS = (
