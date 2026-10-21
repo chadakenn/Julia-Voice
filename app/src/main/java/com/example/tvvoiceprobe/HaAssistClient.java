@@ -63,6 +63,7 @@ public final class HaAssistClient {
     private volatile boolean endRequested;
     private volatile boolean captureStarted;
     private volatile boolean autoEndSpeech;
+    private volatile String roomNoise = OverlayPreferences.NOISE_NORMAL;
     private final AtomicBoolean recording = new AtomicBoolean(false);
     private final AtomicBoolean ended = new AtomicBoolean(false);
     private volatile String conversationId;
@@ -363,6 +364,12 @@ public final class HaAssistClient {
         }
     }
 
+    public void setRoomNoise(String mode) {
+        roomNoise = OverlayPreferences.NOISE_QUIET.equals(mode)
+                || OverlayPreferences.NOISE_TV.equals(mode)
+                ? mode : OverlayPreferences.NOISE_NORMAL;
+    }
+
     public synchronized boolean talk() {
         return talk(false);
     }
@@ -479,6 +486,7 @@ public final class HaAssistClient {
                     throw new IllegalStateException("Microphone recording was not started");
                 events.status("LISTENING. Speak toward the onn box; select STOP when done.");
                 events.listening();
+                final String noiseMode = roomNoise;
                 byte[] pcm = new byte[3200]; // 100 ms at 16kHz, mono, 16-bit
                 long observedMs = 0L;
                 long voiceMs = 0L;
@@ -503,24 +511,33 @@ public final class HaAssistClient {
                             power += normalized * normalized;
                         }
                         double rms = Math.sqrt(power / Math.max(1, read / 2));
-                        // Adapt a quiet noise-floor estimate, but don't chase
-                        // loud speech or a TV program's temporary peaks.
-                        if (!heardUtterance && rms < backgroundRms * 2.2) {
+                        boolean television = OverlayPreferences.NOISE_TV.equals(noiseMode);
+                        boolean quietRoom = OverlayPreferences.NOISE_QUIET.equals(noiseMode);
+                        // TV mode learns its background for the first 600 ms;
+                        // Normal mode retains existing thresholds and behavior.
+                        if (television && observedMs < 600) {
+                            backgroundRms = backgroundRms * 0.8 + rms * 0.2;
+                        } else if (!heardUtterance && rms < backgroundRms * 2.2) {
                             backgroundRms = backgroundRms * 0.96 + rms * 0.04;
                         }
-                        boolean voice = rms > Math.max(0.0045, backgroundRms * 2.4);
-                        if (!heardUtterance) {
-                            voiceMs = voice ? voiceMs + chunkMs : Math.max(0, voiceMs - chunkMs);
-                            if (voiceMs >= 180) heardUtterance = true;
-                        } else {
-                            quietMs = voice ? 0 : quietMs + chunkMs;
-                        }
-                        // Don't finish before sending the final chunk.
-                        if (heardUtterance && quietMs >= 1550 && observedMs >= 1100) {
-                            events.status("Voice pause detected. Processing your question...");
-                            events.localSilence();
-                            endRequested = true;
-                            recording.set(false);
+                        if (!(television && observedMs < 600)) {
+                            double floor = quietRoom ? 0.003 : television ? 0.01 : 0.0045;
+                            double times = quietRoom ? 1.9 : television ? 3.0 : 2.4;
+                            long needVoice = quietRoom ? 140 : television ? 280 : 180;
+                            long needQuiet = quietRoom ? 1100 : television ? 2000 : 1550;
+                            boolean voice = rms > Math.max(floor, backgroundRms * times);
+                            if (!heardUtterance) {
+                                voiceMs = voice ? voiceMs + chunkMs : Math.max(0, voiceMs - chunkMs);
+                                if (voiceMs >= needVoice) heardUtterance = true;
+                            } else {
+                                quietMs = voice ? 0 : quietMs + chunkMs;
+                            }
+                            if (heardUtterance && quietMs >= needQuiet && observedMs >= 1100) {
+                                events.status("Voice pause detected. Processing your question...");
+                                events.localSilence();
+                                endRequested = true;
+                                recording.set(false);
+                            }
                         }
                     }
                     WebSocket ws = socket;

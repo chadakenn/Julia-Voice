@@ -403,6 +403,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         answerView.setText("...");
         if (wave != null) wave.setMode(VoiceWaveView.LISTENING);
         status("LISTENING • Speak toward the onn box");
+        assist.setRoomNoise(preferences.noise());
         if (!assist.talk(preferences.autoListen())) {
             listening = false;
             main.removeCallbacks(endListeningTimeout);

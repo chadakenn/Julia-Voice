@@ -26,6 +26,10 @@ public final class OverlayPreferences {
     public static final String SIZE_MEDIUM = "medium";
     public static final String SIZE_LARGE = "large";
 
+    public static final String NOISE_QUIET = "quiet";
+    public static final String NOISE_NORMAL = "normal";
+    public static final String NOISE_TV = "tv";
+
     private static final String PREFS = "ha_tv_voice_overlay_options";
     private static final String KEY_SKIN = "skin";
     private static final String KEY_AUTO = "auto_listen";
@@ -34,6 +38,7 @@ public final class OverlayPreferences {
     private static final String KEY_POSITION = "overlay_position";
     private static final String KEY_SIZE = "overlay_size";
     private static final String KEY_HIDE_SECONDS = "overlay_hide_seconds";
+    private static final String KEY_NOISE = "room_noise";
     private static final String KEY_DEVICE = "ha_device_id";
     private static final String KEY_HA_MANAGE = "ha_manage_layout";
     private final SharedPreferences preferences;
@@ -158,6 +163,22 @@ public final class OverlayPreferences {
             preferences.edit().putString(KEY_DEVICE, id).apply();
         }
         return id;
+    }
+
+    public static String noiseLabel(String value) {
+        if (NOISE_QUIET.equals(value)) return "Quiet room";
+        if (NOISE_TV.equals(value)) return "TV on";
+        return "Normal";
+    }
+
+    public String noise() {
+        String value = preferences.getString(KEY_NOISE, NOISE_NORMAL);
+        return NOISE_QUIET.equals(value) || NOISE_TV.equals(value) ? value : NOISE_NORMAL;
+    }
+
+    public void setNoise(String value) {
+        preferences.edit().putString(KEY_NOISE,
+                NOISE_QUIET.equals(value) || NOISE_TV.equals(value) ? value : NOISE_NORMAL).apply();
     }
 
     public boolean mainLauncherOpensOverlay() {
