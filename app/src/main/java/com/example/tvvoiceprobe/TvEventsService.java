@@ -91,14 +91,24 @@ public final class TvEventsService extends Service {
         }
         if (windowManager == null) windowManager =
                 (WindowManager) getSystemService(WINDOW_SERVICE);
-        if (credentials == null) {
-            try { credentials = new CredentialStore(this).load(); }
-            catch (Exception ignored) { credentials = null; }
-        }
-        if (credentials == null) {
+        CredentialStore.Connection saved;
+        try { saved = new CredentialStore(this).load(); }
+        catch (Exception ignored) { saved = null; }
+        if (saved == null) {
+            credentials = null;
             stopSelf();
             return START_NOT_STICKY;
         }
+        if (credentials != null
+                && (!credentials.url.equals(saved.url) || !credentials.token.equals(saved.token))) {
+            main.removeCallbacks(reconnect);
+            if (socket != null) {
+                socket.close(1000, "Home Assistant login changed");
+                socket = null;
+            }
+            failedAttempts = 0;
+        }
+        credentials = saved;
         try {
             createChannel();
             Notification notification = buildNotification("TV alerts enabled");
