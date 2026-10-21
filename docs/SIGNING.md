@@ -1,6 +1,6 @@
 # Android APK signing for this TV app
 
-**Status (2026-10-20):** the permanent GitHub Actions signing secrets have been configured. **[Run #31](https://github.com/chadakenn/Julia-Voice/actions/runs/39397223494) succeeded**, including private-keystore restoration, building a release APK, Android signature verification and publishing the `kellies-voice-signed` artifact.
+**Status (2026-10-20):** the permanent GitHub Actions signing secrets have been configured. **[Run #31](https://github.com/chadakenn/Kellies-Voice/actions/runs/39397223494) succeeded**, including private-keystore restoration, building a release APK, Android signature verification and publishing the `kellies-voice-signed` artifact.
 
 ## Why the original APK reports "conflicts with another app"
 
