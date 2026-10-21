@@ -6,6 +6,8 @@ import android.content.pm.PackageManager;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
+import android.os.Handler;
+import android.os.Looper;
 
 import org.json.JSONObject;
 
@@ -54,7 +56,26 @@ public final class HaAssistClient {
     private final AtomicBoolean ended = new AtomicBoolean(false);
     private volatile String conversationId;
     private volatile int commandId = 1;
-    private volatile boolean disposed;
+    private volatile boolean disposed = true;
+
+    // Keep one authenticated WebSocket alive only for the lifetime of the
+    // explicit activity/overlay. Android can suspend or kill the app, so this
+    // is self-healing, not an always-running background assistant service.
+    private final Handler reconnectHandler = new Handler(Looper.getMainLooper());
+    private final Runnable reconnectTask = () -> {
+        synchronized (HaAssistClient.this) {
+            reconnectScheduled = false;
+            if (reconnectEnabled && !disposed && !authenticated && !connecting) {
+                openConnection();
+            }
+        }
+    };
+    private String savedBaseUrl;
+    private String savedToken;
+    private boolean reconnectEnabled;
+    private boolean reconnectScheduled;
+    private boolean connecting;
+    private int failures;
 
     public HaAssistClient(Context context, Events events) {
         this.context = context.getApplicationContext();
@@ -63,48 +84,114 @@ public final class HaAssistClient {
 
     public boolean isConnected() { return authenticated; }
 
+    /** Explicit start/reconfigure. Tokens never enter logs or retry messages. */
     public synchronized void connect(String baseUrl, String token) {
         disconnect();
-        disposed = false;
-        if (token == null || token.trim().isEmpty()) {
-            events.status("Missing Home Assistant access token");
+        if (baseUrl == null || token == null || token.trim().isEmpty()) {
+            events.status("Missing Home Assistant address or access token.");
             return;
         }
         try {
             okhttp3.HttpUrl parsed = okhttp3.HttpUrl.parse(baseUrl);
-            if (parsed == null || (!"https".equals(parsed.scheme()) && !"http".equals(parsed.scheme()))) {
-                throw new IllegalArgumentException("Use a full http:// or https:// Home Assistant address");
+            if (parsed == null ||
+                    (!"https".equals(parsed.scheme()) && !"http".equals(parsed.scheme()))) {
+                throw new IllegalArgumentException("Use a full Home Assistant http:// or https:// address.");
             }
-            // User supplies the HA base address, not a manually entered WebSocket endpoint.
-            okhttp3.HttpUrl url = parsed.newBuilder()
-                    .addPathSegments("api/websocket")
-                    .build(); // OkHttp newWebSocket() accepts HTTP(S) URLs and upgrades internally.
-            events.status("Connecting to Home Assistant...");
-            socket = http.newWebSocket(new Request.Builder().url(url).build(), new WebSocketListener() {
+            // Reject a URL with credentials in it. Use only the saved HA access token.
+            if (!parsed.username().isEmpty() || !parsed.password().isEmpty()) {
+                throw new IllegalArgumentException("Do not put credentials in the Home Assistant URL.");
+            }
+            savedBaseUrl = baseUrl;
+            savedToken = token;
+            disposed = false;
+            reconnectEnabled = true;
+            failures = 0;
+            openConnection();
+        } catch (Exception error) {
+            events.status("Invalid Home Assistant address. Check settings.");
+        }
+    }
+
+    /**
+     * When the app returns to the foreground, reconnect if Android interrupted
+     * its socket. Never start a microphone or a voice request here.
+     */
+    public synchronized void ensureConnected() {
+        if (disposed || !reconnectEnabled || authenticated || connecting
+                || reconnectScheduled || savedToken == null) return;
+        openConnection();
+    }
+
+    private synchronized void openConnection() {
+        if (disposed || !reconnectEnabled || connecting || authenticated
+                || savedBaseUrl == null || savedToken == null) return;
+        try {
+            okhttp3.HttpUrl base = okhttp3.HttpUrl.parse(savedBaseUrl);
+            if (base == null) throw new IllegalStateException("Missing HA URL");
+            okhttp3.HttpUrl url = base.newBuilder()
+                    .addPathSegments("api/websocket").build();
+            final String authToken = savedToken;
+            connecting = true;
+            events.status(failures == 0 ? "Connecting to Home Assistant..."
+                    : "Reconnecting to Home Assistant...");
+            socket = http.newWebSocket(new Request.Builder().url(url).build(),
+                    new WebSocketListener() {
                 @Override public void onOpen(WebSocket ws, Response response) {
-                    events.status("Connected to server, waiting for authentication...");
+                    if (isCurrent(ws)) {
+                        events.status("Connected to server, waiting for authentication...");
+                    }
                 }
 
                 @Override public void onMessage(WebSocket ws, String message) {
-                    try { receive(ws, new JSONObject(message), token); }
-                    catch (Exception e) { events.status("Unexpected Home Assistant response"); }
+                    if (!isCurrent(ws)) return;
+                    try { receive(ws, new JSONObject(message), authToken); }
+                    catch (Exception e) {
+                        if (isCurrent(ws)) events.status("Unexpected Home Assistant response.");
+                    }
                 }
 
-                @Override public void onFailure(WebSocket ws, Throwable error, Response response) {
-                    authenticated = false;
-                    recording.set(false);
-                    events.status("Connection failed. Check HA address, network and certificate.");
+                @Override public void onFailure(WebSocket ws, Throwable error,
+                        Response response) {
+                    connectionLost(ws);
                 }
 
                 @Override public void onClosed(WebSocket ws, int code, String reason) {
-                    authenticated = false;
-                    recording.set(false);
-                    if (!disposed) events.status("Disconnected from Home Assistant");
+                    connectionLost(ws);
                 }
             });
-        } catch (Exception e) {
-            events.status("Connection setup error: " + e.getMessage());
+        } catch (Exception error) {
+            connecting = false;
+            scheduleReconnect();
         }
+    }
+
+    private synchronized boolean isCurrent(WebSocket ws) {
+        return !disposed && reconnectEnabled && ws == socket;
+    }
+
+    private void connectionLost(WebSocket ws) {
+        synchronized (this) {
+            // The old socket can close AFTER a new one authenticated. Never
+            // allow its callback to mark the replacement disconnected.
+            if (ws != socket || disposed) return;
+            socket = null;
+            authenticated = false;
+            connecting = false;
+            stopForRunEnd();
+            if (reconnectEnabled) scheduleReconnect();
+        }
+    }
+
+    private synchronized void scheduleReconnect() {
+        if (disposed || !reconnectEnabled || reconnectScheduled) return;
+        // 2, 4, 8, 16, 30 seconds with a cap; prevents rapid connection loops
+        // when HA restarts or the TV's Wi-Fi is down.
+        int attempt = Math.min(failures++, 4);
+        long delay = Math.min(30000L, 2000L * (1L << attempt));
+        reconnectScheduled = true;
+        events.status("Home Assistant disconnected. Retrying automatically in "
+                + (delay / 1000L) + " seconds...");
+        reconnectHandler.postDelayed(reconnectTask, delay);
     }
 
     private void receive(WebSocket ws, JSONObject msg, String token) throws Exception {
@@ -118,13 +205,29 @@ public final class HaAssistClient {
             return;
         }
         if ("auth_ok".equals(type)) {
-            authenticated = true;
-            events.status("Connected and authenticated. Select TALK.");
+            synchronized (this) {
+                if (!isCurrent(ws)) return;
+                authenticated = true;
+                connecting = false;
+                failures = 0;
+                reconnectHandler.removeCallbacks(reconnectTask);
+                reconnectScheduled = false;
+            }
+            events.status("Connected and authenticated. Ready.");
             events.ready();
             return;
         }
         if ("auth_invalid".equals(type)) {
-            authenticated = false;
+            synchronized (this) {
+                if (!isCurrent(ws)) return;
+                authenticated = false;
+                connecting = false;
+                reconnectEnabled = false; // Invalid credentials cannot heal by retrying.
+                recording.set(false);
+                stopForRunEnd();
+                reconnectHandler.removeCallbacks(reconnectTask);
+                reconnectScheduled = false;
+            }
             events.status("Authentication rejected. Check the long-lived access token.");
             ws.close(1000, "invalid auth");
             return;
@@ -381,6 +484,13 @@ public final class HaAssistClient {
 
     public synchronized void disconnect() {
         disposed = true;
+        reconnectEnabled = false;
+        reconnectHandler.removeCallbacks(reconnectTask);
+        reconnectScheduled = false;
+        connecting = false;
+        failures = 0;
+        savedBaseUrl = null;
+        savedToken = null;
         authenticated = false;
         conversationId = null;
         stopForRunEnd();
