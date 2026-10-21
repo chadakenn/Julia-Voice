@@ -498,15 +498,29 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                 "Lets Home Assistant change position, size, style, auto-hide, and auto-listen. It cannot start the microphone or change the login. Leave this app open, then click Add on the discovered TV.",
                 new String[] {
                         on ? "Turn Home Assistant layout OFF" : "Turn Home Assistant layout ON",
-                        "Keep current setting"
+                        "Show this TV's pairing ID",
+                        "Back to Settings"
                 }, which -> {
                     if (which == 0) {
                         prefs.setHaManage(!on);
                         HaDiscovery.setWanted(this, prefs.haManage());
                         if (assist != null) assist.setLayoutSync(prefs.haManage());
                         status(prefs.haManage()
-                                ? "Layout control on. In Home Assistant, click Add on Kellie's Voice."
+                                ? "Layout ON. Use Discovered in HA, or pair with this TV's ID."
                                 : "Home Assistant layout control off.");
+                    }
+                    if (which == 1) {
+                        new AlertDialog.Builder(this)
+                                .setTitle("Kellie's Voice - TV pairing ID")
+                                .setMessage("In Home Assistant, choose Settings > Devices & services"
+                                        + " > Add integration > Kellie's Voice. Enter this ID:"
+                                        + "\n\n" + prefs.deviceId()
+                                        + "\n\nTurn Home Assistant layout ON on this TV"
+                                        + " to enable remote layout updates."
+                                        + "\n\nThis ID is not a password or your HA token.")
+                                .setPositiveButton("Back to settings", (d, w) -> showSettingsMenu())
+                                .show();
+                        return;
                     }
                     showSettingsMenu();
                 });

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+<defs>
+<linearGradient id="bg" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#140d0a"/><stop offset=".6" stop-color="#2b1b15"/><stop offset="1" stop-color="#120b09"/></linearGradient>
+<linearGradient id="copper" x1="0" x2="1"><stop stop-color="#B66E51"/><stop offset=".5" stop-color="#FFD9B6"/><stop offset="1" stop-color="#CE8766"/></linearGradient>
+</defs>
+<rect width="400" height="400" rx="70" fill="url(#bg)"/>
+<rect x="9" y="9" width="382" height="382" rx="63" fill="none" stroke="#bd876b" stroke-width="3"/>
+<circle cx="200" cy="200" r="130" fill="#7e3d27" opacity=".20"/>
+<g transform="translate(35 38)" fill="none" stroke="url(#copper)" stroke-linecap="round">
+<path d="M25 112L172 6L320 112" stroke-width="14" stroke-linejoin="round"/>
+<rect x="149" y="110" width="47" height="123" rx="23" fill="#d99c78" stroke-width="3"/>
+<path d="M121 199V232Q121 282 173 282Q226 282 226 232V199 M173 282V325 M135 325H211" stroke-width="11"/>
+<path d="M72 217V252 M92 200V269 M111 220V248 M234 220V248 M253 200V269 M272 217V252" stroke-width="8"/>
+</g>
+</svg>

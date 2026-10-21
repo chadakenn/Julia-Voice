@@ -27,3 +27,5 @@ The GitHub rename has **already occurred**. Do not create a new repository at th
 Normal pushes create a **signed development APK artifact**, not a public GitHub Release. After physical TV testing, the owner can run **Build Kellie's Voice Signed APK** manually with `publish_release` checked. That workflow builds the signed APK, verifies the signature, and publishes `app-release.apk` and checksum metadata `update.json`.
 
 **v0.15.0 release:** Publication was owner-authorized. A one-time `[publish-v0.15.0]` gated main-branch workflow path builds/tests the latest app, signs and verifies its APK, and uploads `app-release.apk` with SHA-256 `update.json`. Later releases still require a new owner-authorized version bump/manual workflow.
+
+**v0.15.1 patch release:** Adds a manual pairing fallback and the local Home Assistant brand icon. It retains the same signed Android package identity and publishes after Android and HA tests. HACS may still show a generic icon due to an upstream HACS frontend issue, while Home Assistant's native integration page uses the bundled brand asset.

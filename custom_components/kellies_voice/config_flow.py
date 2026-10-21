@@ -1,9 +1,11 @@
 """Discovery flow. Home Assistant does not connect to the TV."""
 
+import voluptuous as vol
 from homeassistant.config_entries import ConfigFlow
 from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 
 from .const import DOMAIN
+from .validation import clean_tv_device_id
 
 
 def _text(properties: dict, key: str) -> str:
@@ -23,7 +25,34 @@ class KellieVoiceConfigFlow(ConfigFlow, domain=DOMAIN):
         self._name = "Kellie's Voice"
 
     async def async_step_user(self, user_input=None):
-        return self.async_abort(reason="use_discovery")
+        """Manual fallback when the TV cannot advertise across mDNS/VLANs."""
+        errors = {}
+        if user_input is not None:
+            try:
+                device_id = clean_tv_device_id(user_input.get("device_id"))
+            except ValueError:
+                errors["device_id"] = "invalid_device_id"
+            else:
+                name = str(user_input.get("name") or "Kellie's Voice TV").strip()
+                if not name or len(name) > 64:
+                    errors["name"] = "invalid_name"
+                else:
+                    await self.async_set_unique_id(device_id)
+                    self._abort_if_unique_id_configured()
+                    return self.async_create_entry(
+                        title=name,
+                        data={"device_id": device_id, "name": name},
+                    )
+        return self.async_show_form(
+            step_id="user",
+            data_schema=vol.Schema(
+                {
+                    vol.Required("device_id"): str,
+                    vol.Optional("name", default="Kellie's Voice TV"): str,
+                }
+            ),
+            errors=errors,
+        )
 
     async def async_step_zeroconf(self, discovery_info: ZeroconfServiceInfo):
         device_id = _text(discovery_info.properties, "id")
