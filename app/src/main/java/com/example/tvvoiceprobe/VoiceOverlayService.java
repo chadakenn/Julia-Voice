@@ -58,6 +58,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
     private CredentialStore.Connection connection;
     private OverlayPreferences preferences;
     private MediaPlayer player;
+    private SpeechFocus speechFocus;
     private int selected = 0;
     private boolean listening = false;
     private boolean speaking = false;
@@ -392,6 +393,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
             player.release();
             player = null;
         }
+        if (speechFocus != null) speechFocus.release();
         listening = true;
         speaking = false;
         transcriptView.setText("Listening to your voice...");
@@ -560,6 +562,9 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
             main.removeCallbacks(dismissAfterReply);
             HttpUrl playback = TtsUrls.allowedPlaybackUrl(connection.url, address);
             if (player != null) player.release();
+            if (speechFocus == null) speechFocus = new SpeechFocus(this);
+            speechFocus.release(); // Release any previous TTS focus before replay.
+            speechFocus.acquire();
             player = new MediaPlayer();
             player.setAudioAttributes(new AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_ASSISTANT)
@@ -574,12 +579,14 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
             });
             player.setOnCompletionListener(p -> {
                 speaking = false;
+                if (speechFocus != null) speechFocus.release();
                 status("Done. Press ⭐ again or choose TALK.");
                 if (wave != null) wave.setMode(VoiceWaveView.IDLE);
                 scheduleIdleDismiss();
             });
             player.setOnErrorListener((p, what, extra) -> {
                 speaking = false;
+                if (speechFocus != null) speechFocus.release();
                 status("Speech playback failed; answer is still shown.");
                 scheduleIdleDismiss();
                 return true;
@@ -587,6 +594,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
             player.prepareAsync();
         } catch (Exception ignored) {
             speaking = false;
+            if (speechFocus != null) speechFocus.release();
             status("Could not play speech. The answer is still shown.");
             scheduleIdleDismiss();
         }
@@ -598,6 +606,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         main.removeCallbacksAndMessages(null);
         if (assist != null) { assist.shutdown(); assist = null; }
         if (player != null) { player.release(); player = null; }
+        if (speechFocus != null) speechFocus.release();
         if (windowManager != null && panel != null) {
             try { windowManager.removeViewImmediate(panel); }
             catch (Exception ignored) { }
