@@ -92,10 +92,12 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         assist = new HaAssistClient(this, this);
         updater = new UpdateManager(this, new UpdateManager.Listener() {
             @Override public void onUpToDate(String message) {
+                rememberUpdateCheck();
                 if (manualUpdateCheck) status(message);
                 manualUpdateCheck = false;
             }
             @Override public void onAvailable(String version, String notes) {
+                rememberUpdateCheck();
                 manualUpdateCheck = false;
                 if (isFinishing() || isDestroyed()) return;
                 new AlertDialog.Builder(VoiceActivity.this)
@@ -193,10 +195,14 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
             android.content.SharedPreferences checks =
                     getSharedPreferences("tv_voice_update_checks", MODE_PRIVATE);
             if (now - checks.getLong("last_checked", 0) >= 24L * 60 * 60 * 1000) {
-                checks.edit().putLong("last_checked", now).apply();
                 root.post(() -> updater.check());
             }
         }
+    }
+
+    private void rememberUpdateCheck() {
+        getSharedPreferences("tv_voice_update_checks", MODE_PRIVATE)
+                .edit().putLong("last_checked", System.currentTimeMillis()).apply();
     }
 
     private boolean canStartOverlayImmediately() {
