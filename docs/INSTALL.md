@@ -4,9 +4,9 @@ This is a **foreground Android TV Assist alpha**. The current package ID is `com
 
 ## Get the correct APK
 
-1. Open [Build Julia Voice Signed APK](../.github/workflows/build-apk.yml) via GitHub's **Actions** tab.
+1. Open [Build Kellie's Voice Signed APK](../.github/workflows/build-apk.yml) via GitHub's **Actions** tab.
 2. Select the **latest successful** run, preferably the latest release after any code change.
-3. Under **Artifacts**, download **`julia-voice-signed`**. Sign into GitHub if the artifacts aren't visible.
+3. Under **Artifacts**, download **`kellies-voice-signed`**. Sign into GitHub if the artifacts aren't visible.
 4. Extract the ZIP. The file you transfer is **`app-release.apk`**, *not* the old `app-debug.apk`.
 5. On a Samsung phone: install **Send Files to TV** on both the phone and onn device, connect both to the same home network, open Receive on the TV, and use Send on the phone to transfer the extracted APK. Open the transferred APK with a TV file manager.
 6. Allow **Install unknown apps** for your chosen file manager when Google TV prompts for it, then install.
@@ -19,7 +19,7 @@ The earliest GitHub Actions builds used **disposable debug signing keys**. The n
 
 **Keep the old app installed until the signed APK is downloaded and its build says Success.** Then:
 
-1. In Google TV **Settings → Apps**, find **Julia Voice**. Builds before the rebrand may still show their earlier launcher label.
+1. In Google TV **Settings → Apps**, find **Kellie's Voice**. Builds before the rebrand may still show their earlier launcher label.
 2. Uninstall that old, debug-signed app **once**.
 3. Install the signed `app-release.apk`.
 4. Reconfigure your Home Assistant connection and token. Uninstallation clears encrypted local settings and app backup is disabled.
@@ -31,7 +31,7 @@ If a *later signed update* conflicts again, **stop and investigate the keystore/
 
 1. Home Assistant needs a working **Assist pipeline** with STT, a conversation agent, and optionally TTS. The app uses the HA **preferred pipeline** for now.
 2. Generate a **long-lived access token** from your own Home Assistant user profile's Security section; keep it private. Don't paste it in GitHub, issues, screenshots, or this chat.
-3. Launch **Julia Voice**. Select **SETTINGS → Configure Home Assistant**, enter its base URL including protocol and port, and the token; then choose **Save and connect**.
+3. Launch **Kellie's Voice**. Select **SETTINGS → Configure Home Assistant**, enter its base URL including protocol and port, and the token; then choose **Save and connect**.
 4. For local-only Home Assistant, `http://homeassistant.local:8123` may work if the TV resolves the hostname, **but HTTP sends the token and recorded audio unencrypted over the network**. Prefer HTTPS with a valid trusted certificate when available.
 5. Use the Google TV smartphone remote/keyboard to make entering credentials easier; clipboard paste support varies. QR-code pairing has **not yet been implemented**.
 6. Expect **Connected and authenticated** before talking.
