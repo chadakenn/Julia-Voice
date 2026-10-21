@@ -11,12 +11,12 @@ Announcement and camera actions stay inside Home Assistant too. They fire events
 [![Open Kellie's Voice in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=chadakenn&repository=Kellies-Voice&category=integration)
 
 1. Make sure HACS is installed in your Home Assistant instance.
-2. Click **[Open in HACS](https://my.home-assistant.io/redirect/hacs_repository/?owner=chadakenn&repository=Kellies-Voice&category=integration)**, select your Home Assistant instance, and confirm the custom integration repository.
-3. Select **Download**. Under **Need a different version?**, select **`main`** (if necessary, enable beta/development versions first). The existing `v0.6` GitHub Release is an Android-app release, not this HA integration.
+2. **First-time only:** in **HACS → ⋮ → Custom repositories**, add `https://github.com/chadakenn/Kellies-Voice` with category **Integration**. The shortcut badge does not register an unknown repository automatically.
+3. Click **[Open in HACS](https://my.home-assistant.io/redirect/hacs_repository/?owner=chadakenn&repository=Kellies-Voice&category=integration)**. Download **v0.15.0** (or a newer release), not the older `v0.6`.
 4. Restart Home Assistant, then turn on **Home Assistant layout** inside the Kellie's Voice TV app. The TV should appear in **Settings → Devices & services → Discovered**. Click **Add**.
 5. Optionally turn on **TV announcements & cameras** on the TV to receive HA announcements and Frigate camera snapshots.
 
-This custom-repository shortcut avoids manually copying Python files. It does not bypass HACS approval or the Home Assistant restart. HACS installs only the Home Assistant component, not the TV APK.
+After custom repository registration, the badge opens Kellie's Voice for future HACS downloads/updates. The first registration and HA restart are still required. HACS installs only the Home Assistant component, not the TV APK.
 
 ## Manual installation
 

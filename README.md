@@ -10,7 +10,7 @@
 
 [![Open Kellie's Voice in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=chadakenn&repository=Kellies-Voice&category=integration)
 
-**[Open Kellie's Voice in HACS](https://my.home-assistant.io/redirect/hacs_repository/?owner=chadakenn&repository=Kellies-Voice&category=integration)** to add this repository as a custom **Integration**. HACS must already be installed in Home Assistant. When the download dialog offers versions, **select `main` under "Need a different version?"** (enable beta/development versions if needed). The older GitHub **v0.6 Release belongs to the Android TV app** and does not contain the current Home Assistant integration.
+**First-time HACS setup:** The badge cannot add a repository that's not yet registered in HACS. In **HACS → ⋮ → Custom repositories**, enter `https://github.com/chadakenn/Kellies-Voice`, select **Integration**, then click **Add**. After that, use the badge above to open it and download **v0.15.0** (or a newer release). The older v0.6 release does not contain this HA integration.
 
 After downloading, restart Home Assistant. On the TV, enable **Kellie's Voice → Settings → Home Assistant layout**; in Home Assistant, go to **Settings → Devices & services → Discovered** and add your TV. Enable **Settings → TV announcements & cameras** on the TV for visual announcements and Frigate snapshot popups.
 
@@ -19,11 +19,11 @@ HACS installs only the Home Assistant integration, **not the Android APK**. If y
 
 Kellie's Voice is a local-first, open-source voice companion for Home Assistant, starting with Google TV and Android TV. Ask a question or control a room using the floating overlay, without replacing the TV launcher.
 
-**Current status:** v0.14 development APK stabilizes automatic Home Assistant reconnects, in-flight voice requests, overlay reply timing, authenticated TTS URL handling, signed-update verification, and automatic update retries. Reconciled PRs #1, #2, #4, #9, #10 and #11 were merged with passing host unit tests; **v0.14 must still be tested on the onn 4K Pro**. Public v0.6 remains the last separately approved GitHub Release. Signed Actions artifacts are development APKs, not public releases.
+**Current release:** v0.15.0 combines the Android TV assistant, Night Signal, more reliable ⭐ overlay startup, remote scrolling, YouTube audio focus, optional Home Assistant layout controls, and opt-in announcement/camera snapshot popups. Voice, scrolling, ducking, and overlay launching have been tested on the onn 4K Pro; announcement and Frigate popup delivery still needs end-to-end testing. The signed Android APK and current HA integration are part of the same source release.
 
 ## Download and upgrade safely
 
-The signed Android package ID stays `com.example.tvvoiceprobe` and the signing key stays the same. Install the latest signed `kellies-voice-signed` GitHub Actions artifact **over the installed Kellie's Voice app**. **Do not uninstall** or you may lose the Home Assistant token and device settings.
+The signed Android package ID stays `com.example.tvvoiceprobe` and the signing key stays the same. Install the latest [signed GitHub Release APK](https://github.com/chadakenn/Kellies-Voice/releases/latest) **over the installed Kellie's Voice app**, or use its verified in-app updater. **Do not uninstall** or you may lose the Home Assistant token and device settings.
 
 **Repository URL:** The project now lives at [**chadakenn/Kellies-Voice**](https://github.com/chadakenn/Kellies-Voice). Because the repository was renamed before all TVs were upgraded, installed v0.10 and earlier apps may need a **one-time manual signed APK update**. GitHub's actual release URLs use capitalized `Kellies-Voice`, and v0.11's updater accepts that exact spelling. See [the update guide](docs/UPDATES.md).
 
