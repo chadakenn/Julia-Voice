@@ -41,6 +41,7 @@ public final class OverlayPreferences {
     private static final String KEY_NOISE = "room_noise";
     private static final String KEY_DEVICE = "ha_device_id";
     private static final String KEY_HA_MANAGE = "ha_manage_layout";
+    private static final String KEY_TV_EVENTS = "tv_events_enabled";
     private final SharedPreferences preferences;
 
     public OverlayPreferences(Context context) {
@@ -154,6 +155,14 @@ public final class OverlayPreferences {
 
     public void setHaManage(boolean enabled) {
         preferences.edit().putBoolean(KEY_HA_MANAGE, enabled).apply();
+    }
+
+    public boolean tvEvents() {
+        return preferences.getBoolean(KEY_TV_EVENTS, false);
+    }
+
+    public void setTvEvents(boolean enabled) {
+        preferences.edit().putBoolean(KEY_TV_EVENTS, enabled).apply();
     }
 
     public String deviceId() {
