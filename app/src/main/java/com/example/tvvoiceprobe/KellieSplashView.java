@@ -2,6 +2,8 @@ package com.example.tvvoiceprobe;
 
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Path;
@@ -14,8 +16,10 @@ import android.view.View;
 /** Warm copper branding for intentional full-screen Kellie's Voice launches. */
 public final class KellieSplashView extends View {
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Bitmap portrait;
     public KellieSplashView(Context context) {
         super(context);
+        portrait = BitmapFactory.decodeResource(getResources(), R.drawable.kellie_portrait);
         setFocusable(false);
         setClickable(false);
         setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
@@ -34,6 +38,23 @@ public final class KellieSplashView extends View {
                 null, Shader.TileMode.CLAMP));
         canvas.drawRect(0, 0, 1000, 560, paint);
         paint.setShader(null);
+        // One small, personal portrait on the welcome splash only.
+        // Keep the always-on floating overlay icon-only and uncluttered.
+        if (portrait != null) {
+            canvas.save();
+            Path clipping = new Path();
+            clipping.addCircle(210, 284, 100, Path.Direction.CW);
+            canvas.clipPath(clipping);
+            paint.setStyle(Paint.Style.FILL);
+            paint.setAlpha(240);
+            canvas.drawBitmap(portrait, null, new RectF(110, 184, 310, 384), paint);
+            paint.setAlpha(255);
+            canvas.restore();
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setColor(0xffDDA37E);
+            paint.setStrokeWidth(4f);
+            canvas.drawCircle(210, 284, 102, paint);
+        }
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(2.5f);
         paint.setColor(0xffca8b69);
