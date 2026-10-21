@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="500" viewBox="0 0 1500 500" role="img" aria-labelledby="title desc">
+<title id="title">Kellie's Voice</title>
+<desc id="desc">Warm charcoal, ivory and rose-gold home voice assistant brand. No blue or purple.</desc>
+<defs>
+<linearGradient id="bg"><stop stop-color="#140d0a"/><stop offset=".55" stop-color="#271813"/><stop offset="1" stop-color="#120b09"/></linearGradient>
+<linearGradient id="copper"><stop stop-color="#B66E51"/><stop offset=".5" stop-color="#FFD9B6"/><stop offset="1" stop-color="#CE8766"/></linearGradient>
+<filter id="glow"><feGaussianBlur stdDeviation="13"/></filter>
+</defs>
+<rect width="1500" height="500" fill="#100b09"/>
+<rect x="26" y="26" width="1448" height="448" rx="45" fill="url(#bg)" stroke="url(#copper)" stroke-width="3"/>
+<circle cx="340" cy="250" r="171" fill="#7e3d27" opacity=".22" filter="url(#glow)"/>
+<g transform="translate(170 90)" fill="none" stroke="url(#copper)" stroke-linecap="round">
+<path d="M25 112L172 6L320 112" stroke-width="14" stroke-linejoin="round"/>
+<rect x="149" y="110" width="47" height="123" rx="23" fill="#d99c78" stroke-width="3"/>
+<path d="M121 199V232Q121 282 173 282Q226 282 226 232V199 M173 282V325 M135 325H211" stroke-width="11"/>
+<path d="M72 217V252 M92 200V269 M111 220V248 M234 220V248 M253 200V269 M272 217V252" stroke-width="8"/>
+</g>
+<text x="790" y="199" fill="url(#copper)" font-family="Georgia,serif" font-size="128" font-style="italic" text-anchor="middle">Kellie's</text>
+<text x="790" y="288" fill="#F8E7D8" font-family="Arial,sans-serif" font-size="83" letter-spacing="22" text-anchor="middle">VOICE</text>
+<path d="M530 342h160 q40 -50 50 0 q25 42 50 -15 q12 -45 30 12 q30 30 70 -15 q28 32 62 18 h205" fill="none" stroke="url(#copper)" stroke-width="3"/>
+<text x="795" y="420" fill="#e5c8b4" font-family="Arial,sans-serif" font-size="27" letter-spacing="2" text-anchor="middle">Your home. Your voice. Your way.</text>
+</svg>
