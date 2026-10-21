@@ -57,7 +57,7 @@ public final class VoiceWaveView extends View {
 
     public void setLook(int next) {
         look = next == LOOK_SIGNAL ? LOOK_SIGNAL : LOOK_COPPER;
-        baseline.setColor(look == LOOK_SIGNAL ? 0x223E5560 : 0x44DDA984);
+        baseline.setColor(look == LOOK_SIGNAL ? 0x227B5843 : 0x44DDA984);
         invalidate();
     }
 
@@ -74,7 +74,16 @@ public final class VoiceWaveView extends View {
     }
 
     @Override protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), dp(88));
+        // Respect the requested 64/68/88 dp height. A fixed 88 dp ignored
+        // EXACTLY constraints and made the compact Night Signal card taller
+        // than the overlay layout intended.
+        int heightMode = MeasureSpec.getMode(heightMeasureSpec);
+        int height = heightMode == MeasureSpec.EXACTLY
+                ? MeasureSpec.getSize(heightMeasureSpec) : dp(88);
+        if (heightMode == MeasureSpec.AT_MOST) {
+            height = Math.min(height, MeasureSpec.getSize(heightMeasureSpec));
+        }
+        setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), height);
     }
 
     @Override protected void onDraw(Canvas canvas) {
@@ -140,7 +149,7 @@ public final class VoiceWaveView extends View {
             float barHeight = Math.max(dp(3), height * 0.78f * intensity * envelope * wobble);
             float left = gap + i * (barWidth + gap);
             float top = middle - barHeight / 2f;
-            brush.setColor(i % 6 == 3 ? 0xffE4C2A4 : 0xff8FCBD8);
+            brush.setColor(i % 6 == 3 ? 0xffFADEB9 : 0xffD59E69);
             canvas.drawRoundRect(left, top, left + barWidth, top + barHeight,
                     dp(2), dp(2), brush);
         }
