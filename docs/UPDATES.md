@@ -26,4 +26,4 @@ The GitHub rename has **already occurred**. Do not create a new repository at th
 
 Normal pushes create a **signed development APK artifact**, not a public GitHub Release. After physical TV testing, the owner can run **Build Kellie's Voice Signed APK** manually with `publish_release` checked. That workflow builds the signed APK, verifies the signature, and publishes `app-release.apk` and checksum metadata `update.json`.
 
-**Public release status:** v0.6 is the last publicly published version as of this update. v0.11 remains a development APK pending a separate owner-approved public release.
+**v0.15.0 release:** Publication was owner-authorized. A one-time `[publish-v0.15.0]` gated main-branch workflow path builds/tests the latest app, signs and verifies its APK, and uploads `app-release.apk` with SHA-256 `update.json`. Later releases still require a new owner-authorized version bump/manual workflow.
