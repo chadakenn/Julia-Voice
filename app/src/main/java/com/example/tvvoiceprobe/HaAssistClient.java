@@ -6,6 +6,8 @@ import android.content.pm.PackageManager;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
+import android.media.audiofx.AcousticEchoCanceler;
+import android.media.audiofx.NoiseSuppressor;
 import android.os.Handler;
 import android.os.Looper;
 
@@ -45,6 +47,7 @@ public final class HaAssistClient {
 
     private final Context context;
     private final Events events;
+    private final SpeechFocus listeningFocus;
     private final OkHttpClient http = new OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
             .pingInterval(25, TimeUnit.SECONDS)
@@ -84,6 +87,7 @@ public final class HaAssistClient {
     public HaAssistClient(Context context, Events events) {
         this.context = context.getApplicationContext();
         this.events = events;
+        this.listeningFocus = new SpeechFocus(this.context);
     }
 
     public boolean isConnected() { return authenticated; }
@@ -371,8 +375,12 @@ public final class HaAssistClient {
             autoEndSpeech = autoStopOnSilence;
             ended.set(false);
             currentRunId = id;
+            // Duck YouTube before the Assist server replies and before opening
+            // the microphone. The automatic fade needs a head start.
+            listeningFocus.acquire();
             if (!socket.send(request.toString())) {
                 currentRunId = -1;
+                listeningFocus.release();
                 events.status("Couldn't send Assist request.");
                 return false;
             }
@@ -380,6 +388,7 @@ public final class HaAssistClient {
             return true;
         } catch (Exception e) {
             currentRunId = -1;
+            listeningFocus.release();
             events.status("Couldn't start Assist pipeline.");
             return false;
         }
@@ -406,6 +415,8 @@ public final class HaAssistClient {
         }
         new Thread(() -> {
             AudioRecord recorder = null;
+            AcousticEchoCanceler echo = null;
+            NoiseSuppressor noise = null;
             try {
                 int minimum = AudioRecord.getMinBufferSize(16000,
                         AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
@@ -415,6 +426,26 @@ public final class HaAssistClient {
                         Math.max(minimum * 2, 6400));
                 if (recorder.getState() != AudioRecord.STATE_INITIALIZED)
                     throw new IllegalStateException("AudioRecord initialization failed");
+                // Android TV firmware may or may not expose hardware echo
+                // cancellation / noise suppression. Never let optional
+                // effects break an otherwise working microphone.
+                int session = recorder.getAudioSessionId();
+                try {
+                    if (AcousticEchoCanceler.isAvailable()) {
+                        echo = AcousticEchoCanceler.create(session);
+                        if (echo != null) echo.setEnabled(true);
+                    }
+                } catch (RuntimeException ignored) {
+                    if (echo != null) { echo.release(); echo = null; }
+                }
+                try {
+                    if (NoiseSuppressor.isAvailable()) {
+                        noise = NoiseSuppressor.create(session);
+                        if (noise != null) noise.setEnabled(true);
+                    }
+                } catch (RuntimeException ignored) {
+                    if (noise != null) { noise.release(); noise = null; }
+                }
                 recorder.startRecording();
                 if (recorder.getRecordingState() != AudioRecord.RECORDSTATE_RECORDING)
                     throw new IllegalStateException("Microphone recording was not started");
@@ -478,8 +509,12 @@ public final class HaAssistClient {
                 recording.set(false);
                 if (recorder != null) {
                     try { recorder.stop(); } catch (Exception ignored) { }
-                    recorder.release();
                 }
+                if (echo != null) echo.release();
+                if (noise != null) noise.release();
+                if (recorder != null) recorder.release();
+                // A stale capture thread must never release a newer run's focus.
+                if (runId == currentRunId) listeningFocus.release();
                 sendEndOfAudio(runId);
             }
         }, "ha-assist-audio").start();
@@ -493,6 +528,7 @@ public final class HaAssistClient {
 
     private void stopForRunEnd() {
         recording.set(false);
+        listeningFocus.release();
         handlerId = -1;
         currentRunId = -1;
         captureStarted = false;
