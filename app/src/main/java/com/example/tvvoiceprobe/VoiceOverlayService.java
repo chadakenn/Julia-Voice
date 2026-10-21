@@ -19,6 +19,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.provider.Settings;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -61,6 +62,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
     private boolean listening = false;
     private boolean firstAutoListenPending = false;
     private boolean firstAutoListenStarted = false;
+    private long autoListenDeadlineMs;
     private boolean closing = false;
 
     private final Runnable endListeningTimeout = () -> {
@@ -87,7 +89,18 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
                 focus(0);
                 // Pressing the shortcut again may start the next question,
                 // but never restarts the mic while an utterance is underway.
-                if (!listening && assist != null && assist.isConnected()
+                if (assist != null && !assist.isConnected()) {
+                    // Pressing ⭐ again while HA is restarting is another
+                    // explicit request. Reconnect and listen only briefly
+                    // after this request, never unexpectedly hours later.
+                    if (preferences != null && preferences.autoListen()) {
+                        firstAutoListenPending = true;
+                        firstAutoListenStarted = false;
+                        autoListenDeadlineMs = SystemClock.elapsedRealtime() + 30000L;
+                    }
+                    assist.ensureConnected();
+                    status("Reconnecting to Home Assistant...");
+                } else if (!listening && assist != null && assist.isConnected()
                         && preferences != null && preferences.autoListen()) {
                     startListening();
                 }
@@ -104,6 +117,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         preferences = new OverlayPreferences(this);
         firstAutoListenPending = preferences.autoListen();
         firstAutoListenStarted = false;
+        autoListenDeadlineMs = SystemClock.elapsedRealtime() + 30000L;
         try {
             createNotificationChannel();
             Intent openApp = new Intent(this, VoiceActivity.class);
@@ -316,8 +330,15 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
 
     private void startListening() {
         if (closing) return;
-        if (assist == null || !assist.isConnected()) {
-            status("Connecting to Home Assistant. Try again shortly.");
+        if (assist == null) return;
+        if (!assist.isConnected()) {
+            // TALK is a direct user request, so resume listening if the
+            // reconnect succeeds soon; expire it to avoid surprise mic use.
+            firstAutoListenPending = true;
+            firstAutoListenStarted = false;
+            autoListenDeadlineMs = SystemClock.elapsedRealtime() + 30000L;
+            assist.ensureConnected();
+            status("Reconnecting to Home Assistant. I'll listen when connected.");
             return;
         }
         if (listening) return;
@@ -390,10 +411,12 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         main.post(() -> {
             if (closing) return;
             if (wave != null) wave.setMode(VoiceWaveView.IDLE);
-            if (firstAutoListenPending && !firstAutoListenStarted) {
+            if (firstAutoListenPending && !firstAutoListenStarted
+                    && SystemClock.elapsedRealtime() <= autoListenDeadlineMs) {
                 firstAutoListenStarted = true;
                 startListening();
             } else {
+                firstAutoListenPending = false;
                 status("Connected. Select TALK.");
             }
         });
