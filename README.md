@@ -8,13 +8,13 @@
 
 Kellie's Voice is a local-first, open-source voice companion for Home Assistant, starting with Google TV and Android TV. Ask a question or control a room using the floating overlay, without replacing the TV launcher.
 
-**Current status:** v0.11 development APK corrects the case-sensitive release URL after the GitHub repository rename. The v0.10 copper-and-charcoal appearance still requires on-device verification. The earlier Kellie's Voice build successfully handled Home Assistant questions and the onn 4K Pro ⭐ floating overlay. Public v0.6 remains the last explicitly published GitHub Release. Normal pushes generate signed development APKs only.
+**Current status:** v0.12 development APK adds configurable overlay placement, sizing, auto-hide timing and copper-styled settings menus. Signed APK compilation and signature verification passed in [build #108](https://github.com/chadakenn/Kellies-Voice/actions/runs/39598350715); the new settings still need on-device testing. Public v0.6 remains the last explicitly published GitHub Release. Normal pushes generate signed development APKs only.
 
 ## Download and upgrade safely
 
 The signed Android package ID stays `com.example.tvvoiceprobe` and the signing key stays the same. Install the latest signed `kellies-voice-signed` GitHub Actions artifact **over the installed Kellie's Voice app**. **Do not uninstall** or you may lose the Home Assistant token and device settings.
 
-**Repository URL:** The project now lives at [**chadakenn/Kellies-Voice**](https://github.com/chadakenn/Kellies-Voice). Because the repository was renamed before all TVs were upgraded, installed v0.10 and earlier apps may need a **one-time manual update to signed v0.11**. GitHub's actual release URLs use capitalized `Kellies-Voice`, and v0.11's updater accepts that exact spelling. See [the update guide](docs/UPDATES.md).
+**Repository URL:** The project now lives at [**chadakenn/Kellies-Voice**](https://github.com/chadakenn/Kellies-Voice). Because the repository was renamed before all TVs were upgraded, installed v0.10 and earlier apps may need a **one-time manual signed APK update**. GitHub's actual release URLs use capitalized `Kellies-Voice`, and v0.11's updater accepts that exact spelling. See [the update guide](docs/UPDATES.md).
 
 ## Appearance
 
@@ -23,9 +23,22 @@ The signed Android package ID stays `com.example.tvvoiceprobe` and the signing k
 - The welcome splash includes a **single small portrait of Kellie** ([brand portrait](docs/branding/kellie-portrait.webp)), while the floating TV overlay remains icon-only and unobtrusive. The photo-rich marketing comps are also available separately from the app.
 - Built-in Home Assistant/Ollama conversation routing and saved voice preferences remain intact.
 
+## Phase 1: Positionable floating overlay and TV-friendly settings
+
+**Kellie's Voice v0.12** includes a D-pad-friendly charcoal/copper settings screen. Open **SETTINGS → Overlay appearance & position** to change:
+
+- **Position:** Top left, top right, bottom left, bottom right, center, bottom center, or original location.
+- **Size:** Small, medium (original dimensions), or large.
+- **Auto-hide after spoken reply:** 5, 7 (original), 10 or 20 seconds, or never.
+- **Appearance:** Copper Glass or Compact Charcoal, plus Auto-listen and the ⭐ launcher fallback.
+
+Settings are saved locally. **Close and reopen the overlay** to apply position/size/skin changes. Existing installations keep their previous overlay location and size until you choose differently. Audio behavior and permission requirements are unchanged.
+
+**Future Home Assistant management:** Rather than remove the TV settings immediately, we plan an HA dashboard to manage per-TV overlay and camera/announcement settings using authenticated, validated synchronization, while retaining local settings as a backup. This remote control is **planned, not implemented**. See [Home Assistant remote configuration plan](docs/REMOTE_CONFIGURATION_PLAN.md).
+
 ## onn ⭐ TV remote shortcut
 
-If your TV's ⭐ app picker only lists Kellie's Voice, enable **SETTINGS → Overlay style and voice settings → ⭐ picker fallback**. The existing v0.9 transparent launch path should skip the full-screen app when permissions and the Home Assistant connection are ready. You must first grant microphone and Display over other apps permissions.
+If your TV's ⭐ app picker only lists Kellie's Voice, enable **SETTINGS → Overlay appearance & position → ⭐ picker fallback**. The existing v0.9 transparent launch path should skip the full-screen app when permissions and the Home Assistant connection are ready. You must first grant microphone and Display over other apps permissions.
 
 ## What this project does
 
