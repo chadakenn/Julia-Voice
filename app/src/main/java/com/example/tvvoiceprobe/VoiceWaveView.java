@@ -38,7 +38,7 @@ public final class VoiceWaveView extends View {
     public VoiceWaveView(Context context) {
         super(context);
         setFocusable(false);
-        baseline.setColor(0x2144d9fd);
+        baseline.setColor(0x44DDA984);
         baseline.setStrokeWidth(dp(1));
     }
 
@@ -80,7 +80,7 @@ public final class VoiceWaveView extends View {
                 : mode == SPEAKING ? 0.9f
                 : mode == THINKING ? 0.60f
                 : mode == CONNECTING ? 0.30f : 0.21f;
-        int[] colors = {0xff39defc, 0xff8963ff, 0xffdb63f2, 0xff4267ec};
+        int[] colors = {0xffffc39f, 0xffd28a64, 0xfff5d6b7, 0xff9d563e};
         for (int layer = 0; layer < colors.length; layer++) {
             Path path = new Path();
             float amplitude = (height * 0.33f) * intensity
