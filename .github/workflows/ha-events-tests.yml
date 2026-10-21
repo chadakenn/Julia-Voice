@@ -1,0 +1,28 @@
+name: Home Assistant integration tests
+
+on:
+  pull_request:
+    paths:
+      - 'custom_components/kellies_voice/**'
+      - 'tests/test_kellies_voice_events.py'
+      - '.github/workflows/ha-events-tests.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'custom_components/kellies_voice/**'
+      - 'tests/test_kellies_voice_events.py'
+      - '.github/workflows/ha-events-tests.yml'
+
+jobs:
+  python-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check integration syntax
+        run: python -m compileall -q custom_components/kellies_voice
+      - name: Test event contracts
+        run: python -m unittest discover -s tests -p 'test_kellies_voice_events.py' -v

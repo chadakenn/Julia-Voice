@@ -23,15 +23,15 @@ The device id used by the services below is the id stored for that TV. It is the
 
 ## Announcements and camera popups
 
-These actions fire Home Assistant events. The Android app has to listen for those events before anything shows on the TV. You can test the Home Assistant side before that app change is installed.
+These actions fire Home Assistant events. The current signed Android development build includes an opt-in TV event receiver. On the TV, enable **Settings → TV announcements & cameras** to display them. You can also test the Home Assistant events using Developer Tools before turning on the receiver.
 
 Leaving **TV device id** empty sends one event to every TV you have added. Filling it in sends the event only to that TV. A TV that is not added here is not a target.
 
 Limits, on every call:
 
-- Title: 1 to 80 characters
-- Announcement text: 1 to 240 characters
-- Duration: 1 to 120 seconds
+- Title: 1 to 65 characters
+- Announcement text: 1 to 500 characters
+- Duration: 4 to 45 seconds
 - Camera: a real `camera` entity already in Home Assistant, never a URL
 
 Nothing in these actions is written to the log except the event name and how many TVs were targeted.
@@ -96,9 +96,9 @@ The event data is exactly:
 4. Confirm one event per configured TV. Each event has `title`, `text`, `duration_seconds`, and that TV's `device_id`.
 5. Listen for `kellies_voice_camera_popup` and run `kellies_voice.show_camera` with a camera that already exists, such as your Frigate camera.
 6. Run them again with a **TV device id** and confirm only that TV is in the event.
-7. Try a duration of `500`, an empty title, or `entity_id: light.kitchen`. Home Assistant should reject the call and fire no event.
+7. Try a duration of `120`, an empty title, or `entity_id: light.kitchen`. Home Assistant should reject the call and fire no event.
 
-The TV will not draw the message or the camera until the app side is listening for these events.
+The TV displays the message or snapshot when its **TV announcements & cameras** receiver is enabled. This is a still-image popup, not live Frigate video. It does not start Kellie's microphone or speak the notification.
 
 ### Frigate person detection
 

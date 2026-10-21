@@ -29,8 +29,8 @@ blueprint:
       default: 20
       selector:
         number:
-          min: 1
-          max: 120
+          min: 4
+          max: 45
           mode: box
     device_id:
       name: TV device id

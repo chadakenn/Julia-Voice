@@ -20,10 +20,10 @@ class ValidationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             validation.clean_title("   ")
         with self.assertRaises(ValueError):
-            validation.clean_title("x" * 81)
-        self.assertEqual(len(validation.clean_text("x" * 240)), 240)
+            validation.clean_title("x" * 66)
+        self.assertEqual(len(validation.clean_text("x" * 500)), 500)
         with self.assertRaises(ValueError):
-            validation.clean_text("x" * 241)
+            validation.clean_text("x" * 501)
 
     def test_duration_cap(self):
         self.assertEqual(validation.clean_duration(None, 10), 10)
@@ -31,7 +31,7 @@ class ValidationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             validation.clean_duration(0, 10)
         with self.assertRaises(ValueError):
-            validation.clean_duration(121, 10)
+            validation.clean_duration(46, 10)
         with self.assertRaises(ValueError):
             validation.clean_duration("soon", 10)
 

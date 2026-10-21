@@ -15,8 +15,8 @@ announce:
       example: 10
       selector:
         number:
-          min: 1
-          max: 120
+          min: 4
+          max: 45
           mode: box
     device_id:
       example: ""
@@ -40,8 +40,8 @@ show_camera:
       example: 20
       selector:
         number:
-          min: 1
-          max: 120
+          min: 4
+          max: 45
           mode: box
     device_id:
       example: ""

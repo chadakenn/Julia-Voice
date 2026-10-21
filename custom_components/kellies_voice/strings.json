@@ -20,15 +20,15 @@
       "fields": {
         "title": {
           "name": "Title",
-          "description": "Short heading, 80 characters at most."
+          "description": "Short heading, 65 characters at most."
         },
         "text": {
           "name": "Text",
-          "description": "Announcement text, 240 characters at most."
+          "description": "Announcement text, 500 characters at most."
         },
         "duration_seconds": {
           "name": "Duration (seconds)",
-          "description": "How long the message stays up, from 1 to 120 seconds."
+          "description": "How long the message stays up, from 4 to 45 seconds."
         },
         "device_id": {
           "name": "TV device id",
@@ -46,11 +46,11 @@
         },
         "title": {
           "name": "Title",
-          "description": "Short heading, 80 characters at most."
+          "description": "Short heading, 65 characters at most."
         },
         "duration_seconds": {
           "name": "Duration (seconds)",
-          "description": "How long the popup stays up, from 1 to 120 seconds."
+          "description": "How long the popup stays up, from 4 to 45 seconds."
         },
         "device_id": {
           "name": "TV device id",
