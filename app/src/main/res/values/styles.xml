@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Avoid a full-screen Android launch preview; Julia draws her own splash
+    <!-- Avoid a full-screen Android launch preview; Kellie draws her own splash
          for intentional full-app launches. -->
-    <style name="JuliaVoiceLauncherTheme" parent="@android:style/Theme.Material.NoActionBar">
+    <style name="KellieVoiceLauncherTheme" parent="@android:style/Theme.Material.NoActionBar">
         <item name="android:windowDisablePreview">true</item>
     </style>
 
     <!-- Selected only for the user's opt-in star-button overlay shortcut.
          Keep the previous TV app visible under the transient foreground window. -->
-    <style name="JuliaVoiceShortcutTransparentTheme" parent="@android:style/Theme.Translucent.NoTitleBar">
+    <style name="KellieVoiceShortcutTransparentTheme" parent="@android:style/Theme.Translucent.NoTitleBar">
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:backgroundDimEnabled">false</item>
         <item name="android:windowDisablePreview">true</item>
