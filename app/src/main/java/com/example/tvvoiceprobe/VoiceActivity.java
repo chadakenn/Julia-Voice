@@ -427,6 +427,8 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                 "Connect / reconnect",
                 "Start new conversation",
                 "Hardware microphone diagnostics",
+                "Microphone sensitivity: " + OverlayPreferences.noiseLabel(
+                        new OverlayPreferences(this).noise()),
                 "Open floating voice overlay",
                 "Overlay appearance & position",
                 "Check for app updates",
@@ -441,17 +443,39 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                         case 1: connect(); break;
                         case 2: newConversation(); break;
                         case 3: startActivity(new Intent(this, MainActivity.class)); break;
-                        case 4: launchOverlay(); break;
-                        case 5: showOverlayPreferences(); break;
-                        case 6:
+                        case 4: chooseMicSensitivity(); break;
+                        case 5: launchOverlay(); break;
+                        case 6: showOverlayPreferences(); break;
+                        case 7:
                             manualUpdateCheck = true;
                             status("Checking GitHub Releases...");
                             updater.check();
                             break;
-                        case 7: promptInstallUpdate(); break;
-                        case 8: confirmForget(); break;
+                        case 8: promptInstallUpdate(); break;
+                        case 9: confirmForget(); break;
                         default: break;
                     }
+                });
+    }
+
+    private void chooseMicSensitivity() {
+        OverlayPreferences prefs = new OverlayPreferences(this);
+        final String[] values = {
+                OverlayPreferences.NOISE_QUIET,
+                OverlayPreferences.NOISE_NORMAL,
+                OverlayPreferences.NOISE_TV
+        };
+        String[] options = new String[values.length];
+        for (int i = 0; i < values.length; i++) {
+            options[i] = (values[i].equals(prefs.noise()) ? "✓  " : "     ")
+                    + OverlayPreferences.noiseLabel(values[i]);
+        }
+        showCopperMenu("SETTINGS  ✦  MICROPHONE",
+                "How the automatic pause detector treats room sound. STOP still ends listening.",
+                options, which -> {
+                    prefs.setNoise(values[which]);
+                    status("Microphone sensitivity: " + OverlayPreferences.noiseLabel(prefs.noise()));
+                    showSettingsMenu();
                 });
     }
 
@@ -725,6 +749,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         } else {
             recognized.setText("Listening...");
             response.setText("Waiting for Home Assistant...");
+            assist.setRoomNoise(new OverlayPreferences(this).noise());
             assist.talk();
         }
     }
