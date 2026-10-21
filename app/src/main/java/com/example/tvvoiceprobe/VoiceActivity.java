@@ -52,9 +52,24 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
     private boolean warningPending;
     private UpdateManager updater;
     private boolean manualUpdateCheck;
+    private boolean transparentShortcut;
 
     @Override public void onCreate(Bundle state) {
+        // The onn ⭐ picker starts the package's main Activity. When its
+        // explicit overlay fallback is enabled, draw no full-screen UI at all.
+        // Changing the window theme before super.onCreate avoids the flash of
+        // the ordinary TV screen during the service's foreground startup.
+        boolean shortcut = shouldLaunchOverlayFromLauncher(getIntent());
+        if (shortcut) setTheme(R.style.JuliaVoiceShortcutTransparentTheme);
         super.onCreate(state);
+        if (shortcut && canStartOverlayImmediately()) {
+            transparentShortcut = true;
+            getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+            View transparentWindow = new View(this);
+            setContentView(transparentWindow);
+            transparentWindow.post(this::startTransparentShortcutOverlay);
+            return;
+        }
         store = new CredentialStore(this);
         assist = new HaAssistClient(this, this);
         updater = new UpdateManager(this, new UpdateManager.Listener() {
@@ -166,6 +181,43 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         }
     }
 
+    private boolean canStartOverlayImmediately() {
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO)
+                != PackageManager.PERMISSION_GRANTED || !Settings.canDrawOverlays(this)) {
+            return false;
+        }
+        try {
+            return new CredentialStore(this).load() != null;
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    private void startTransparentShortcutOverlay() {
+        if (isFinishing() || isDestroyed()) return;
+        try {
+            // Start from the foreground Activity before returning to the
+            // video; the service promotes itself to microphone foreground.
+            startForegroundService(new Intent(this, VoiceOverlayService.class));
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                if (!isFinishing() && !isDestroyed() && transparentShortcut) {
+                    moveTaskToBack(true);
+                }
+            }, 750L);
+        } catch (Exception ignored) {
+            // On restricted firmware, recover to the real UI instead of
+            // leaving the user with an invisible application.
+            openNormalAppFromShortcut();
+        }
+    }
+
+    private void openNormalAppFromShortcut() {
+        Intent open = new Intent(this, VoiceActivity.class);
+        open.setAction("com.example.tvvoiceprobe.OPEN_SETTINGS");
+        startActivity(open);
+        finish();
+    }
+
     private boolean shouldLaunchOverlayFromLauncher(Intent intent) {
         // OPEN_SETTINGS and ordinary explicit activities must open the full UI.
         // The opt-in also prevents microphone startup on an ordinary install.
@@ -179,7 +231,13 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         setIntent(intent);
         // If Android reuses a running instance, onCreate is not called.
         // Handle a new launcher/⭐ command without requiring a fresh Activity.
-        if (shouldLaunchOverlayFromLauncher(intent)) {
+        if (transparentShortcut) {
+            if (shouldLaunchOverlayFromLauncher(intent)) {
+                getWindow().getDecorView().post(this::startTransparentShortcutOverlay);
+            } else {
+                openNormalAppFromShortcut();
+            }
+        } else if (shouldLaunchOverlayFromLauncher(intent)) {
             getWindow().getDecorView().post(this::launchOverlay);
         }
     }
@@ -601,7 +659,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
 
     @Override protected void onDestroy() {
         if (player != null) { player.release(); player = null; }
-        assist.shutdown();
+        if (assist != null) assist.shutdown();
         super.onDestroy();
     }
 }
