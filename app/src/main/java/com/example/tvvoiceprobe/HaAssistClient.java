@@ -61,6 +61,12 @@ public final class HaAssistClient {
     // Keep one authenticated WebSocket alive only for the lifetime of the
     // explicit activity/overlay. Android can suspend or kill the app, so this
     // is self-healing, not an always-running background assistant service.
+    private String savedBaseUrl;
+    private String savedToken;
+    private boolean reconnectEnabled;
+    private boolean reconnectScheduled;
+    private boolean connecting;
+    private int failures;
     private final Handler reconnectHandler = new Handler(Looper.getMainLooper());
     private final Runnable reconnectTask = () -> {
         synchronized (HaAssistClient.this) {
@@ -70,12 +76,6 @@ public final class HaAssistClient {
             }
         }
     };
-    private String savedBaseUrl;
-    private String savedToken;
-    private boolean reconnectEnabled;
-    private boolean reconnectScheduled;
-    private boolean connecting;
-    private int failures;
 
     public HaAssistClient(Context context, Events events) {
         this.context = context.getApplicationContext();
