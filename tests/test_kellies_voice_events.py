@@ -3,6 +3,7 @@
 import importlib.util
 import json
 import pathlib
+import uuid
 import unittest
 
 import sys
@@ -25,6 +26,20 @@ class ValidationTests(unittest.TestCase):
         self.assertIn("confirm", shipped["config"]["step"])
         self.assertIn("announce", shipped["services"])
         self.assertIn("show_camera", shipped["services"])
+
+    def test_manual_tv_pairing_identifier(self):
+        stable = str(uuid.uuid4())
+        self.assertEqual(validation.clean_tv_device_id(stable.upper()), stable)
+        self.assertEqual(validation.clean_tv_device_id(stable.replace("-", "")), stable)
+        for invalid in ("", "my-tv", "123456", str(uuid.uuid1()), None):
+            with self.assertRaises(ValueError):
+                validation.clean_tv_device_id(invalid)
+
+    def test_manual_pairing_translations(self):
+        import json
+        messages = json.loads((_COMPONENT / "translations" / "en.json").read_text(encoding="utf-8"))
+        self.assertIn("user", messages["config"]["step"])
+        self.assertIn("device_id", messages["config"]["step"]["user"]["data"])
 
     def test_title_and_text_limits(self):
         self.assertEqual(validation.clean_title("  Washer   done "), "Washer done")

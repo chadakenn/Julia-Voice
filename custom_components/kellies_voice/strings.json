@@ -5,12 +5,24 @@
       "confirm": {
         "title": "Add {name}",
         "description": "Home Assistant will be able to change this TV's overlay position, size, style, auto-hide, and auto-listen. It will not start the microphone, change the login, or install updates."
+      },
+      "user": {
+        "title": "Pair your Kellie's Voice TV",
+        "description": "Automatic discovery not working? On your TV open Kellie's Voice → Settings → Home Assistant layout → Show TV pairing ID. Type the ID shown on your TV. Make sure Home Assistant layout is ON; no network discovery is needed.",
+        "data": {
+          "device_id": "TV pairing ID",
+          "name": "TV name"
+        }
       }
     },
     "abort": {
       "already_configured": "This TV is already added.",
       "no_id": "The TV did not identify itself. Turn Home Assistant layout off and on in Kellie's Voice, then try again.",
-      "use_discovery": "Open Kellie's Voice on the TV and turn on Home Assistant layout. Leave the app open. This integration then shows up here as a discovered device."
+      "use_discovery": "If automatic detection is available, add the discovered TV. Otherwise use manual pairing."
+    },
+    "error": {
+      "invalid_device_id": "Enter the pairing ID shown on your TV.",
+      "invalid_name": "Enter a TV name up to 64 characters."
     }
   },
   "services": {

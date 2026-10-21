@@ -1,6 +1,7 @@
 """Input checks for TV events. These functions do not log or store secrets."""
 
 import re
+from uuid import UUID
 
 try:
     from .const import (
@@ -18,6 +19,20 @@ except ImportError:  # unit test loads this file without the Home Assistant pack
     )
 
 _CAMERA_ENTITY = re.compile(r"^camera\.[a-z0-9_]+$")
+
+
+def clean_tv_device_id(value) -> str:
+    """Normalise the UUID shown on the TV; reject malformed/missing IDs."""
+    if not isinstance(value, str):
+        raise ValueError("Enter the device ID shown on your TV.")
+    try:
+        parsed = UUID(value.strip())
+    except (ValueError, AttributeError):
+        raise ValueError("Enter a valid TV device ID.") from None
+    if parsed.version != 4 or parsed.variant != "specified in RFC 4122":
+        raise ValueError("Enter a valid TV device ID.")
+    return str(parsed)
+
 
 
 def clean_title(value) -> str:

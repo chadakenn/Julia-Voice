@@ -2,7 +2,7 @@
 
 This integration changes overlay layout and can send announcement and camera events to configured TVs. It does not start the microphone, replace the TV login, or install an APK.
 
-Home Assistant never connects to the TV for layout changes. The TV advertises itself, you click **Add**, and the TV reads those controls with the Home Assistant login it already has.
+Home Assistant never connects directly to the TV for layout changes. The TV can advertise through mDNS or you can enter its stable pairing ID manually. Either way, the TV reads those controls using its existing Home Assistant login.
 
 Announcement and camera actions stay inside Home Assistant too. They fire events. They do not open a port on the TV, and they do not put tokens or stream passwords in the event.
 
@@ -13,7 +13,7 @@ Announcement and camera actions stay inside Home Assistant too. They fire events
 1. Make sure HACS is installed in your Home Assistant instance.
 2. **First-time only:** in **HACS → ⋮ → Custom repositories**, add `https://github.com/chadakenn/Kellies-Voice` with category **Integration**. The shortcut badge does not register an unknown repository automatically.
 3. Click **[Open in HACS](https://my.home-assistant.io/redirect/hacs_repository/?owner=chadakenn&repository=Kellies-Voice&category=integration)**. Download **v0.15.0** (or a newer release), not the older `v0.6`.
-4. Restart Home Assistant, then turn on **Home Assistant layout** inside the Kellie's Voice TV app. The TV should appear in **Settings → Devices & services → Discovered**. Click **Add**.
+4. Restart Home Assistant, then turn **Home Assistant layout ON** inside the Kellie's Voice TV app. Either add the TV under **Settings → Devices & services → Discovered** or use **Add Integration → Kellie's Voice** for manual pairing with its device ID (shown on the TV under Settings → Home Assistant layout → Show this TV's pairing ID). This works if mDNS is blocked across VLANs.
 5. Optionally turn on **TV announcements & cameras** on the TV to receive HA announcements and Frigate camera snapshots.
 
 After custom repository registration, the badge opens Kellie's Voice for future HACS downloads/updates. The first registration and HA restart are still required. HACS installs only the Home Assistant component, not the TV APK.
@@ -23,7 +23,7 @@ After custom repository registration, the badge opens Kellie's Voice for future 
 1. Copy this folder to `config/custom_components/kellies_voice` on the Home Assistant machine. Include `services.yaml`, `services.py`, and the `blueprints` folder.
 2. Restart Home Assistant.
 3. On the TV, open **Kellie's Voice → Settings → Home Assistant layout** and turn it on. Leave the app open.
-4. In Home Assistant, the TV shows up as a discovered device. Click **Add**.
+4. In Home Assistant, add the TV under **Discovered**. If it doesn't appear, choose **Add Integration → Kellie's Voice**, then enter the TV's stable ID from **Settings → Home Assistant layout → Show this TV's pairing ID**. Use the exact ID; it is not your HA token.
 
 The device page then has position, size, style, auto-hide, and auto-listen.
 
