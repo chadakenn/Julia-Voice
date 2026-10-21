@@ -3,6 +3,9 @@ package com.example.tvvoiceprobe;
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.IntentFilter;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
@@ -11,6 +14,7 @@ import android.graphics.Color;
 import android.media.AudioAttributes;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -59,6 +63,13 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
     private boolean manualUpdateCheck;
     private boolean transparentShortcut;
     private boolean initialConnectionRequested;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private BroadcastReceiver overlayLaunchReceiver;
+    private final Runnable overlayLaunchTimeout = () -> {
+        stopListeningForOverlay();
+        if (transparentShortcut) openNormalAppFromShortcut();
+        else status("Overlay start timed out. Try again.");
+    };
 
     @Override protected void onStart() {
         super.onStart();
@@ -226,12 +237,8 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         try {
             // Start from the foreground Activity before returning to the
             // video; the service promotes itself to microphone foreground.
+            listenForOverlayThenBackground();
             startForegroundService(new Intent(this, VoiceOverlayService.class));
-            new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                if (!isFinishing() && !isDestroyed() && transparentShortcut) {
-                    moveTaskToBack(true);
-                }
-            }, 750L);
         } catch (Exception ignored) {
             // On restricted firmware, recover to the real UI instead of
             // leaving the user with an invisible application.
@@ -240,10 +247,13 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
     }
 
     private void openNormalAppFromShortcut() {
+        stopListeningForOverlay();
+        // A singleTask launch can reuse this same Activity; do not finish it.
         Intent open = new Intent(this, VoiceActivity.class);
         open.setAction("com.example.tvvoiceprobe.OPEN_SETTINGS");
-        startActivity(open);
-        finish();
+        setIntent(open);
+        transparentShortcut = false;
+        recreate();
     }
 
     private boolean shouldLaunchOverlayFromLauncher(Intent intent) {
@@ -699,13 +709,44 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         }
         try {
             Intent start = new Intent(this, VoiceOverlayService.class);
+            listenForOverlayThenBackground();
             startForegroundService(start);
             status("Starting voice overlay... CLOSE or BACK dismisses it.");
-            // Reveal the prior task rather than forcing the TV launcher.
-            // OEM behavior may vary; test with a harmless launcher screen first.
-            new Handler(Looper.getMainLooper()).postDelayed(() -> moveTaskToBack(true), 750);
         } catch (Exception error) {
+            stopListeningForOverlay();
             status("Couldn't start overlay on this Google TV firmware.");
+        }
+    }
+
+    private void listenForOverlayThenBackground() {
+        stopListeningForOverlay();
+        overlayLaunchReceiver = new BroadcastReceiver() {
+            @Override public void onReceive(Context context, Intent intent) {
+                boolean failed = VoiceOverlayService.ACTION_OVERLAY_FAILED.equals(intent.getAction());
+                stopListeningForOverlay();
+                if (failed) {
+                    if (transparentShortcut) openNormalAppFromShortcut();
+                    else status("Couldn't start the overlay. Check connection and permissions.");
+                } else if (!isFinishing() && !isDestroyed()) {
+                    moveTaskToBack(true);
+                }
+            }
+        };
+        IntentFilter filter = new IntentFilter(VoiceOverlayService.ACTION_OVERLAY_READY);
+        filter.addAction(VoiceOverlayService.ACTION_OVERLAY_FAILED);
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(overlayLaunchReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(overlayLaunchReceiver, filter);
+        }
+        mainHandler.postDelayed(overlayLaunchTimeout, 8000L);
+    }
+
+    private void stopListeningForOverlay() {
+        mainHandler.removeCallbacks(overlayLaunchTimeout);
+        if (overlayLaunchReceiver != null) {
+            try { unregisterReceiver(overlayLaunchReceiver); } catch (Exception ignored) { }
+            overlayLaunchReceiver = null;
         }
     }
 
@@ -903,6 +944,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
     }
 
     @Override protected void onDestroy() {
+        stopListeningForOverlay();
         if (player != null) { player.release(); player = null; }
         if (speechFocus != null) speechFocus.release();
         if (assist != null) assist.shutdown();

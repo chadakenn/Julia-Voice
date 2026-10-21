@@ -2,8 +2,12 @@ package com.example.tvvoiceprobe;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.IntentFilter;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -18,6 +22,15 @@ import android.widget.Toast;
 public final class OverlayShortcutActivity extends Activity {
     private boolean started;
     private final Handler handler = new Handler(Looper.getMainLooper());
+    private BroadcastReceiver overlayEvents;
+    private final Runnable giveUp = () -> {
+        unregisterOverlayEvents();
+        Toast.makeText(this, "Overlay didn't open. Opening Kellie's Voice.",
+                Toast.LENGTH_LONG).show();
+        startActivity(new Intent(this, VoiceActivity.class)
+                .setAction("com.example.tvvoiceprobe.OPEN_SETTINGS"));
+        finish();
+    };
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -36,37 +49,74 @@ public final class OverlayShortcutActivity extends Activity {
         started = true;
         // Use a visible Activity to start the microphone-typed foreground
         // service. Android 14+ restricts starting it from the background.
-        handler.postDelayed(() -> {
-            if (isFinishing()) return;
-            boolean configured = false;
-            try { configured = new CredentialStore(this).load() != null; }
-            catch (Exception ignored) { }
-            if (!configured || !Settings.canDrawOverlays(this) ||
-                    checkSelfPermission(Manifest.permission.RECORD_AUDIO)
-                            != PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(this,
-                        "First open Kellie's Voice, then SETTINGS > Floating voice overlay",
-                        Toast.LENGTH_LONG).show();
-                startActivity(new Intent(this, VoiceActivity.class));
+        handler.post(this::launch);
+    }
+
+    private void launch() {
+        if (isFinishing()) return;
+        boolean configured = false;
+        try { configured = new CredentialStore(this).load() != null; }
+        catch (Exception ignored) { }
+        if (!configured || !Settings.canDrawOverlays(this)
+                || checkSelfPermission(Manifest.permission.RECORD_AUDIO)
+                        != PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(this,
+                    "First open Kellie's Voice, then SETTINGS > Floating voice overlay",
+                    Toast.LENGTH_LONG).show();
+            startActivity(new Intent(this, VoiceActivity.class)
+                    .setAction("com.example.tvvoiceprobe.OPEN_SETTINGS"));
+            finish();
+            return;
+        }
+        registerOverlayEvents();
+        try {
+            startForegroundService(new Intent(this, VoiceOverlayService.class));
+            // Retain the visible activity until the service signals ready.
+            handler.postDelayed(giveUp, 8000L);
+        } catch (Exception e) {
+            handler.removeCallbacks(giveUp);
+            unregisterOverlayEvents();
+            Toast.makeText(this, "Overlay not supported. Open Kellie's Voice.",
+                    Toast.LENGTH_LONG).show();
+            startActivity(new Intent(this, VoiceActivity.class)
+                    .setAction("com.example.tvvoiceprobe.OPEN_SETTINGS"));
+            finish();
+        }
+    }
+
+    private void registerOverlayEvents() {
+        overlayEvents = new BroadcastReceiver() {
+            @Override public void onReceive(Context context, Intent intent) {
+                handler.removeCallbacks(giveUp);
+                unregisterOverlayEvents();
+                if (VoiceOverlayService.ACTION_OVERLAY_FAILED.equals(intent.getAction())) {
+                    Toast.makeText(OverlayShortcutActivity.this,
+                            "Overlay didn't open. Opening Kellie's Voice.",
+                            Toast.LENGTH_LONG).show();
+                    startActivity(new Intent(OverlayShortcutActivity.this, VoiceActivity.class)
+                            .setAction("com.example.tvvoiceprobe.OPEN_SETTINGS"));
+                }
                 finish();
-                return;
             }
-            try {
-                startForegroundService(new Intent(this, VoiceOverlayService.class));
-                // The service must promote itself while this Activity is still
-                // in the foreground before the former TV app is revealed.
-                handler.postDelayed(this::finish, 1000);
-            } catch (Exception error) {
-                Toast.makeText(this, "Overlay not supported. Open Kellie's Voice.",
-                        Toast.LENGTH_LONG).show();
-                startActivity(new Intent(this, VoiceActivity.class));
-                finish();
-            }
-        }, 150);
+        };
+        IntentFilter filter = new IntentFilter(VoiceOverlayService.ACTION_OVERLAY_READY);
+        filter.addAction(VoiceOverlayService.ACTION_OVERLAY_FAILED);
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(overlayEvents, filter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(overlayEvents, filter);
+        }
+    }
+
+    private void unregisterOverlayEvents() {
+        if (overlayEvents == null) return;
+        try { unregisterReceiver(overlayEvents); } catch (Exception ignored) { }
+        overlayEvents = null;
     }
 
     @Override protected void onDestroy() {
         handler.removeCallbacksAndMessages(null);
+        unregisterOverlayEvents();
         super.onDestroy();
     }
 }

@@ -44,6 +44,8 @@ import okhttp3.HttpUrl;
  */
 public final class VoiceOverlayService extends Service implements HaAssistClient.Events {
     public static final String ACTION_CLOSE = "com.example.tvvoiceprobe.CLOSE_OVERLAY";
+    public static final String ACTION_OVERLAY_READY = "com.example.tvvoiceprobe.OVERLAY_READY";
+    public static final String ACTION_OVERLAY_FAILED = "com.example.tvvoiceprobe.OVERLAY_FAILED";
     private static final String CHANNEL_ID = "ha_tv_voice_overlay";
     private static final int NOTIFICATION_ID = 2217;
 
@@ -109,11 +111,13 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
                     startListening();
                 }
             });
+            notifyLauncher(ACTION_OVERLAY_READY);
             return START_NOT_STICKY;
         }
         if (!Settings.canDrawOverlays(this) ||
                 checkSelfPermission(Manifest.permission.RECORD_AUDIO)
                         != PackageManager.PERMISSION_GRANTED) {
+            notifyLauncher(ACTION_OVERLAY_FAILED);
             stopSelf();
             return START_NOT_STICKY;
         }
@@ -151,6 +155,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
 
             connection = new CredentialStore(this).load();
             if (connection == null) {
+                notifyLauncher(ACTION_OVERLAY_FAILED);
                 stopSelf();
                 return START_NOT_STICKY;
             }
@@ -160,11 +165,17 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
             HaDiscovery.setWanted(this, preferences.haManage());
             HaDiscovery.acquire(this);
             assist.connect(connection.url, connection.token);
+            notifyLauncher(ACTION_OVERLAY_READY);
         } catch (Exception ignored) {
             // Do not print private tokens or HA URL into logs.
+            notifyLauncher(ACTION_OVERLAY_FAILED);
             stopSelf();
         }
         return START_NOT_STICKY;
+    }
+
+    private void notifyLauncher(String action) {
+        sendBroadcast(new Intent(action).setPackage(getPackageName()));
     }
 
     private void createNotificationChannel() {
