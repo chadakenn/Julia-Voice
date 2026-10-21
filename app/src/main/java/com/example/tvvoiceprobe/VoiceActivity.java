@@ -6,6 +6,8 @@ import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.Color;
 import android.media.AudioAttributes;
 import android.media.MediaPlayer;
 import android.net.Uri;
@@ -15,6 +17,8 @@ import android.os.Looper;
 import android.provider.Settings;
 import android.text.InputType;
 import android.view.KeyEvent;
+import android.view.Gravity;
+import android.view.WindowManager;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -321,21 +325,103 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                 : "Home Assistant: " + settings.url + (assist.isConnected() ? "  ✓ connected" : "  (not connected)"));
     }
 
+    /**
+     * Same copper-and-charcoal visual language as the TV overlay.
+     * All menus are navigable with the onn D-pad and remain local-only.
+     */
+    private void showCopperMenu(String heading, String subtitle,
+            String[] entries, java.util.function.IntConsumer onSelect) {
+        AlertDialog dialog = new AlertDialog.Builder(this).create();
+        ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(false);
+        scroll.setVerticalScrollBarEnabled(true);
+        LinearLayout body = new LinearLayout(this);
+        body.setOrientation(LinearLayout.VERTICAL);
+        int pad = Math.round(20 * getResources().getDisplayMetrics().density);
+        body.setPadding(pad, pad, pad, pad);
+        GradientDrawable background = new GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                new int[] {0xff2B1B16, 0xff17100E});
+        background.setCornerRadius(pad);
+        background.setStroke(Math.max(1, pad / 16), 0xffB98465);
+        body.setBackground(background);
+        TextView title = label(heading, 25, 0xffF4D3BB);
+        title.setTypeface(null, android.graphics.Typeface.BOLD);
+        body.addView(title);
+        TextView hint = label(subtitle, 14, 0xffCBA68F);
+        hint.setPadding(0, 0, 0, pad / 2);
+        body.addView(hint);
+        Button first = null;
+        for (int i = 0; i < entries.length; i++) {
+            final int item = i;
+            Button option = copperMenuButton(entries[i]);
+            option.setOnClickListener(v -> {
+                dialog.dismiss();
+                onSelect.accept(item);
+            });
+            LinearLayout.LayoutParams row = new LinearLayout.LayoutParams(-1, -2);
+            row.bottomMargin = pad / 4;
+            body.addView(option, row);
+            if (first == null) first = option;
+        }
+        Button done = copperMenuButton("←  Back / Done");
+        done.setOnClickListener(v -> dialog.dismiss());
+        body.addView(done, new LinearLayout.LayoutParams(-1, -2));
+        scroll.addView(body);
+        dialog.setView(scroll, 0, 0, 0, 0);
+        dialog.show();
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+            int screenWidth = getResources().getDisplayMetrics().widthPixels;
+            int dpWidth = Math.round(720 * getResources().getDisplayMetrics().density);
+            dialog.getWindow().setLayout(Math.min(dpWidth, screenWidth - pad * 2),
+                    WindowManager.LayoutParams.WRAP_CONTENT);
+        }
+        if (first != null) first.requestFocus();
+    }
+
+    private Button copperMenuButton(String text) {
+        Button b = new Button(this);
+        b.setText(text);
+        b.setAllCaps(false);
+        b.setTextSize(17);
+        b.setTextColor(0xffF9E7DA);
+        b.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+        b.setPadding(22, 10, 22, 10);
+        b.setMinHeight(0);
+        b.setMinimumHeight(0);
+        b.setFocusable(true);
+        b.setFocusableInTouchMode(true);
+        b.setBackground(menuRowBackground(false));
+        b.setOnFocusChangeListener((v, focused) ->
+                b.setBackground(menuRowBackground(focused)));
+        return b;
+    }
+
+    private GradientDrawable menuRowBackground(boolean focused) {
+        GradientDrawable shape = new GradientDrawable();
+        shape.setColor(focused ? 0xffA66A4B : 0xff493128);
+        int dp = Math.round(1 * getResources().getDisplayMetrics().density);
+        shape.setCornerRadius(Math.max(12, dp * 12));
+        shape.setStroke(Math.max(1, dp), focused ? 0xffF6D1B4 : 0xff79513D);
+        return shape;
+    }
+
     private void showSettingsMenu() {
         String[] entries = new String[] {
-                "Configure Home Assistant",
+                "Home Assistant connection",
                 "Connect / reconnect",
                 "Start new conversation",
                 "Hardware microphone diagnostics",
                 "Open floating voice overlay",
-                "Overlay style and voice settings",
+                "Overlay appearance & position",
                 "Check for app updates",
                 "Install downloaded update",
                 "Forget saved connection"
         };
-        new AlertDialog.Builder(this)
-                .setTitle("Kellie's Voice settings")
-                .setItems(entries, (dialog, which) -> {
+        showCopperMenu("KELLIE'S VOICE  ✦  SETTINGS",
+                "Warm, simple controls for your TV. Choose with the remote.", entries,
+                which -> {
                     switch (which) {
                         case 0: configure(); break;
                         case 1: connect(); break;
@@ -352,9 +438,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                         case 8: confirmForget(); break;
                         default: break;
                     }
-                })
-                .setNegativeButton("Close", null)
-                .show();
+                });
     }
 
     private void promptInstallUpdate() {
@@ -374,64 +458,123 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
     }
 
     private void showOverlayPreferences() {
-        final OverlayPreferences preferences = new OverlayPreferences(this);
-        final String[] options = new String[] {
-                "Skin: " + ("glass".equals(preferences.skin()) ? "Glass" : "Classic") +
-                        " (choose)",
-                "Auto-listen on launch: " + (preferences.autoListen() ? "ON" : "OFF"),
-                "Auto-hide after spoken reply: " + (preferences.autoHide() ? "ON" : "OFF"),
-                "⭐ picker fallback (main app opens overlay): " +
-                        (preferences.mainLauncherOpensOverlay() ? "ON" : "OFF")
+        OverlayPreferences prefs = new OverlayPreferences(this);
+        String[] options = {
+                "Position: " + OverlayPreferences.positionLabel(prefs.position()),
+                "Size: " + OverlayPreferences.sizeLabel(prefs.size()),
+                "Auto-hide after answer: " + prefs.hideLabel(),
+                "Appearance: " + (OverlayPreferences.SKIN_GLASS.equals(prefs.skin())
+                        ? "Copper Glass" : "Compact Charcoal"),
+                "Auto-listen on launch: " + (prefs.autoListen() ? "ON" : "OFF"),
+                "⭐ picker fallback: " + (prefs.mainLauncherOpensOverlay() ? "ON" : "OFF")
         };
-        new AlertDialog.Builder(this)
-                .setTitle("Kellie's Voice appearance & launch")
-                .setItems(options, (dialog, index) -> {
-                    if (index == 0) {
-                        new AlertDialog.Builder(this)
-                                .setTitle("Choose a voice overlay skin")
-                                .setSingleChoiceItems(new String[] {
-                                        "Glass • dark purple with animated neon waveform",
-                                        "Classic • compact blue panel"
-                                }, OverlayPreferences.SKIN_GLASS.equals(preferences.skin()) ? 0 : 1,
-                                    (chooser, which) -> {
-                                        preferences.setSkin(which == 0
-                                                ? OverlayPreferences.SKIN_GLASS
-                                                : OverlayPreferences.SKIN_CLASSIC);
-                                        chooser.dismiss();
-                                        status("Skin saved. Reopen the overlay to see it.");
-                                    })
-                                .setNegativeButton("Cancel", null)
-                                .show();
-                    } else if (index == 1) {
-                        preferences.setAutoListen(!preferences.autoListen());
-                        status("Auto-listen on overlay launch: " +
-                                (preferences.autoListen() ? "ON" : "OFF"));
-                        showOverlayPreferences();
-                    } else if (index == 2) {
-                        preferences.setAutoHide(!preferences.autoHide());
-                        status("Close after spoken reply: " +
-                                (preferences.autoHide() ? "ON" : "OFF"));
-                        showOverlayPreferences();
-                    } else if (index == 3) {
-                        new AlertDialog.Builder(this)
-                                .setTitle("⭐ Remote shortcut compatibility")
-                                .setMessage("Enable this ONLY if the onn shortcut list shows " +
-                                        "Kellie's Voice but not Kellie's Voice Overlay. " +
-                                        "Launching the main app will then open the overlay. " +
-                                        "Use the overlay's SETTINGS button to return here.")
-                                .setNegativeButton("Cancel", null)
-                                .setPositiveButton(preferences.mainLauncherOpensOverlay()
-                                        ? "Turn OFF" : "Turn ON", (d, which) -> {
-                                    preferences.setMainLauncherOpensOverlay(
-                                            !preferences.mainLauncherOpensOverlay());
-                                    status("⭐ compatibility is now " +
-                                            (preferences.mainLauncherOpensOverlay() ? "ON" : "OFF"));
-                                })
-                                .show();
+        showCopperMenu("OVERLAY  ✦  APPEARANCE",
+                "Changes save to this TV. Close and reopen the overlay to see layout changes.",
+                options, index -> {
+                    switch (index) {
+                        case 0: chooseOverlayPosition(prefs); break;
+                        case 1: chooseOverlaySize(prefs); break;
+                        case 2: chooseOverlayHide(prefs); break;
+                        case 3: chooseOverlaySkin(prefs); break;
+                        case 4:
+                            prefs.setAutoListen(!prefs.autoListen());
+                            status("Auto-listen: " + (prefs.autoListen() ? "ON" : "OFF"));
+                            showOverlayPreferences();
+                            break;
+                        case 5:
+                            showCopperMenu("⭐ REMOTE SHORTCUT",
+                                    "Enable only when onn lists Kellie's Voice but not the separate Overlay shortcut. The overlay SETTINGS button always opens this screen.",
+                                    new String[] {
+                                            prefs.mainLauncherOpensOverlay()
+                                                    ? "Turn fallback OFF" : "Turn fallback ON",
+                                            "Keep current setting"
+                                    }, which -> {
+                                        if (which == 0) {
+                                            prefs.setMainLauncherOpensOverlay(
+                                                    !prefs.mainLauncherOpensOverlay());
+                                            status("⭐ fallback: " +
+                                                    (prefs.mainLauncherOpensOverlay() ? "ON" : "OFF"));
+                                        }
+                                        showOverlayPreferences();
+                                    });
+                            break;
+                        default: break;
                     }
-                })
-                .setNegativeButton("Done", null)
-                .show();
+                });
+    }
+
+    private void chooseOverlayPosition(OverlayPreferences prefs) {
+        final String[] positions = {
+                OverlayPreferences.POSITION_DEFAULT,
+                OverlayPreferences.POSITION_TOP_LEFT,
+                OverlayPreferences.POSITION_TOP_RIGHT,
+                OverlayPreferences.POSITION_BOTTOM_LEFT,
+                OverlayPreferences.POSITION_BOTTOM_RIGHT,
+                OverlayPreferences.POSITION_CENTER,
+                OverlayPreferences.POSITION_BOTTOM_CENTER
+        };
+        String[] labels = new String[positions.length];
+        for (int i = 0; i < positions.length; i++) {
+            labels[i] = (positions[i].equals(prefs.position()) ? "✓  " : "     ")
+                    + OverlayPreferences.positionLabel(positions[i]);
+        }
+        showCopperMenu("OVERLAY  ✦  POSITION",
+                "Choose where the floating voice card appears.", labels, which -> {
+                    prefs.setPosition(positions[which]);
+                    status("Overlay position saved. Reopen the overlay to apply.");
+                    showOverlayPreferences();
+                });
+    }
+
+    private void chooseOverlaySize(OverlayPreferences prefs) {
+        final String[] values = {
+                OverlayPreferences.SIZE_SMALL,
+                OverlayPreferences.SIZE_MEDIUM,
+                OverlayPreferences.SIZE_LARGE
+        };
+        String[] options = new String[values.length];
+        for (int i = 0; i < values.length; i++) {
+            options[i] = (values[i].equals(prefs.size()) ? "✓  " : "     ")
+                    + OverlayPreferences.sizeLabel(values[i]);
+        }
+        showCopperMenu("OVERLAY  ✦  SIZE",
+                "Small saves screen space. Large makes text easier to read.", options, which -> {
+                    prefs.setSize(values[which]);
+                    status("Overlay size saved. Reopen the overlay to apply.");
+                    showOverlayPreferences();
+                });
+    }
+
+    private void chooseOverlayHide(OverlayPreferences prefs) {
+        final int[] values = {5, 7, 10, 20, 0};
+        String[] options = new String[values.length];
+        for (int i = 0; i < values.length; i++) {
+            String label = values[i] == 0 ? "Never (manual close)"
+                    : values[i] + " seconds";
+            if (values[i] == 7) label += " (original)";
+            options[i] = ((prefs.autoHide() && values[i] == prefs.hideSeconds())
+                    || (!prefs.autoHide() && values[i] == 0) ? "✓  " : "     ") + label;
+        }
+        showCopperMenu("OVERLAY  ✦  AUTO-HIDE",
+                "Starts counting after Kellie's spoken reply finishes.", options, which -> {
+                    prefs.setHideSeconds(values[which]);
+                    status("Auto-hide saved: " + prefs.hideLabel());
+                    showOverlayPreferences();
+                });
+    }
+
+    private void chooseOverlaySkin(OverlayPreferences prefs) {
+        showCopperMenu("OVERLAY  ✦  STYLE",
+                "Both styles use Kellie's charcoal and copper branding.",
+                new String[] {
+                        "Copper Glass (rounded, animated)",
+                        "Compact Charcoal (smaller text)"
+                }, which -> {
+                    prefs.setSkin(which == 0 ? OverlayPreferences.SKIN_GLASS
+                            : OverlayPreferences.SKIN_CLASSIC);
+                    status("Appearance saved. Reopen the overlay to apply.");
+                    showOverlayPreferences();
+                });
     }
 
     private void launchOverlay() {
