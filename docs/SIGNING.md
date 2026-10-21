@@ -1,6 +1,6 @@
 # Android APK signing for this TV app
 
-**Status (2026-10-20):** the permanent GitHub Actions signing secrets have been configured. **[Run #31](https://github.com/chadakenn/Julia-Voice/actions/runs/39397223494) succeeded**, including private-keystore restoration, building a release APK, Android signature verification and publishing the `julia-voice-signed` artifact.
+**Status (2026-10-20):** the permanent GitHub Actions signing secrets have been configured. **[Run #31](https://github.com/chadakenn/Julia-Voice/actions/runs/39397223494) succeeded**, including private-keystore restoration, building a release APK, Android signature verification and publishing the `kellies-voice-signed` artifact.
 
 ## Why the original APK reports "conflicts with another app"
 
@@ -23,8 +23,8 @@ The files must be protected like passwords; anyone who possesses both the keysto
 1. In GitHub open **Settings > Secrets and variables > Actions** for this repo.
 2. Add repository secret named exactly `TV_SIGNING_KEYSTORE_B64`. Paste **the entire single line** from the corresponding private `.txt` file.
 3. Add repository secret named exactly `TV_SIGNING_PASSWORD`. Paste the entire password from its private `.txt` file.
-4. Open **Actions > Build Julia Voice Signed APK > Run workflow**, then wait for a green successful build.
-5. Download artifact `julia-voice-signed`. Extract `app-release.apk` and transfer to the TV.
+4. Open **Actions > Build Kellie's Voice Signed APK > Run workflow**, then wait for a green successful build.
+5. Download artifact `kellies-voice-signed`. Extract `app-release.apk` and transfer to the TV.
 6. **First stable release only**: because the old debug certificate is unrelated, uninstall the old alpha app from TV settings, then install the new `app-release.apk`. This clears the saved HA login; configure once more.
 7. On each subsequent update, install the newly built `app-release.apk` **over the existing signed app without uninstalling**. The Home Assistant settings remain intact.
 
