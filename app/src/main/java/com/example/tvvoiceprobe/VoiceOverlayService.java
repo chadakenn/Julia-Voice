@@ -224,17 +224,63 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         panel.addView(toolbar);
 
         int screenWidth = getResources().getDisplayMetrics().widthPixels;
-        int width = Math.max(dp(300), Math.min(dp(glass ? 720 : 550), screenWidth - dp(28)));
+        int baseWidthDp;
+        if (OverlayPreferences.SIZE_SMALL.equals(preferences.size())) {
+            baseWidthDp = glass ? 470 : 385;
+        } else if (OverlayPreferences.SIZE_LARGE.equals(preferences.size())) {
+            baseWidthDp = glass ? 940 : 760;
+        } else {
+            // Preserve existing TV dimensions for current installs.
+            baseWidthDp = glass ? 720 : 550;
+        }
+        int width = Math.max(dp(220), Math.min(dp(baseWidthDp), screenWidth - dp(40)));
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(
                 width, WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
                 WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL |
                         WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
                 PixelFormat.TRANSLUCENT);
-        params.gravity = glass ? (Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL)
-                : (Gravity.TOP | Gravity.END);
-        params.y = dp(glass ? 42 : 45);
-        if (!glass) params.x = dp(18);
+
+        // Window gravity is explicit, not inferred from skin, when selected.
+        // Keep the original placement until a user deliberately changes it.
+        String position = preferences.position();
+        params.x = 0;
+        params.y = 0;
+        switch (position) {
+            case OverlayPreferences.POSITION_TOP_LEFT:
+                params.gravity = Gravity.TOP | Gravity.START;
+                params.x = dp(24);
+                params.y = dp(24);
+                break;
+            case OverlayPreferences.POSITION_TOP_RIGHT:
+                params.gravity = Gravity.TOP | Gravity.END;
+                params.x = dp(24);
+                params.y = dp(24);
+                break;
+            case OverlayPreferences.POSITION_BOTTOM_LEFT:
+                params.gravity = Gravity.BOTTOM | Gravity.START;
+                params.x = dp(24);
+                params.y = dp(24);
+                break;
+            case OverlayPreferences.POSITION_BOTTOM_RIGHT:
+                params.gravity = Gravity.BOTTOM | Gravity.END;
+                params.x = dp(24);
+                params.y = dp(24);
+                break;
+            case OverlayPreferences.POSITION_CENTER:
+                params.gravity = Gravity.CENTER;
+                break;
+            case OverlayPreferences.POSITION_BOTTOM_CENTER:
+                params.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
+                params.y = dp(42);
+                break;
+            default:
+                params.gravity = glass ? (Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL)
+                        : (Gravity.TOP | Gravity.END);
+                params.y = dp(glass ? 42 : 45);
+                if (!glass) params.x = dp(18);
+                break;
+        }
         params.setTitle("Kellie's Voice");
         windowManager.addView(panel, params);
         panel.post(() -> focus(0));
@@ -448,7 +494,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
                 if (wave != null) wave.setMode(VoiceWaveView.IDLE);
                 if (preferences.autoHide()) {
                     main.removeCallbacks(dismissAfterReply);
-                    main.postDelayed(dismissAfterReply, 6500);
+                    main.postDelayed(dismissAfterReply, preferences.hideSeconds() * 1000L);
                 }
             });
             player.setOnErrorListener((p, what, extra) -> {
