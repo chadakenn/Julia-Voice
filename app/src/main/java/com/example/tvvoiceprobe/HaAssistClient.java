@@ -118,7 +118,13 @@ public final class HaAssistClient {
      */
     public synchronized void ensureConnected() {
         if (disposed || !reconnectEnabled || authenticated || connecting
-                || reconnectScheduled || savedToken == null) return;
+                || savedToken == null) return;
+        // Foreground user activity should reconnect immediately instead of
+        // waiting out a previous 30-second background backoff timer.
+        if (reconnectScheduled) {
+            reconnectHandler.removeCallbacks(reconnectTask);
+            reconnectScheduled = false;
+        }
         openConnection();
     }
 
