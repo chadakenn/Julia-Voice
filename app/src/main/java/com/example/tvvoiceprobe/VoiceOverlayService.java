@@ -191,56 +191,77 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         actions.clear();
         selected = 0;
         boolean glass = OverlayPreferences.SKIN_GLASS.equals(preferences.skin());
+        // Night Signal keeps its compact geometry, but uses warm brass accents
+        // to avoid the generic cyan/violet AI appearance.
+        boolean signal = OverlayPreferences.SKIN_SIGNAL.equals(preferences.skin());
 
         panel = new VoicePanel();
         panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setPadding(dp(22), dp(14), dp(22), dp(14));
+        panel.setPadding(dp(signal ? 20 : 22), dp(signal ? 12 : 14), dp(22), dp(14));
         panel.setFocusable(true);
         panel.setFocusableInTouchMode(true);
         GradientDrawable background = new GradientDrawable(
                 GradientDrawable.Orientation.TL_BR,
-                glass ? new int[] {0xe8201513, 0xf0291a17, 0xed150f0d}
+                signal ? new int[] {0xf21B1512, 0xf2261B15}
+                        : glass ? new int[] {0xe8201513, 0xf0291a17, 0xed150f0d}
                         : new int[] {0xf02A1A16, 0xf017100e});
-        background.setCornerRadius(dp(glass ? 22 : 14));
-        background.setStroke(dp(1), glass ? 0x88E7A981 : 0xffD9946F);
+        background.setCornerRadius(dp(signal ? 8 : glass ? 22 : 14));
+        background.setStroke(dp(1), signal ? 0xff805F48 : glass ? 0x88E7A981 : 0xffD9946F);
         panel.setBackground(background);
-        panel.setElevation(dp(14));
+        panel.setElevation(dp(signal ? 10 : 14));
 
-        TextView top = label(glass ? "✦  KELLIE'S VOICE" : "🎙  KELLIE'S VOICE",
-                glass ? 15 : 19, glass ? 0xffF5D6BD : 0xffE6AB82);
-        top.setLetterSpacing(0.12f);
+        if (signal) {
+            View rule = new View(this);
+            rule.setBackgroundColor(0xffE1B27B);
+            panel.addView(rule, new LinearLayout.LayoutParams(-1, dp(3)));
+        }
+
+        TextView top = label(signal ? "KELLIE'S VOICE" : glass ? "✦  KELLIE'S VOICE" : "🎙  KELLIE'S VOICE",
+                signal ? 13 : glass ? 15 : 19,
+                signal ? 0xffE7C39B : glass ? 0xffF5D6BD : 0xffE6AB82);
+        top.setLetterSpacing(signal ? 0.18f : 0.12f);
         panel.addView(top);
 
-        statusView = label("CONNECTING...", glass ? 14 : 15, 0xffF7E8DA);
+        statusView = label("CONNECTING...", signal ? 13 : glass ? 14 : 15,
+                signal ? 0xffF0DDC7 : 0xffF7E8DA);
         panel.addView(statusView);
 
         wave = new VoiceWaveView(this);
+        wave.setLook(signal ? VoiceWaveView.LOOK_SIGNAL : VoiceWaveView.LOOK_COPPER);
         wave.setMode(VoiceWaveView.CONNECTING);
-        panel.addView(wave, new LinearLayout.LayoutParams(-1, dp(glass ? 88 : 68)));
+        panel.addView(wave, new LinearLayout.LayoutParams(-1, dp(glass ? 88 : signal ? 64 : 68)));
 
-        if (glass) panel.addView(label("YOU SAID", 11, 0xffD1AC92));
+        if (glass || signal) {
+            panel.addView(label(signal ? "You said" : "YOU SAID", 11,
+                    signal ? 0xffAF9881 : 0xffD1AC92));
+        }
         transcriptView = label("Say something when listening starts...",
-                glass ? 17 : 16, glass ? 0xffF7E9E0 : 0xffEBCDB9);
+                signal ? 16 : glass ? 17 : 16,
+                signal ? 0xffF0E2D0 : glass ? 0xffF7E9E0 : 0xffEBCDB9);
         transcriptView.setMaxLines(2);
         panel.addView(transcriptView);
 
-        panel.addView(label("HOME ASSISTANT SAYS", 11, glass ? 0xffD1AC92 : 0xffC89A7B));
+        panel.addView(label(signal ? "Home Assistant" : "HOME ASSISTANT SAYS", 11,
+                signal ? 0xffAF9881 : glass ? 0xffD1AC92 : 0xffC89A7B));
         answerView = label("Ready for your question",
-                glass ? 23 : 19, 0xffffffff);
+                signal ? 26 : glass ? 23 : 19, 0xffffffff);
         answerView.setMaxLines(4);
         panel.addView(answerView);
 
         LinearLayout toolbar = new LinearLayout(this);
         toolbar.setOrientation(LinearLayout.HORIZONTAL);
-        addAction(toolbar, "TALK", this::startListening);
-        addAction(toolbar, "STOP", this::stopListening);
-        addAction(toolbar, "CLOSE", this::stopSelf);
-        addAction(toolbar, "SETTINGS", this::openMainSettings);
+        addAction(toolbar, "TALK", this::startListening, signal);
+        addAction(toolbar, "STOP", this::stopListening, signal);
+        addAction(toolbar, "CLOSE", this::stopSelf, signal);
+        addAction(toolbar, "SETTINGS", this::openMainSettings, signal);
         panel.addView(toolbar);
 
         int screenWidth = getResources().getDisplayMetrics().widthPixels;
         int baseWidthDp;
-        if (OverlayPreferences.SIZE_SMALL.equals(preferences.size())) {
+        if (signal) {
+            baseWidthDp = OverlayPreferences.SIZE_SMALL.equals(preferences.size()) ? 440
+                    : OverlayPreferences.SIZE_LARGE.equals(preferences.size()) ? 880 : 640;
+        } else if (OverlayPreferences.SIZE_SMALL.equals(preferences.size())) {
             baseWidthDp = glass ? 470 : 385;
         } else if (OverlayPreferences.SIZE_LARGE.equals(preferences.size())) {
             baseWidthDp = glass ? 940 : 760;
@@ -290,10 +311,16 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
                 params.y = dp(42);
                 break;
             default:
-                params.gravity = glass ? (Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL)
-                        : (Gravity.TOP | Gravity.END);
-                params.y = dp(glass ? 42 : 45);
-                if (!glass) params.x = dp(18);
+                if (signal) {
+                    params.gravity = Gravity.BOTTOM | Gravity.START;
+                    params.x = dp(28);
+                    params.y = dp(36);
+                } else {
+                    params.gravity = glass ? (Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL)
+                            : (Gravity.TOP | Gravity.END);
+                    params.y = dp(glass ? 42 : 45);
+                    if (!glass) params.x = dp(18);
+                }
                 break;
         }
         params.setTitle("Kellie's Voice");
@@ -301,26 +328,41 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         panel.post(() -> focus(0));
     }
 
-    private void addAction(LinearLayout parent, String name, Runnable runnable) {
+    private void addAction(LinearLayout parent, String name, Runnable runnable, boolean signal) {
         final int index = actions.size();
         Button button = new Button(this);
         button.setText(name);
-        button.setTextSize(13);
+        button.setTextSize(signal ? 14 : 13);
         button.setAllCaps(false);
-        button.setTextColor(0xffffffff);
+        button.setTextColor(signal ? 0xffF8E8D6 : 0xffffffff);
         button.setFocusable(true);
         button.setFocusableInTouchMode(true);
         button.setMinHeight(0);
         button.setMinimumHeight(0);
-        button.setBackgroundTintList(ColorStateList.valueOf(0xff574039));
+        if (signal) {
+            button.setBackgroundTintList(null);
+            button.setPadding(dp(6), 0, dp(6), 0);
+        } else {
+            button.setBackgroundTintList(ColorStateList.valueOf(0xff574039));
+        }
         button.setOnClickListener(v -> runnable.run());
         button.setOnFocusChangeListener((v, focused) -> {
             if (focused) selected = index;
-            button.setBackgroundTintList(ColorStateList.valueOf(
-                    focused ? 0xffBB7958 : 0xff574039));
+            if (signal) {
+                GradientDrawable chip = new GradientDrawable();
+                chip.setColor(focused ? 0xff433027 : 0x00000000);
+                chip.setCornerRadius(dp(8));
+                chip.setStroke(Math.max(1, dp(1)), focused ? 0xffE7C39B : 0xff7B5A45);
+                button.setBackground(chip);
+                button.setBackgroundTintList(null);
+            } else {
+                button.setBackgroundTintList(ColorStateList.valueOf(
+                        focused ? 0xffBB7958 : 0xff574039));
+            }
         });
+        if (signal) button.getOnFocusChangeListener().onFocusChange(button, false);
         actions.add(button);
-        parent.addView(button, new LinearLayout.LayoutParams(0, dp(42), 1f));
+        parent.addView(button, new LinearLayout.LayoutParams(0, dp(signal ? 40 : 42), 1f));
     }
 
     private void focus(int index) {
