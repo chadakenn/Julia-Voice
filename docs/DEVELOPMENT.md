@@ -33,7 +33,7 @@ Private signing key/password must stay off GitHub source control. Repository Act
 - `TV_SIGNING_KEYSTORE_B64`: private PKCS12 keystore encoded in base64, alias `tvvoice`
 - `TV_SIGNING_PASSWORD`: keystore and key password
 
-See [signing and recovery](SIGNING.md). First signed APK was verified in [run #31](https://github.com/chadakenn/Julia-Voice/actions/runs/39397223494). Always prefer the **latest successful** signed run for new installers.
+See [signing and recovery](SIGNING.md). First signed APK was verified in [run #31](https://github.com/chadakenn/Kellies-Voice/actions/runs/39397223494). Always prefer the **latest successful** signed run for new installers.
 
 **Release checklist:**
 
@@ -56,7 +56,7 @@ See [signing and recovery](SIGNING.md). First signed APK was verified in [run #3
 
 ## Contributions and repository naming
 
-Please keep bug reports reproducible: include Android/Google TV version, app `versionName`, GitHub Actions run, remote key steps and a **redacted** status screenshot. Never post secrets. The repository is named [`chadakenn/Julia-Voice`](https://github.com/chadakenn/Julia-Voice). If you cloned the original repository before the rename, update your local remote with `git remote set-url origin https://github.com/chadakenn/Julia-Voice.git`. GitHub may redirect the previous URL, but use the canonical address in new documentation and scripts.
+Please keep bug reports reproducible: include Android/Google TV version, app `versionName`, GitHub Actions run, remote key steps and a **redacted** status screenshot. Never post secrets. The GitHub repository is now named [`chadakenn/Kellies-Voice`](https://github.com/chadakenn/Kellies-Voice). If you cloned it before the rename, update your local remote with `git remote set-url origin https://github.com/chadakenn/Kellies-Voice.git`. Use the new canonical address in scripts and documentation.
 
 ## Open-source license and contribution notes
 
