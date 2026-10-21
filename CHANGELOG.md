@@ -2,6 +2,14 @@
 
 This is an experimental Android TV / Google TV app. Each entry distinguishes **shipped code** from **tested on the onn 4K Pro**.
 
+## v0.11-release-url-fix (2026-10-21) — Completed repository rename
+
+- Repository is now `chadakenn/Kellies-Voice`. The v0.10 updater anticipated a lowercase `kellies-voice` path, but GitHub Release asset URLs expose the canonical capitalized spelling. Fixed exact URL checks so the updater can download verified releases after renaming.
+- Keep the previous `chadakenn/Julia-Voice` release URL only as a constrained migration fallback. Strict HTTPS host, asset filename, tag, version, SHA-256, size and APK signature verification remain in place.
+- Bumped `versionCode` to **11** and `versionName` to `0.11-release-url-fix`; the Android package identifier and signing key are unchanged.
+- TVs with v0.10 or earlier may need a **one-time manual installation** of the signed v0.11 APK over the installed app because older URL checks may reject the renamed path. Do **not** uninstall and erase saved settings.
+- The v0.11 build is a **development artifact**, not a public Release. Test on the onn 4K Pro before a separately approved publication.
+
 ## v0.10-kellies-voice-brand (2026-10-21) — Warm branding
 
 - Rebranded the visible Android TV app, overlay labels, status notifications, and signed APK workflow as **Kellie's Voice**.
