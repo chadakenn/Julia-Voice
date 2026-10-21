@@ -19,6 +19,8 @@ HACS installs only the Home Assistant integration, **not the Android APK**. If y
 
 Kellie's Voice is a local-first, open-source voice companion for Home Assistant, starting with Google TV and Android TV. Ask a question or control a room using the floating overlay, without replacing the TV launcher.
 
+**Latest patch:** v0.15.1 adds **manual TV pairing** for setups where network discovery is blocked and ships Kellie's copper house/microphone integration icon. On the TV select **Settings → Home Assistant layout → Show this TV's pairing ID**, then choose **Add Integration → Kellie's Voice** in HA and type the displayed ID. Keep Home Assistant layout ON. Automatic discovery continues to work when available.
+
 **Current release:** v0.15.0 combines the Android TV assistant, Night Signal, more reliable ⭐ overlay startup, remote scrolling, YouTube audio focus, optional Home Assistant layout controls, and opt-in announcement/camera snapshot popups. Voice, scrolling, ducking, and overlay launching have been tested on the onn 4K Pro; announcement and Frigate popup delivery still needs end-to-end testing. The signed Android APK and current HA integration are part of the same source release.
 
 ## Download and upgrade safely

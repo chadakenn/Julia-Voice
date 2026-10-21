@@ -26,7 +26,7 @@ jobs:
         uses: hacs/action@main
         with:
           category: integration
-          # This mixed Android TV/HA repository has no custom HA brand asset
-          # or repo topics yet. Those catalog-publishing checks are not needed
-          # to test integration structure for private HACS custom-repo usage.
-          ignore: "topics brands"
+          # This mixed Android TV/HA repository is distributed as a HACS
+          # custom repository rather than through the default HACS catalog.
+          # Bundled local brand icons are checked by HACS validation.
+          ignore: "topics"
