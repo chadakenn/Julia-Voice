@@ -22,11 +22,11 @@ public final class OverlayShortcutActivity extends Activity {
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
         TextView message = new TextView(this);
-        message.setText("Opening Julia Voice...");
+        message.setText("Opening Kellie's Voice...");
         message.setTextColor(0xffffffff);
         message.setTextSize(22);
         message.setPadding(45, 60, 45, 60);
-        message.setBackgroundColor(0xff101c2b);
+        message.setBackgroundColor(0xff221713);
         setContentView(message);
     }
 
@@ -45,7 +45,7 @@ public final class OverlayShortcutActivity extends Activity {
                     checkSelfPermission(Manifest.permission.RECORD_AUDIO)
                             != PackageManager.PERMISSION_GRANTED) {
                 Toast.makeText(this,
-                        "First open Julia Voice, then SETTINGS > Floating voice overlay",
+                        "First open Kellie's Voice, then SETTINGS > Floating voice overlay",
                         Toast.LENGTH_LONG).show();
                 startActivity(new Intent(this, VoiceActivity.class));
                 finish();
@@ -57,7 +57,7 @@ public final class OverlayShortcutActivity extends Activity {
                 // in the foreground before the former TV app is revealed.
                 handler.postDelayed(this::finish, 1000);
             } catch (Exception error) {
-                Toast.makeText(this, "Overlay not supported. Open Julia Voice.",
+                Toast.makeText(this, "Overlay not supported. Open Kellie's Voice.",
                         Toast.LENGTH_LONG).show();
                 startActivity(new Intent(this, VoiceActivity.class));
                 finish();
