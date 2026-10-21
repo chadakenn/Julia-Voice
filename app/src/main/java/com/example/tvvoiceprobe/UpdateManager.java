@@ -39,8 +39,6 @@ public final class UpdateManager {
     // GitHub returns this exact capitalization in browser_download_url.
     private static final String LATEST =
             "https://api.github.com/repos/chadakenn/Kellies-Voice/releases/latest";
-    private static final String RELEASE_PREFIX =
-            "https://github.com/chadakenn/Kellies-Voice/releases/download/";
     private static final long MAX_APK_BYTES = 150L * 1024L * 1024L;
     private final Activity activity;
     private final Listener listener;
@@ -91,7 +89,7 @@ public final class UpdateManager {
                     throw new IllegalStateException("No stable release is available.");
                 }
                 String tag = release.getString("tag_name");
-                if (!tag.matches("v[0-9]+\\.[0-9]+(\\.[0-9]+)?")) {
+                if (!ReleaseAssets.stableTag(tag)) {
                     throw new IllegalStateException("Unexpected release tag.");
                 }
                 JSONArray assets = release.getJSONArray("assets");
@@ -309,11 +307,7 @@ public final class UpdateManager {
     private void post(Runnable runnable) { ui.post(runnable); }
 
     private void validateAssetUrl(String url, String tag, String filename) {
-        // Require exact owner-controlled repo paths, release tag and filename.
-        // This matches GitHub's canonical case after the completed rename.
-        if (!url.equals(RELEASE_PREFIX + tag + "/" + filename)) {
-            throw new IllegalArgumentException("Unexpected release asset URL.");
-        }
+        ReleaseAssets.validateAssetUrl(url, tag, filename);
     }
 
     private String readText(String url, int maxBytes) throws Exception {

@@ -792,20 +792,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
     private void playTts(String address) {
         if (settings == null) return;
         try {
-            HttpUrl base = HttpUrl.parse(settings.url);
-            HttpUrl playback = base.resolve(address);
-            if (playback == null) throw new IllegalArgumentException("Invalid TTS audio URL");
-            // Only load from our configured HA endpoint, never send HA credentials elsewhere.
-            if (!playback.host().equals(base.host()) || playback.port() != base.port()
-                    || !playback.scheme().equals(base.scheme())) {
-                // HA sometimes emits its internal URL. Rewrite only known HA TTS proxy paths.
-                if (!playback.encodedPath().startsWith("/api/tts_proxy/")) {
-                    throw new SecurityException("Refusing unknown audio server");
-                }
-                playback = base.newBuilder()
-                        .encodedPath(playback.encodedPath())
-                        .encodedQuery(playback.encodedQuery()).build();
-            }
+            HttpUrl playback = TtsUrls.allowedPlaybackUrl(settings.url, address);
             if (player != null) { player.release(); player = null; }
             player = new MediaPlayer();
             player.setAudioAttributes(new AudioAttributes.Builder()
