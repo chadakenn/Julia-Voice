@@ -27,6 +27,7 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import java.util.ArrayList;
@@ -53,6 +54,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
     private TextView statusView;
     private TextView answerView;
     private TextView transcriptView;
+    private ScrollView answerScroll;
     private VoiceWaveView wave;
     private HaAssistClient assist;
     private CredentialStore.Connection connection;
@@ -235,22 +237,36 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         wave.setMode(VoiceWaveView.CONNECTING);
         panel.addView(wave, new LinearLayout.LayoutParams(-1, dp(glass ? 88 : signal ? 64 : 68)));
 
+        // One scrolling region keeps long Assist answers readable while the
+        // TALK/STOP/CLOSE/SETTINGS buttons remain visible and remote-friendly.
+        LinearLayout words = new LinearLayout(this);
+        words.setOrientation(LinearLayout.VERTICAL);
         if (glass || signal) {
-            panel.addView(label(signal ? "You said" : "YOU SAID", 11,
+            words.addView(label(signal ? "You said" : "YOU SAID", 11,
                     signal ? 0xffAF9881 : 0xffD1AC92));
         }
         transcriptView = label("Say something when listening starts...",
                 signal ? 16 : glass ? 17 : 16,
                 signal ? 0xffF0E2D0 : glass ? 0xffF7E9E0 : 0xffEBCDB9);
-        transcriptView.setMaxLines(2);
-        panel.addView(transcriptView);
+        words.addView(transcriptView);
 
-        panel.addView(label(signal ? "Home Assistant" : "HOME ASSISTANT SAYS", 11,
+        words.addView(label(signal ? "Home Assistant" : "HOME ASSISTANT SAYS", 11,
                 signal ? 0xffAF9881 : glass ? 0xffD1AC92 : 0xffC89A7B));
         answerView = label("Ready for your question",
                 signal ? 26 : glass ? 23 : 19, 0xffffffff);
-        answerView.setMaxLines(4);
-        panel.addView(answerView);
+        words.addView(answerView);
+
+        answerScroll = new ScrollView(this);
+        answerScroll.setFillViewport(true);
+        answerScroll.setFocusable(true);
+        answerScroll.setFocusableInTouchMode(true);
+        answerScroll.setVerticalScrollBarEnabled(true);
+        answerScroll.addView(words);
+        float textFraction = OverlayPreferences.SIZE_SMALL.equals(preferences.size()) ? 0.28f
+                : OverlayPreferences.SIZE_LARGE.equals(preferences.size()) ? 0.44f : 0.34f;
+        int textHeight = Math.max(dp(110),
+                (int) (getResources().getDisplayMetrics().heightPixels * textFraction));
+        panel.addView(answerScroll, new LinearLayout.LayoutParams(-1, textHeight));
 
         LinearLayout toolbar = new LinearLayout(this);
         toolbar.setOrientation(LinearLayout.HORIZONTAL);
@@ -440,12 +456,41 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
                     event.getRepeatCount() == 0;
             switch (code) {
                 case KeyEvent.KEYCODE_DPAD_LEFT:
+                    if (down) {
+                        if (answerScroll != null && answerScroll.hasFocus()) focus(0);
+                        else focus(selected - 1);
+                    }
+                    return true;
                 case KeyEvent.KEYCODE_DPAD_UP:
-                    if (down) focus(selected - 1);
+                    if (down) {
+                        if (answerScroll != null && answerScroll.hasFocus()) {
+                            answerScroll.smoothScrollBy(0, -dp(60));
+                        } else if (selected == 0 && answerScroll != null) {
+                            answerScroll.requestFocus();
+                        } else {
+                            focus(selected - 1);
+                        }
+                    }
                     return true;
                 case KeyEvent.KEYCODE_DPAD_RIGHT:
+                    if (down) {
+                        if (answerScroll != null && answerScroll.hasFocus()) focus(0);
+                        else focus(selected + 1);
+                    }
+                    return true;
                 case KeyEvent.KEYCODE_DPAD_DOWN:
-                    if (down) focus(selected + 1);
+                    if (down) {
+                        if (answerScroll != null && answerScroll.hasFocus()) {
+                            View child = answerScroll.getChildAt(0);
+                            int height = child == null ? 0 : child.getHeight();
+                            boolean more = answerScroll.getScrollY()
+                                    + answerScroll.getHeight() < height - dp(8);
+                            if (more) answerScroll.smoothScrollBy(0, dp(60));
+                            else focus(0);
+                        } else {
+                            focus(selected + 1);
+                        }
+                    }
                     return true;
                 case KeyEvent.KEYCODE_DPAD_CENTER:
                 case KeyEvent.KEYCODE_ENTER:
@@ -567,7 +612,10 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
 
     @Override public void answer(String value) {
         main.post(() -> {
-            if (!closing && answerView != null) answerView.setText(value);
+            if (!closing && answerView != null) {
+                answerView.setText(value);
+                if (answerScroll != null) answerScroll.post(() -> answerScroll.scrollTo(0, 0));
+            }
         });
     }
 
@@ -643,6 +691,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
             catch (Exception ignored) { }
         }
         panel = null;
+        answerScroll = null;
         wave = null;
         answerView = null;
         transcriptView = null;
