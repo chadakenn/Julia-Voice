@@ -8,13 +8,13 @@
 
 Kellie's Voice is a local-first, open-source voice companion for Home Assistant, starting with Google TV and Android TV. Ask a question or control a room using the floating overlay, without replacing the TV launcher.
 
-**Current status:** v0.10 copper-and-charcoal branding committed to the app source; its TV appearance still requires on-device verification. The earlier Kellie's Voice build successfully handled Home Assistant questions and the onn 4K Pro ⭐ floating overlay. Public v0.6 remains the last explicitly published GitHub Release. Normal pushes generate signed development APKs only.
+**Current status:** v0.11 development APK corrects the case-sensitive release URL after the GitHub repository rename. The v0.10 copper-and-charcoal appearance still requires on-device verification. The earlier Kellie's Voice build successfully handled Home Assistant questions and the onn 4K Pro ⭐ floating overlay. Public v0.6 remains the last explicitly published GitHub Release. Normal pushes generate signed development APKs only.
 
 ## Download and upgrade safely
 
 The signed Android package ID stays `com.example.tvvoiceprobe` and the signing key stays the same. Install the latest signed `kellies-voice-signed` GitHub Actions artifact **over the installed Kellie's Voice app**. **Do not uninstall** or you may lose the Home Assistant token and device settings.
 
-**Repository URL:** Source currently lives at [chadakenn/Julia-Voice](https://github.com/chadakenn/Julia-Voice). The proposed `chadakenn/kellies-voice` GitHub repository rename is a separate owner action, to be completed after the upgraded TV devices have the new updater. See [the safe migration guide](docs/UPDATES.md).
+**Repository URL:** The project now lives at [**chadakenn/Kellies-Voice**](https://github.com/chadakenn/Kellies-Voice). Because the repository was renamed before all TVs were upgraded, installed v0.10 and earlier apps may need a **one-time manual update to signed v0.11**. GitHub's actual release URLs use capitalized `Kellies-Voice`, and v0.11's updater accepts that exact spelling. See [the update guide](docs/UPDATES.md).
 
 ## Appearance
 
@@ -92,7 +92,7 @@ The **Google voice button currently opens Google's assistant**, not this app. A 
 
 ## Download and install
 
-**Get the current public signed APK:** [**Kellie's Voice v0.6**](https://github.com/chadakenn/Julia-Voice/releases/tag/v0.6) · [**Direct APK download**](https://github.com/chadakenn/Julia-Voice/releases/download/v0.6/app-release.apk).
+**Get the historical public signed APK (v0.6, NOT the latest development build):** [**Kellie's Voice v0.6**](https://github.com/chadakenn/Kellies-Voice/releases/tag/v0.6) · [**Direct APK download**](https://github.com/chadakenn/Kellies-Voice/releases/download/v0.6/app-release.apk).
 
 1. Download `app-release.apk` and install it using **Send Files to TV**, USB, or ADB (one-time migration to the update-enabled build). Allow Android's installation prompt.
 2. If you're **already using an APK signed by our permanent release key (v0.3 or newer)**, **install over it; do not uninstall**. The HA URL and encrypted token should remain saved.
@@ -127,7 +127,7 @@ More detail: [Field test results and checklist](docs/TESTING.md), [security note
 
 ## Roadmap
 
-1. **Now (v0.7 development / v0.6 published):** test v0.10's warm branding and signed update bridge. The public v0.6 Release is available; on-device update installation still needs testing and requires a newer release. [Updater guide](docs/UPDATES.md). Continue v0.5 Glass/⭐ testing as desired.
+1. **Now (v0.11 development / v0.6 published):** test v0.11's rename-safe updater and the warm branding on the TV. The public v0.6 Release is available; on-device update installation still needs testing and requires a newer release. [Updater guide](docs/UPDATES.md). Continue v0.5 Glass/⭐ testing as desired.
 2. **Next:** refine ⭐ shortcut selection where firmware permits, overlay placement, audio focus, ambient-TV-noise tolerance, skins and recovery based on actual results.
 3. **Afterward:** dedicated HA `media_player` with automation-driven chimes/TTS (e.g. “The washer is done”); secure companion channel.
 4. **Then:** Frigate/go2rtc camera views, filtered doorbell-person PiP and optional spoken alerts; on-demand dashboards.
