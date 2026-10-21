@@ -9,7 +9,7 @@ This is an experimental **native Android TV** project targeting the **onn 4K Pro
 - Gradle 8.9, Android Gradle Plugin 8.7.3
 - Working dependency downloads for `com.squareup.okhttp3:okhttp:4.12.0`
 
-Use GitHub Actions **Build Julia Voice Signed APK** for APKs to install on a TV. The workflow is triggered by changes to app/build config files or manually via workflow_dispatch; **README and docs-only changes do not launch an Android build**.
+Use GitHub Actions **Build Kellie's Voice Signed APK** for APKs to install on a TV. The workflow is triggered by changes to app/build config files or manually via workflow_dispatch; **README and docs-only changes do not launch an Android build**.
 
 Do **not** hand out `app-debug.apk` files from temporary GitHub runners. The original alpha suffered **conflicts with an existing package** because Android debug signing certificates differed between runs. All user-installable updates must be consistently signed with the same private key.
 
@@ -40,7 +40,7 @@ See [signing and recovery](SIGNING.md). First signed APK was verified in [run #3
 1. Increment `versionCode` for a new installable version. Update `versionName`.
 2. Commit changes to `main`, or use Actions → Run workflow.
 3. Confirm **Restore private release-signing key**, **Build signed release APK**, **Verify APK signature**, and **Upload installable signed APK** all passed.
-4. Download artifact `julia-voice-signed`; unpack `app-release.apk`. Never embed signing key or HA token in the APK.
+4. Download artifact `kellies-voice-signed`; unpack `app-release.apk`. Never embed signing key or HA token in the APK.
 5. Test fresh install on the onn box, verify authentication, built-in microphone STT, TTS, D-pad operation and settings access.
 6. **Test in-place upgrade** from previous **signed** APK; the HA token should survive. If Android reports a signing conflict, stop and compare certificates rather than uninstalling.
 7. Update [changelog](../CHANGELOG.md), [test matrix](TESTING.md) and documentation based on what actually passed on hardware.
