@@ -585,14 +585,14 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         String[] labels = {
                 "Copper Glass (rounded, animated)",
                 "Compact Charcoal (smaller text)",
-                "Night Signal (cool ink, bar meter)"
+                "Night Signal (warm ink, brass bar meter)"
         };
         for (int i = 0; i < labels.length; i++) {
             if (values[i].equals(prefs.skin())) labels[i] = "✓  " + labels[i];
             else labels[i] = "     " + labels[i];
         }
         showCopperMenu("OVERLAY  ✦  STYLE",
-                "Copper Glass and Compact Charcoal stay. Night Signal is a separate look. Reopen the overlay to see it.",
+                "Choose Copper Glass, Compact Charcoal, or the warm Night Signal look. Reopen the overlay to apply.",
                 labels, which -> {
                     prefs.setSkin(values[which]);
                     status("Appearance saved: " + OverlayPreferences.skinLabel(prefs.skin()));
