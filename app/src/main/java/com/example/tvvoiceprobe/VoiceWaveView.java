@@ -20,10 +20,14 @@ public final class VoiceWaveView extends View {
     public static final int THINKING = 3;
     public static final int SPEAKING = 4;
 
+    public static final int LOOK_COPPER = 0;
+    public static final int LOOK_SIGNAL = 1;
+
     private final Paint brush = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint baseline = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Handler handler = new Handler(Looper.getMainLooper());
     private int mode = IDLE;
+    private int look = LOOK_COPPER;
     private boolean running;
     private long frame = 0L;
     private final Runnable redraw = new Runnable() {
@@ -51,6 +55,12 @@ public final class VoiceWaveView extends View {
         invalidate();
     }
 
+    public void setLook(int next) {
+        look = next == LOOK_SIGNAL ? LOOK_SIGNAL : LOOK_COPPER;
+        baseline.setColor(look == LOOK_SIGNAL ? 0x223E5560 : 0x44DDA984);
+        invalidate();
+    }
+
     @Override protected void onAttachedToWindow() {
         super.onAttachedToWindow();
         running = true;
@@ -74,6 +84,10 @@ public final class VoiceWaveView extends View {
         if (width < 2 || height < 2) return;
 
         float middle = height * 0.52f;
+        if (look == LOOK_SIGNAL) {
+            drawSignal(canvas, width, height, middle);
+            return;
+        }
         canvas.drawLine(0, middle, width, middle, baseline);
         float phase = frame * 0.105f;
         float intensity = mode == LISTENING ? 1.0f
@@ -104,6 +118,31 @@ public final class VoiceWaveView extends View {
             brush.setColor(colors[layer]);
             brush.setAlpha(layer == 0 ? 225 : 148);
             canvas.drawPath(path, brush);
+        }
+    }
+
+    private void drawSignal(Canvas canvas, float width, float height, float middle) {
+        int bars = 17;
+        float gap = dp(5);
+        float barWidth = Math.max(dp(3), (width - gap * (bars + 1)) / bars);
+        float phase = frame * 0.22f;
+        float intensity = mode == LISTENING ? 1.0f
+                : mode == SPEAKING ? 0.85f
+                : mode == THINKING ? 0.55f
+                : mode == CONNECTING ? 0.28f : 0.16f;
+        brush.setStyle(Paint.Style.FILL);
+        for (int i = 0; i < bars; i++) {
+            float across = (i + 0.5f) / bars;
+            float envelope = (float) Math.sin(Math.PI * across);
+            float wobble = mode == IDLE
+                    ? 0.22f
+                    : 0.35f + 0.65f * (float) Math.abs(Math.sin(phase + i * 0.62));
+            float barHeight = Math.max(dp(3), height * 0.78f * intensity * envelope * wobble);
+            float left = gap + i * (barWidth + gap);
+            float top = middle - barHeight / 2f;
+            brush.setColor(i % 6 == 3 ? 0xffE4C2A4 : 0xff8FCBD8);
+            canvas.drawRoundRect(left, top, left + barWidth, top + barHeight,
+                    dp(2), dp(2), brush);
         }
     }
 }

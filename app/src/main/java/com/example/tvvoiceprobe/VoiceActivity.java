@@ -477,8 +477,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                 "Position: " + OverlayPreferences.positionLabel(prefs.position()),
                 "Size: " + OverlayPreferences.sizeLabel(prefs.size()),
                 "Auto-hide after answer: " + prefs.hideLabel(),
-                "Appearance: " + (OverlayPreferences.SKIN_GLASS.equals(prefs.skin())
-                        ? "Copper Glass" : "Compact Charcoal"),
+                "Appearance: " + OverlayPreferences.skinLabel(prefs.skin()),
                 "Auto-listen on launch: " + (prefs.autoListen() ? "ON" : "OFF"),
                 "⭐ picker fallback: " + (prefs.mainLauncherOpensOverlay() ? "ON" : "OFF")
         };
@@ -578,15 +577,25 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
     }
 
     private void chooseOverlaySkin(OverlayPreferences prefs) {
+        final String[] values = {
+                OverlayPreferences.SKIN_GLASS,
+                OverlayPreferences.SKIN_CLASSIC,
+                OverlayPreferences.SKIN_SIGNAL
+        };
+        String[] labels = {
+                "Copper Glass (rounded, animated)",
+                "Compact Charcoal (smaller text)",
+                "Night Signal (cool ink, bar meter)"
+        };
+        for (int i = 0; i < labels.length; i++) {
+            if (values[i].equals(prefs.skin())) labels[i] = "✓  " + labels[i];
+            else labels[i] = "     " + labels[i];
+        }
         showCopperMenu("OVERLAY  ✦  STYLE",
-                "Both styles use Kellie's charcoal and copper branding.",
-                new String[] {
-                        "Copper Glass (rounded, animated)",
-                        "Compact Charcoal (smaller text)"
-                }, which -> {
-                    prefs.setSkin(which == 0 ? OverlayPreferences.SKIN_GLASS
-                            : OverlayPreferences.SKIN_CLASSIC);
-                    status("Appearance saved. Reopen the overlay to apply.");
+                "Copper Glass and Compact Charcoal stay. Night Signal is a separate look. Reopen the overlay to see it.",
+                labels, which -> {
+                    prefs.setSkin(values[which]);
+                    status("Appearance saved: " + OverlayPreferences.skinLabel(prefs.skin()));
                     showOverlayPreferences();
                 });
     }

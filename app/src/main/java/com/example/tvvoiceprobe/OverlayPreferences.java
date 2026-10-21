@@ -12,6 +12,7 @@ import android.content.SharedPreferences;
 public final class OverlayPreferences {
     public static final String SKIN_GLASS = "glass";
     public static final String SKIN_CLASSIC = "classic";
+    public static final String SKIN_SIGNAL = "signal";
 
     public static final String POSITION_DEFAULT = "default";
     public static final String POSITION_TOP_LEFT = "top_left";
@@ -41,12 +42,21 @@ public final class OverlayPreferences {
 
     public String skin() {
         String value = preferences.getString(KEY_SKIN, SKIN_GLASS);
-        return SKIN_CLASSIC.equals(value) ? SKIN_CLASSIC : SKIN_GLASS;
+        if (SKIN_CLASSIC.equals(value) || SKIN_SIGNAL.equals(value)) return value;
+        return SKIN_GLASS;
     }
 
     public void setSkin(String value) {
-        preferences.edit().putString(KEY_SKIN,
-                SKIN_CLASSIC.equals(value) ? SKIN_CLASSIC : SKIN_GLASS).apply();
+        String stored = SKIN_GLASS;
+        if (SKIN_CLASSIC.equals(value)) stored = SKIN_CLASSIC;
+        else if (SKIN_SIGNAL.equals(value)) stored = SKIN_SIGNAL;
+        preferences.edit().putString(KEY_SKIN, stored).apply();
+    }
+
+    public static String skinLabel(String value) {
+        if (SKIN_CLASSIC.equals(value)) return "Compact Charcoal";
+        if (SKIN_SIGNAL.equals(value)) return "Night Signal";
+        return "Copper Glass";
     }
 
     public String position() {
