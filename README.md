@@ -8,7 +8,7 @@
 
 Kellie's Voice is a local-first, open-source voice companion for Home Assistant, starting with Google TV and Android TV. Ask a question or control a room using the floating overlay, without replacing the TV launcher.
 
-**Current status:** v0.12 development APK adds configurable overlay placement, sizing, auto-hide timing and copper-styled settings menus. Signed APK compilation and signature verification passed in [build #108](https://github.com/chadakenn/Kellies-Voice/actions/runs/39598350715); the new settings still need on-device testing. Public v0.6 remains the last explicitly published GitHub Release. Normal pushes generate signed development APKs only.
+**Current status:** v0.13 development APK adds automatic Home Assistant reconnection and immediate recovery when reopening the TV app, alongside v0.12's configurable overlay and copper-styled settings. These improvements still need physical onn 4K Pro verification. Public v0.6 remains the last explicitly published GitHub Release; normal pushes produce signed development artifacts only.
 
 ## Download and upgrade safely
 
@@ -22,6 +22,17 @@ The signed Android package ID stays `com.example.tvvoiceprobe` and the signing k
 - The README uses the **approved, original photo banner** from the design you selected, rather than a vector recreation. The Android launcher icon, TV banner, animated waveform and startup splash remain lightweight native assets.
 - The welcome splash includes a **single small portrait of Kellie** ([brand portrait](docs/branding/kellie-portrait.webp)), while the floating TV overlay remains icon-only and unobtrusive. The photo-rich marketing comps are also available separately from the app.
 - Built-in Home Assistant/Ollama conversation routing and saved voice preferences remain intact.
+
+## Home Assistant connection resilience (v0.13)
+
+- Opens an authenticated WebSocket automatically when the full-screen app starts with saved credentials; no manual Reconnect should be needed.
+- Sends WebSocket keepalive pings every 25 seconds and reconnects after unexpected disconnections (2, 4, 8, 16, then up to 30 seconds between attempts).
+- If you reopen the app after standby, an existing retry delay is canceled so it tries reconnecting immediately.
+- An invalid/revoked access token still requires manual attention and stops retrying. Repeated retries cannot fix invalid credentials.
+- The ⭐ overlay also recovers, but **will only start listening automatically if reconnection happens within 30 seconds of a recent explicit ⭐/TALK request**. Unexpected disconnect stops microphone streaming.
+- **Not a 24/7 connection while the app is closed:** Android may suspend/kill TV activities and services. When next opened, Kellie's Voice should reconnect. The future opt-in Home Assistant announcements receiver is a separate feature.
+
+For [reconnection verification steps](docs/TESTING.md), test a short Wi-Fi interruption or Home Assistant restart and confirm recovery without manually selecting Reconnect. A green GitHub Actions build alone cannot prove behavior on the TV.
 
 ## Phase 1: Positionable floating overlay and TV-friendly settings
 
