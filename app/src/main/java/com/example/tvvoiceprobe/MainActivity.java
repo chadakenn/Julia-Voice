@@ -43,15 +43,15 @@ public class MainActivity extends Activity {
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(32, 24, 32, 24);
-        layout.setBackgroundColor(0xff142031);
+        layout.setBackgroundColor(0xff201612);
         TextView heading = new TextView(this);
-        heading.setText("Julia Voice diagnostics  •  onn / Google TV");
+        heading.setText("Kellie's Voice diagnostics  •  onn / Google TV");
         heading.setTextSize(23);
         heading.setTextColor(0xffffffff);
         layout.addView(heading);
         TextView help = new TextView(this);
         help.setText("Use remote UP / DOWN to choose a test, then press OK");
-        help.setTextColor(0xff8ce9f5);
+        help.setTextColor(0xffDDA984);
         help.setTextSize(17);
         layout.addView(help);
         addButton(layout, "List audio inputs", v -> listInputs());
@@ -61,7 +61,7 @@ public class MainActivity extends Activity {
         addButton(layout, "Clear log", v -> output.setText(""));
         scroll = new ScrollView(this);
         output = new TextView(this);
-        output.setTextColor(0xffd9f1ff);
+        output.setTextColor(0xffF6E8DE);
         output.setTextSize(16);
         // A selectable text view can steal initial keyboard focus on TV.
         output.setTextIsSelectable(false);
@@ -90,12 +90,12 @@ public class MainActivity extends Activity {
         b.setFocusable(true);
         b.setFocusableInTouchMode(true);
         b.setTextColor(0xffffffff);
-        b.setBackgroundTintList(ColorStateList.valueOf(0xff465873));
+        b.setBackgroundTintList(ColorStateList.valueOf(0xff62473E));
         b.setOnClickListener(click);
         b.setOnFocusChangeListener((view, focused) -> {
             if (focused) selectedAction = index;
             b.setBackgroundTintList(ColorStateList.valueOf(
-                    focused ? 0xff087eae : 0xff465873));
+                    focused ? 0xffAD7057 : 0xff62473E));
         });
         actions.add(b);
         parent.addView(b);
@@ -283,7 +283,7 @@ public class MainActivity extends Activity {
                 probing = false;
                 log("Mic test ended. Audio was NOT stored or sent anywhere.");
             }
-        }, "julia-voice-diagnostics").start();
+        }, "kellies-voice-diagnostics").start();
     }
 
     private void log(String message) {
