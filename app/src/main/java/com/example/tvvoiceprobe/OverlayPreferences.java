@@ -3,21 +3,40 @@ package com.example.tvvoiceprobe;
 import android.content.Context;
 import android.content.SharedPreferences;
 
-/** Non-secret, device-local TV UI preferences. Credentials remain in CredentialStore. */
+/**
+ * Validated, device-local overlay layout and behavior settings.
+ * All callers read/write through here so a future approved Home Assistant
+ * control channel can use the same validation without exposing credentials.
+ * Do not rename existing preference keys: preserve installed TV behavior.
+ */
 public final class OverlayPreferences {
     public static final String SKIN_GLASS = "glass";
     public static final String SKIN_CLASSIC = "classic";
+
+    public static final String POSITION_DEFAULT = "default";
+    public static final String POSITION_TOP_LEFT = "top_left";
+    public static final String POSITION_TOP_RIGHT = "top_right";
+    public static final String POSITION_BOTTOM_LEFT = "bottom_left";
+    public static final String POSITION_BOTTOM_RIGHT = "bottom_right";
+    public static final String POSITION_CENTER = "center";
+    public static final String POSITION_BOTTOM_CENTER = "bottom_center";
+
+    public static final String SIZE_SMALL = "small";
+    public static final String SIZE_MEDIUM = "medium";
+    public static final String SIZE_LARGE = "large";
+
     private static final String PREFS = "ha_tv_voice_overlay_options";
     private static final String KEY_SKIN = "skin";
     private static final String KEY_AUTO = "auto_listen";
     private static final String KEY_HIDE = "auto_hide";
     private static final String KEY_MAIN_SHORTCUT = "main_launcher_opens_overlay";
-
+    private static final String KEY_POSITION = "overlay_position";
+    private static final String KEY_SIZE = "overlay_size";
+    private static final String KEY_HIDE_SECONDS = "overlay_hide_seconds";
     private final SharedPreferences preferences;
 
     public OverlayPreferences(Context context) {
-        preferences = context.getApplicationContext()
-                .getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        preferences = context.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     }
 
     public String skin() {
@@ -30,6 +49,83 @@ public final class OverlayPreferences {
                 SKIN_CLASSIC.equals(value) ? SKIN_CLASSIC : SKIN_GLASS).apply();
     }
 
+    public String position() {
+        String value = preferences.getString(KEY_POSITION, POSITION_DEFAULT);
+        if (POSITION_TOP_LEFT.equals(value) || POSITION_TOP_RIGHT.equals(value)
+                || POSITION_BOTTOM_LEFT.equals(value) || POSITION_BOTTOM_RIGHT.equals(value)
+                || POSITION_CENTER.equals(value) || POSITION_BOTTOM_CENTER.equals(value)) {
+            return value;
+        }
+        return POSITION_DEFAULT;
+    }
+
+    public void setPosition(String value) {
+        if (POSITION_TOP_LEFT.equals(value) || POSITION_TOP_RIGHT.equals(value)
+                || POSITION_BOTTOM_LEFT.equals(value) || POSITION_BOTTOM_RIGHT.equals(value)
+                || POSITION_CENTER.equals(value) || POSITION_BOTTOM_CENTER.equals(value)) {
+            preferences.edit().putString(KEY_POSITION, value).apply();
+        } else {
+            preferences.edit().putString(KEY_POSITION, POSITION_DEFAULT).apply();
+        }
+    }
+
+    public static String positionLabel(String value) {
+        switch (value) {
+            case POSITION_TOP_LEFT: return "Top left";
+            case POSITION_TOP_RIGHT: return "Top right";
+            case POSITION_BOTTOM_LEFT: return "Bottom left";
+            case POSITION_BOTTOM_RIGHT: return "Bottom right";
+            case POSITION_CENTER: return "Center";
+            case POSITION_BOTTOM_CENTER: return "Bottom center";
+            default: return "Original location";
+        }
+    }
+
+    public String size() {
+        String value = preferences.getString(KEY_SIZE, SIZE_MEDIUM);
+        return SIZE_SMALL.equals(value) || SIZE_LARGE.equals(value) ? value : SIZE_MEDIUM;
+    }
+
+    public void setSize(String value) {
+        preferences.edit().putString(KEY_SIZE,
+                SIZE_SMALL.equals(value) || SIZE_LARGE.equals(value) ? value : SIZE_MEDIUM).apply();
+    }
+
+    public static String sizeLabel(String value) {
+        switch (value) {
+            case SIZE_SMALL: return "Small";
+            case SIZE_LARGE: return "Large";
+            default: return "Medium (original)";
+        }
+    }
+
+    // 7 seconds preserves the original approximately 6.5-second delay.
+    public int hideSeconds() {
+        int value = preferences.getInt(KEY_HIDE_SECONDS, 7);
+        return (value == 0 || value == 5 || value == 7 || value == 10 || value == 20)
+                ? value : 7;
+    }
+
+    public void setHideSeconds(int seconds) {
+        if (seconds != 0 && seconds != 5 && seconds != 7
+                && seconds != 10 && seconds != 20) return;
+        preferences.edit().putInt(KEY_HIDE_SECONDS, seconds)
+                .putBoolean(KEY_HIDE, seconds != 0).apply();
+    }
+
+    public boolean autoHide() {
+        return preferences.getBoolean(KEY_HIDE, true) && hideSeconds() > 0;
+    }
+
+    public void setAutoHide(boolean enabled) {
+        SharedPreferences.Editor edit = preferences.edit();
+        edit.putBoolean(KEY_HIDE, enabled);
+        if (enabled && hideSeconds() == 0) edit.putInt(KEY_HIDE_SECONDS, 7);
+        edit.apply();
+    }
+
+    public String hideLabel() { return autoHide() ? hideSeconds() + " seconds" : "Never"; }
+
     public boolean autoListen() { return preferences.getBoolean(KEY_AUTO, true); }
     public void setAutoListen(boolean enabled) {
         preferences.edit().putBoolean(KEY_AUTO, enabled).apply();
@@ -41,10 +137,5 @@ public final class OverlayPreferences {
 
     public void setMainLauncherOpensOverlay(boolean enabled) {
         preferences.edit().putBoolean(KEY_MAIN_SHORTCUT, enabled).apply();
-    }
-
-    public boolean autoHide() { return preferences.getBoolean(KEY_HIDE, true); }
-    public void setAutoHide(boolean enabled) {
-        preferences.edit().putBoolean(KEY_HIDE, enabled).apply();
     }
 }
