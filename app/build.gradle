@@ -10,8 +10,8 @@ android {
         applicationId 'com.example.tvvoiceprobe'
         minSdk 26
         targetSdk 35
-        versionCode 8
-        versionName '0.8-star-shortcut-fix'
+        versionCode 9
+        versionName '0.9-seamless-shortcut'
     }
 
     // The keystore is private and supplied from GitHub Actions secrets.
