@@ -31,17 +31,16 @@ import java.util.concurrent.Executors;
  * Validates the release checksum and then lets Android enforce package signature.
  */
 public final class UpdateManager {
-    // The repository has been renamed to chadakenn/Julia-Voice.
-    // GitHub reports the canonical spelling in release asset URLs. Preserve the
-    // original address only as a constrained migration fallback for old links.
+    // The owner plans to rename Julia-Voice to kellies-voice after TVs are upgraded.
+    // Keep both exact owner-controlled HTTPS release paths for transition.
     private static final String LATEST =
-            "https://api.github.com/repos/chadakenn/Julia-Voice/releases/latest";
+            "https://api.github.com/repos/chadakenn/kellies-voice/releases/latest";
     private static final String LEGACY_LATEST =
-            "https://api.github.com/repos/chadakenn/onn-tv-voice-remote./releases/latest";
+            "https://api.github.com/repos/chadakenn/Julia-Voice/releases/latest";
     private static final String RELEASE_PREFIX =
-            "https://github.com/chadakenn/Julia-Voice/releases/download/";
+            "https://github.com/chadakenn/kellies-voice/releases/download/";
     private static final String LEGACY_RELEASE_PREFIX =
-            "https://github.com/chadakenn/onn-tv-voice-remote./releases/download/";
+            "https://github.com/chadakenn/Julia-Voice/releases/download/";
     private static final long MAX_APK_BYTES = 150L * 1024L * 1024L;
     private final Activity activity;
     private final Listener listener;
@@ -235,7 +234,7 @@ public final class UpdateManager {
         }
         try {
             if (!activity.getPackageManager().canRequestPackageInstalls()) {
-                listener.onError("Allow Julia Voice to install unknown apps in Android settings, " +
+                listener.onError("Allow Kellie's Voice to install unknown apps in Android settings, " +
                         "then return and choose Install downloaded update again.");
                 Intent settings = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
                         Uri.parse("package:" + activity.getPackageName()));
@@ -334,7 +333,7 @@ public final class UpdateManager {
             conn.setConnectTimeout(15000);
             conn.setReadTimeout(30000);
             conn.setInstanceFollowRedirects(false);
-            conn.setRequestProperty("User-Agent", "Julia-Voice-Updater");
+            conn.setRequestProperty("User-Agent", "Kellies-Voice-Updater");
             conn.setRequestProperty("Accept", "application/vnd.github+json");
             int code = conn.getResponseCode();
             if (code >= 300 && code < 400) {
