@@ -33,6 +33,8 @@ public final class OverlayPreferences {
     private static final String KEY_POSITION = "overlay_position";
     private static final String KEY_SIZE = "overlay_size";
     private static final String KEY_HIDE_SECONDS = "overlay_hide_seconds";
+    private static final String KEY_DEVICE = "ha_device_id";
+    private static final String KEY_HA_MANAGE = "ha_manage_layout";
     private final SharedPreferences preferences;
 
     public OverlayPreferences(Context context) {
@@ -129,6 +131,23 @@ public final class OverlayPreferences {
     public boolean autoListen() { return preferences.getBoolean(KEY_AUTO, true); }
     public void setAutoListen(boolean enabled) {
         preferences.edit().putBoolean(KEY_AUTO, enabled).apply();
+    }
+
+    public boolean haManage() {
+        return preferences.getBoolean(KEY_HA_MANAGE, false);
+    }
+
+    public void setHaManage(boolean enabled) {
+        preferences.edit().putBoolean(KEY_HA_MANAGE, enabled).apply();
+    }
+
+    public String deviceId() {
+        String id = preferences.getString(KEY_DEVICE, "");
+        if (id == null || id.isEmpty()) {
+            id = java.util.UUID.randomUUID().toString();
+            preferences.edit().putString(KEY_DEVICE, id).apply();
+        }
+        return id;
     }
 
     public boolean mainLauncherOpensOverlay() {

@@ -9,8 +9,11 @@ import android.media.MediaRecorder;
 import android.os.Handler;
 import android.os.Looper;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -37,6 +40,7 @@ public final class HaAssistClient {
         default void ready() { }
         default void listening() { }
         default void processing() { }
+        default void haLayout(String setting) { }
     }
 
     private final Context context;
@@ -56,6 +60,10 @@ public final class HaAssistClient {
     private final AtomicBoolean ended = new AtomicBoolean(false);
     private volatile String conversationId;
     private volatile int commandId = 1;
+    private volatile boolean layoutSync;
+    private volatile boolean layoutSubscribed;
+    private volatile int layoutStatesId = -1;
+    private final Map<String, String> layoutEntities = new HashMap<>();
     private volatile boolean disposed = true;
 
     // Keep one authenticated WebSocket alive only for the lifetime of the
@@ -183,6 +191,9 @@ public final class HaAssistClient {
             socket = null;
             authenticated = false;
             connecting = false;
+            layoutSubscribed = false;
+            layoutStatesId = -1;
+            layoutEntities.clear();
             stopForRunEnd();
             if (reconnectEnabled) scheduleReconnect();
         }
@@ -221,6 +232,7 @@ public final class HaAssistClient {
             }
             events.status("Connected and authenticated. Ready.");
             events.ready();
+            requestLayout();
             return;
         }
         if ("auth_invalid".equals(type)) {
@@ -239,13 +251,29 @@ public final class HaAssistClient {
             return;
         }
         if ("result".equals(type)) {
-            if (msg.optInt("id", -1) == currentRunId && !msg.optBoolean("success", false)) {
+            int id = msg.optInt("id", -1);
+            if (id == layoutStatesId) {
+                layoutStatesId = -1;
+                if (msg.optBoolean("success", false)) {
+                    JSONArray states = msg.optJSONArray("result");
+                    if (states != null) ingestStates(states);
+                }
+                return;
+            }
+            if (id == currentRunId && !msg.optBoolean("success", false)) {
                 JSONObject error = msg.optJSONObject("error");
                 events.status("Assist request rejected: " +
                         (error == null ? "Check the selected pipeline" : error.optString("message", "Unknown error")));
                 stopForRunEnd();
             }
             return;
+        }
+        if ("event".equals(type)) {
+            JSONObject event = msg.optJSONObject("event");
+            if (event != null && "state_changed".equals(event.optString("event_type"))) {
+                if (layoutSync) ingestState(event.optJSONObject("data"));
+                return;
+            }
         }
         if (!"event".equals(type) || msg.optInt("id", -1) != currentRunId) return;
         JSONObject event = msg.optJSONObject("event");
@@ -488,6 +516,110 @@ public final class HaAssistClient {
         endRequested = false;
     }
 
+    public synchronized void setLayoutSync(boolean enabled) {
+        layoutSync = enabled;
+        if (!enabled) {
+            layoutEntities.clear();
+            return;
+        }
+        requestLayout();
+    }
+
+    /** Push one local preference into its Home Assistant control, if that control exists. */
+    public void publishLayout(String setting) {
+        if (!HaLayout.known(setting)) return;
+        String option;
+        String entity;
+        boolean switchEntity;
+        synchronized (this) {
+            if (!layoutSync || !authenticated || socket == null) return;
+            entity = layoutEntities.get(setting);
+            if (entity == null) return;
+            option = HaLayout.wireValue(new OverlayPreferences(context), setting);
+            if (option == null) return;
+            switchEntity = entity.startsWith("switch.");
+            try {
+                JSONObject call = new JSONObject();
+                call.put("id", commandId++);
+                call.put("type", "call_service");
+                call.put("domain", switchEntity ? "switch" : "select");
+                call.put("service", switchEntity ? ("on".equals(option) ? "turn_on" : "turn_off") : "select_option");
+                JSONObject target = new JSONObject();
+                target.put("entity_id", entity);
+                call.put("target", target);
+                JSONObject data = new JSONObject();
+                data.put("entity_id", entity);
+                if (!switchEntity) data.put("option", option);
+                call.put("service_data", data);
+                socket.send(call.toString());
+            } catch (Exception ignored) { }
+        }
+    }
+
+    private synchronized void requestLayout() {
+        if (!layoutSync || !authenticated || socket == null) return;
+        try {
+            if (!layoutSubscribed) {
+                JSONObject subscribe = new JSONObject();
+                subscribe.put("id", commandId++);
+                subscribe.put("type", "subscribe_events");
+                subscribe.put("event_type", "state_changed");
+                if (!socket.send(subscribe.toString())) return;
+                layoutSubscribed = true;
+            }
+            JSONObject states = new JSONObject();
+            layoutStatesId = commandId++;
+            states.put("id", layoutStatesId);
+            states.put("type", "get_states");
+            socket.send(states.toString());
+        } catch (Exception ignored) { }
+    }
+
+    private void ingestStates(JSONArray states) {
+        for (int i = 0; i < states.length(); i++) {
+            JSONObject state = states.optJSONObject(i);
+            if (state != null) ingestOne(state);
+        }
+    }
+
+    private void ingestState(JSONObject data) {
+        if (data == null) return;
+        JSONObject state = data.optJSONObject("new_state");
+        if (state == null) return;
+        if (!state.has("entity_id")) {
+            try {
+                state.put("entity_id", data.optString("entity_id"));
+            } catch (Exception ignored) {
+                return;
+            }
+        }
+        ingestOne(state);
+    }
+
+    private void ingestOne(JSONObject state) {
+        String changed;
+        synchronized (this) {
+            if (!layoutSync) return;
+            JSONObject attributes = state.optJSONObject("attributes");
+            if (attributes == null) return;
+            OverlayPreferences prefs = new OverlayPreferences(context);
+            if (!prefs.deviceId().equals(attributes.optString("kellie_device_id"))) return;
+            String setting = attributes.optString("kellie_setting");
+            if (!HaLayout.known(setting)) return;
+            String entityId = state.optString("entity_id");
+            if (!entityId.isEmpty()) layoutEntities.put(setting, entityId);
+            int generation = attributes.optInt("kellie_generation", 0);
+            if (generation <= 0) {
+                publishLayout(setting);
+                return;
+            }
+            String raw = state.optString("state");
+            if ("unavailable".equals(raw) || "unknown".equals(raw) || raw.isEmpty()) return;
+            changed = HaLayout.apply(prefs, setting, raw) ? setting : null;
+        }
+        if (changed != null) events.haLayout(changed);
+    }
+
     public synchronized void disconnect() {
         disposed = true;
         reconnectEnabled = false;
@@ -499,6 +631,9 @@ public final class HaAssistClient {
         savedToken = null;
         authenticated = false;
         conversationId = null;
+        layoutSubscribed = false;
+        layoutStatesId = -1;
+        layoutEntities.clear();
         stopForRunEnd();
         WebSocket ws = socket;
         socket = null;

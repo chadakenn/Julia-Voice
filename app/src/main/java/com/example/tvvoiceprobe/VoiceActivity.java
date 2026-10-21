@@ -61,6 +61,9 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
 
     @Override protected void onStart() {
         super.onStart();
+        HaDiscovery.setWanted(this, new OverlayPreferences(this).haManage());
+        HaDiscovery.acquire(this);
+        if (assist != null) assist.setLayoutSync(new OverlayPreferences(this).haManage());
         // Reuse saved credentials without asking for a manual Reconnect click.
         // No microphone is activated here, just the authenticated socket.
         if (transparentShortcut || assist == null || settings == null) return;
@@ -429,6 +432,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                 "Hardware microphone diagnostics",
                 "Open floating voice overlay",
                 "Overlay appearance & position",
+                "Home Assistant layout: " + (new OverlayPreferences(this).haManage() ? "ON" : "OFF"),
                 "Check for app updates",
                 "Install downloaded update",
                 "Forget saved connection"
@@ -443,16 +447,44 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                         case 3: startActivity(new Intent(this, MainActivity.class)); break;
                         case 4: launchOverlay(); break;
                         case 5: showOverlayPreferences(); break;
-                        case 6:
+                        case 6: chooseHaLayout(); break;
+                        case 7:
                             manualUpdateCheck = true;
                             status("Checking GitHub Releases...");
                             updater.check();
                             break;
-                        case 7: promptInstallUpdate(); break;
-                        case 8: confirmForget(); break;
+                        case 8: promptInstallUpdate(); break;
+                        case 9: confirmForget(); break;
                         default: break;
                     }
                 });
+    }
+
+    private void chooseHaLayout() {
+        OverlayPreferences prefs = new OverlayPreferences(this);
+        boolean on = prefs.haManage();
+        showCopperMenu("SETTINGS  ✦  HOME ASSISTANT",
+                "Lets Home Assistant change position, size, style, auto-hide, and auto-listen. It cannot start the microphone or change the login. Leave this app open, then click Add on the discovered TV.",
+                new String[] {
+                        on ? "Turn Home Assistant layout OFF" : "Turn Home Assistant layout ON",
+                        "Keep current setting"
+                }, which -> {
+                    if (which == 0) {
+                        prefs.setHaManage(!on);
+                        HaDiscovery.setWanted(this, prefs.haManage());
+                        if (assist != null) assist.setLayoutSync(prefs.haManage());
+                        status(prefs.haManage()
+                                ? "Layout control on. In Home Assistant, click Add on Kellie's Voice."
+                                : "Home Assistant layout control off.");
+                    }
+                    showSettingsMenu();
+                });
+    }
+
+    private void pushLayout(String setting) {
+        if (assist != null && new OverlayPreferences(this).haManage()) {
+            assist.publishLayout(setting);
+        }
     }
 
     private void promptInstallUpdate() {
@@ -492,6 +524,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                         case 3: chooseOverlaySkin(prefs); break;
                         case 4:
                             prefs.setAutoListen(!prefs.autoListen());
+                            pushLayout(HaLayout.AUTO_LISTEN);
                             status("Auto-listen: " + (prefs.autoListen() ? "ON" : "OFF"));
                             showOverlayPreferences();
                             break;
@@ -535,6 +568,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         showCopperMenu("OVERLAY  ✦  POSITION",
                 "Choose where the floating voice card appears.", labels, which -> {
                     prefs.setPosition(positions[which]);
+                    pushLayout(HaLayout.POSITION);
                     status("Overlay position saved. Reopen the overlay to apply.");
                     showOverlayPreferences();
                 });
@@ -554,6 +588,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         showCopperMenu("OVERLAY  ✦  SIZE",
                 "Small saves screen space. Large makes text easier to read.", options, which -> {
                     prefs.setSize(values[which]);
+                    pushLayout(HaLayout.SIZE);
                     status("Overlay size saved. Reopen the overlay to apply.");
                     showOverlayPreferences();
                 });
@@ -572,6 +607,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         showCopperMenu("OVERLAY  ✦  AUTO-HIDE",
                 "Starts counting after Kellie's spoken reply finishes.", options, which -> {
                     prefs.setHideSeconds(values[which]);
+                    pushLayout(HaLayout.AUTO_HIDE);
                     status("Auto-hide saved: " + prefs.hideLabel());
                     showOverlayPreferences();
                 });
@@ -586,6 +622,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                 }, which -> {
                     prefs.setSkin(which == 0 ? OverlayPreferences.SKIN_GLASS
                             : OverlayPreferences.SKIN_CLASSIC);
+                    pushLayout(HaLayout.STYLE);
                     status("Appearance saved. Reopen the overlay to apply.");
                     showOverlayPreferences();
                 });
@@ -818,6 +855,11 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         } catch (Exception e) {
             status("Could not play TTS. The text answer is still above.");
         }
+    }
+
+    @Override protected void onStop() {
+        HaDiscovery.release(this);
+        super.onStop();
     }
 
     @Override protected void onDestroy() {
