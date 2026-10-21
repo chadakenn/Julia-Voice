@@ -164,8 +164,9 @@ public final class TvEventsService extends Service {
             connectionNotice("Check the Home Assistant connection in Settings");
             return;
         }
+        // OkHttp upgrades an HTTP(S) URL to WebSocket internally. HttpUrl
+        // itself only accepts the http/https schemes.
         HttpUrl address = base.newBuilder()
-                .scheme(base.scheme().equals("https") ? "wss" : "ws")
                 .addPathSegments("api/websocket").build();
         socket = http.newWebSocket(new Request.Builder().url(address).build(),
                 new WebSocketListener() {
