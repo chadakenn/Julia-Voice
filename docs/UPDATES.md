@@ -1,28 +1,29 @@
-# Kellie's Voice: signed updates and repository rename
+# Kellie's Voice: signed APK updates
 
-The Android application is still `com.example.tvvoiceprobe` and uses the same private release-signing key. **Do not uninstall it to switch names.** Install the same-signed APK on top of the installed Julia Voice app to retain its locally saved Home Assistant connection and preferences.
+**Canonical GitHub repository:** [chadakenn/Kellies-Voice](https://github.com/chadakenn/Kellies-Voice), renamed on 2026-10-21. GitHub release asset URLs preserve that exact capitalization.
 
-## Development APK on the TV
+The Android package ID remains `com.example.tvvoiceprobe`, and the original private release-signing key remains in use. **Never uninstall to rebrand.** Install a same-signed update over the existing app to preserve Home Assistant credentials, settings and the ⭐ shortcut.
 
-1. Open [Kellie's Voice GitHub Actions](https://github.com/chadakenn/Julia-Voice/actions/workflows/build-apk.yml).
-2. Choose the latest successful **Build Kellie's Voice Signed APK** run.
-3. Download the `kellies-voice-signed` artifact, extract `app-release.apk`, and install over the current app on the onn 4K Pro.
-4. Confirm the original Home Assistant connection, ⭐ button, microphone, floating overlay, speech playback, icon and branded launch. If Android reports a signature mismatch, stop: **do not uninstall**.
-5. Regular commits build a signed APK artifact but **do not publish a GitHub Release**.
+## First update after the repository rename
 
-## Repo rename safety
+The installed v0.10 and earlier updater may reject a release asset under the renamed path, because it validates the exact filename and case-sensitive repository prefix. GitHub redirects alone do not cure that limitation.
 
-The current repository remains **[chadakenn/Julia-Voice](https://github.com/chadakenn/Julia-Voice)**. The planned new repository path is **`chadakenn/kellies-voice`**.
+1. Visit [GitHub Actions for Kellie's Voice](https://github.com/chadakenn/Kellies-Voice/actions/workflows/build-apk.yml).
+2. Open the latest successful **Build Kellie's Voice Signed APK** run and download the `kellies-voice-signed` artifact.
+3. Extract `app-release.apk`. Install it **over** the existing app on the onn 4K Pro, without uninstalling. If Android reports a signature mismatch, stop and report it; do not clear app data.
+4. Confirm the saved Home Assistant connection, ⭐ overlay shortcut, microphone permission, voice responses and warm copper branding.
+5. Test **SETTINGS → Check for app updates**. A successful check with only the older public v0.6 published should report that v0.11 is up to date.
 
-- The already-installed Julia Voice v0.9 updater expects the Julia-Voice release asset URL. Renaming the repo before upgrading all TVs may prevent the old updater from accepting new asset URLs.
-- **First** install/test the signed v0.10 rebrand on TVs that need automatic updates.
-- v0.10 checks `https://api.github.com/repos/chadakenn/kellies-voice/releases/latest` and falls back to `https://api.github.com/repos/chadakenn/Julia-Voice/releases/latest` while the old repository still exists.
-- Downloaded APKs are only allowed from exact approved repository URL prefixes and must pass release tag, version code, checksum, size, HTTPS/host allowlist, and Android package signature checks. No silent installs.
-- **Then** the repository owner can rename the repository at GitHub Settings → General → Repository name → `kellies-voice`.
-- After the rename, local clones can change remote with `git remote set-url origin https://github.com/chadakenn/kellies-voice.git`. Avoid creating a new repo at the old name as it may break GitHub redirects.
+## Release URL compatibility
 
-## Public release, separately approved
+The corrected **v0.11** updater prefers `https://api.github.com/repos/chadakenn/Kellies-Voice/releases/latest` and allows its release APK assets at `https://github.com/chadakenn/Kellies-Voice/releases/download/`.
 
-Once tested on the physical TV, the owner can manually run **Build Kellie's Voice Signed APK** with **publish_release** checked. That publishes a GitHub Release containing `app-release.apk` and `update.json` (SHA-256 metadata). The standard push workflow leaves the published Release untouched.
+The previous **Julia-Voice** API and download URL prefix remain an explicit, narrow fallback for migration. The updater still checks the exact expected asset name, tag/version, HTTPS host, APK size and SHA-256 hash, then lets Android verify the package signing certificate before installation. There are no automatic or silent installs.
 
-**Public release status:** v0.6 is the last published version. v0.10 is a development rebrand until a separate public release is authorized and passes hardware tests.
+The GitHub rename has **already occurred**. Do not create a new repository at the old `Julia-Voice` path, which could interfere with redirects. For local clones, use `git remote set-url origin https://github.com/chadakenn/Kellies-Voice.git`.
+
+## Public release, only with owner approval
+
+Normal pushes create a **signed development APK artifact**, not a public GitHub Release. After physical TV testing, the owner can run **Build Kellie's Voice Signed APK** manually with `publish_release` checked. That workflow builds the signed APK, verifies the signature, and publishes `app-release.apk` and checksum metadata `update.json`.
+
+**Public release status:** v0.6 is the last publicly published version as of this update. v0.11 remains a development APK pending a separate owner-approved public release.
