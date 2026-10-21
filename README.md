@@ -8,7 +8,7 @@
 
 Kellie's Voice is a local-first, open-source voice companion for Home Assistant, starting with Google TV and Android TV. Ask a question or control a room using the floating overlay, without replacing the TV launcher.
 
-**Current status:** v0.13 development APK adds automatic Home Assistant reconnection and immediate recovery when reopening the TV app, alongside v0.12's configurable overlay and copper-styled settings. These improvements still need physical onn 4K Pro verification. Public v0.6 remains the last explicitly published GitHub Release; normal pushes produce signed development artifacts only.
+**Current status:** v0.14 development APK stabilizes automatic Home Assistant reconnects, in-flight voice requests, overlay reply timing, authenticated TTS URL handling, signed-update verification, and automatic update retries. Reconciled PRs #1, #2, #4, #9, #10 and #11 were merged with passing host unit tests; **v0.14 must still be tested on the onn 4K Pro**. Public v0.6 remains the last separately approved GitHub Release. Signed Actions artifacts are development APKs, not public releases.
 
 ## Download and upgrade safely
 
@@ -23,7 +23,7 @@ The signed Android package ID stays `com.example.tvvoiceprobe` and the signing k
 - The welcome splash includes a **single small portrait of Kellie** ([brand portrait](docs/branding/kellie-portrait.webp)), while the floating TV overlay remains icon-only and unobtrusive. The photo-rich marketing comps are also available separately from the app.
 - Built-in Home Assistant/Ollama conversation routing and saved voice preferences remain intact.
 
-## Home Assistant connection resilience (v0.13)
+## Home Assistant connection resilience (v0.13 and v0.14)
 
 - Opens an authenticated WebSocket automatically when the full-screen app starts with saved credentials; no manual Reconnect should be needed.
 - Sends WebSocket keepalive pings every 25 seconds and reconnects after unexpected disconnections (2, 4, 8, 16, then up to 30 seconds between attempts).
@@ -45,7 +45,7 @@ For [reconnection verification steps](docs/TESTING.md), test a short Wi-Fi inter
 
 Settings are saved locally. **Close and reopen the overlay** to apply position/size/skin changes. Existing installations keep their previous overlay location and size until you choose differently. Audio behavior and permission requirements are unchanged.
 
-**Future Home Assistant management:** Rather than remove the TV settings immediately, we plan an HA dashboard to manage per-TV overlay and camera/announcement settings using authenticated, validated synchronization, while retaining local settings as a backup. This remote control is **planned, not implemented**. See [Home Assistant remote configuration plan](docs/REMOTE_CONFIGURATION_PLAN.md).
+**Home Assistant layout control (development):** An opt-in custom integration can configure per-TV overlay position, size, skin (including Night Signal), auto-hide, and auto-listen. A broader dashboard for camera popups, announcements, microphone settings, and updates remains planned. Local settings remain available. This feature still requires testing on the onn box. See [Home Assistant remote configuration plan](docs/REMOTE_CONFIGURATION_PLAN.md).
 
 ## onn ⭐ TV remote shortcut
 
@@ -110,7 +110,7 @@ The image previews below are **illustrative reconstructions based on those actua
 | v0.5 auto-listen/auto-stop + reply auto-hide | 🔶 Signed build passed; await onn field test |
 | Dedicated **Kellie's Voice Overlay** launcher or main-app ⭐ fallback | 🔶 Built, mapping depends on onn firmware |
 | GitHub Release update check, download, checksum verification and Android installer | 🔶 v0.6 builds successfully; device test pending |
-| Change overlay layout from Home Assistant (position, size, style, auto-hide, auto-listen) | 🔶 In development. Not in the public v0.6 APK, and not yet tested on the onn box |
+| Control TV overlay layout from Home Assistant (position, size, Night Signal style, auto-hide, auto-listen) | 🔶 Implemented as an opt-in development feature; onn TV and HA integration tests pending |
 | HA media_player announcements, Frigate person-triggered PiP, dashboard on request | 📋 Planned |
 
 The **Google voice button currently opens Google's assistant**, not this app. A regular remote can control TALK / STOP, and the onn box microphone has produced working STT audio. We are **not claiming access to the Bluetooth remote microphone**.
@@ -138,29 +138,20 @@ Prerequisites: a reachable Home Assistant server, a working **Assist pipeline** 
 4. The **HOME ASSISTANT SAYS** answer appears above **YOU SAID**. Both on-screen answer and spoken TTS have been confirmed on the onn box in a first end-to-end test.
 5. If speech-to-text works but no sound comes out, see [Troubleshooting](docs/TROUBLESHOOTING.md). Keep tokens out of screenshots.
 
-## Change the overlay from Home Assistant
-
-This is not in the published v0.6 APK. It is the development layout control. Home Assistant does not open a port on the TV. The TV announces itself, and you click **Add**, the same way a discovered ESPHome device appears.
-
-1. Copy [`custom_components/kellies_voice`](custom_components/kellies_voice) to `config/custom_components/kellies_voice` on the Home Assistant machine and restart Home Assistant.
-2. On the TV, open **Kellie's Voice → Settings → Home Assistant layout** and turn it on. Leave the app open.
-3. In Home Assistant, click **Add** on the discovered TV.
-
-The device page can change:
-
-- Overlay position
-- Overlay size
-- Style (Copper Glass or Compact Charcoal)
-- Auto-hide
-- Auto-listen
-
-The first time the TV connects, it copies the layout already saved on the TV into Home Assistant, so adding the device does not wipe that layout. After that, changes in Home Assistant apply on the TV. The on-TV menu still works and writes the same values back.
-
-Turning **Home Assistant layout** off stops discovery. Later edits in Home Assistant are ignored until you turn it on again. If the app is closed, a change waits until the next time Kellie's Voice connects.
-
-This cannot start the microphone, change the Home Assistant address or token, or install an update. More detail is in the [integration README](custom_components/kellies_voice/README.md).
-
 The **proven v0.3** full-screen conversation continues to work; **v0.4** proved the overlay displays over Google TV Home. **v0.5** brings auto-listening after the explicit ⭐/app launch, a Glass waveform skin, optional Classic skin, a best-effort silence detector, configurable automatic dismissal and a TV-app-picker fallback. Google TV real-world behavior and audio/video coexistence still require testing. This is not a system Assistant replacement, wake-word listener, HA media_player or Frigate client. See the [v0.5 home test checklist](docs/V0_5_TESTING.md).
+
+## Change the overlay from Home Assistant (development)
+
+This feature is in the current source tree, **not** in the separately published v0.6 release. Install a signed development build after the GitHub Action passes. Home Assistant does not open an inbound port on your TV. Kellie's Voice advertises itself over local network discovery, and the app reads layout changes through its already-configured, authenticated Home Assistant connection.
+
+1. Copy [`custom_components/kellies_voice`](custom_components/kellies_voice) into `config/custom_components/kellies_voice` on your Home Assistant server.
+2. Restart Home Assistant.
+3. On the TV, open **Kellie's Voice → Settings → Home Assistant layout** and turn it **ON**. Leave the app open.
+4. In **Home Assistant → Devices & services**, select the discovered Kellie's Voice TV and click **Add**.
+
+The new device offers **overlay position, size, style (Copper Glass, Compact Charcoal, or Night Signal), auto-hide, and auto-listen**. On the first sync, the TV publishes its current settings so adding the integration won't reset your existing layout. Later changes in Home Assistant update the TV, including moving or restyling the open overlay. The on-TV settings menu still works and writes changes back.
+
+Turning the TV's **Home Assistant layout** switch off stops discovery and ignores subsequent remote layout changes. Settings changed while the TV app is closed will sync the next time it connects, if layout control is enabled. This cannot start the microphone, change your Home Assistant login/token, or install an update. See the [custom integration instructions](custom_components/kellies_voice/README.md).
 
 ## Architecture and privacy
 
@@ -174,7 +165,7 @@ More detail: [Field test results and checklist](docs/TESTING.md), [security note
 
 ## Roadmap
 
-1. **Now (v0.11 development / v0.6 published):** test v0.11's rename-safe updater and the warm branding on the TV. The public v0.6 Release is available; on-device update installation still needs testing and requires a newer release. [Updater guide](docs/UPDATES.md). Continue v0.5 Glass/⭐ testing as desired.
+1. **Current development (v0.14 / public v0.6):** test automatic Home Assistant reconnection, reliable reply dismissal, the copper settings, and APK update safety on the onn 4K Pro. GitHub Actions produces signed development APKs; no public release has been published from these PRs. [Updater guide](docs/UPDATES.md).
 2. **Next:** refine ⭐ shortcut selection where firmware permits, overlay placement, audio focus, ambient-TV-noise tolerance, skins and recovery based on actual results.
 3. **Afterward:** dedicated HA `media_player` with automation-driven chimes/TTS (e.g. “The washer is done”); secure companion channel.
 4. **Then:** Frigate/go2rtc camera views, filtered doorbell-person PiP and optional spoken alerts; on-demand dashboards.

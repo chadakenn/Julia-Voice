@@ -3,7 +3,10 @@ package com.example.tvvoiceprobe;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.Signature;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
@@ -21,6 +24,7 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.MessageDigest;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -28,20 +32,13 @@ import java.util.concurrent.Executors;
 /**
  * User-approved, non-root in-app GitHub Releases updater.
  * Never downloads an APK from an arbitrary URL or bypasses Android's installer.
- * Validates the release checksum and then lets Android enforce package signature.
+ * Validates the release checksum and package identity, then lets Android
+ * enforce the same package signature at install time.
  */
 public final class UpdateManager {
-    // Repo rename completed: chadakenn/Kellies-Voice.
     // GitHub returns this exact capitalization in browser_download_url.
-    // Preserve the previous Julia-Voice address as a tightly scoped legacy fallback.
     private static final String LATEST =
             "https://api.github.com/repos/chadakenn/Kellies-Voice/releases/latest";
-    private static final String LEGACY_LATEST =
-            "https://api.github.com/repos/chadakenn/Julia-Voice/releases/latest";
-    private static final String RELEASE_PREFIX =
-            "https://github.com/chadakenn/Kellies-Voice/releases/download/";
-    private static final String LEGACY_RELEASE_PREFIX =
-            "https://github.com/chadakenn/Julia-Voice/releases/download/";
     private static final long MAX_APK_BYTES = 150L * 1024L * 1024L;
     private final Activity activity;
     private final Listener listener;
@@ -87,12 +84,12 @@ public final class UpdateManager {
         busy = true;
         background.execute(() -> {
             try {
-                JSONObject release = new JSONObject(readLatestReleaseMetadata());
+                JSONObject release = new JSONObject(readText(LATEST, 750000));
                 if (release.optBoolean("draft") || release.optBoolean("prerelease")) {
                     throw new IllegalStateException("No stable release is available.");
                 }
                 String tag = release.getString("tag_name");
-                if (!tag.matches("v[0-9]+\\.[0-9]+(\\.[0-9]+)?")) {
+                if (!ReleaseAssets.stableTag(tag)) {
                     throw new IllegalStateException("Unexpected release tag.");
                 }
                 JSONArray assets = release.getJSONArray("assets");
@@ -209,6 +206,7 @@ public final class UpdateManager {
                 if (!release.sha256.equals(digest.toString())) {
                     throw new IllegalStateException("Downloaded APK failed SHA-256 verification.");
                 }
+                verifyInstalledIdentity(temp);
                 if (!temp.renameTo(apk)) {
                     throw new IllegalStateException("Could not save the verified APK.");
                 }
@@ -253,6 +251,42 @@ public final class UpdateManager {
         }
     }
 
+    private void verifyInstalledIdentity(File apk) throws Exception {
+        PackageManager packages = activity.getPackageManager();
+        int flags = Build.VERSION.SDK_INT >= 28
+                ? PackageManager.GET_SIGNING_CERTIFICATES
+                : PackageManager.GET_SIGNATURES;
+        PackageInfo incoming = packages.getPackageArchiveInfo(apk.getAbsolutePath(), flags);
+        if (incoming == null) {
+            throw new IllegalStateException("Downloaded file is not a valid APK.");
+        }
+        if (!activity.getPackageName().equals(incoming.packageName)) {
+            throw new IllegalStateException("Update APK is a different app and was rejected.");
+        }
+        PackageInfo installed = packages.getPackageInfo(activity.getPackageName(), flags);
+        if (!sameSigners(signaturesOf(installed), signaturesOf(incoming))) {
+            throw new IllegalStateException("Update APK is not signed with the installed release key.");
+        }
+    }
+
+    private static Signature[] signaturesOf(PackageInfo info) {
+        if (Build.VERSION.SDK_INT >= 28 && info.signingInfo != null) {
+            Signature[] current = info.signingInfo.getApkContentsSigners();
+            if (current != null && current.length > 0) return current;
+        }
+        return info.signatures == null ? new Signature[0] : info.signatures;
+    }
+
+    private static boolean sameSigners(Signature[] installed, Signature[] incoming) {
+        if (installed.length == 0 || installed.length != incoming.length) return false;
+        HashSet<String> expected = new HashSet<>();
+        for (Signature signature : installed) expected.add(signature.toCharsString());
+        for (Signature signature : incoming) {
+            if (!expected.remove(signature.toCharsString())) return false;
+        }
+        return expected.isEmpty();
+    }
+
     private int installedVersionCode() throws Exception {
         PackageInfo info = activity.getPackageManager()
                 .getPackageInfo(activity.getPackageName(), 0);
@@ -273,25 +307,7 @@ public final class UpdateManager {
     private void post(Runnable runnable) { ui.post(runnable); }
 
     private void validateAssetUrl(String url, String tag, String filename) {
-        // Require exact owner-controlled repo paths, release tag and filename.
-        // This matches GitHub's canonical case after the completed rename.
-        if (!url.equals(RELEASE_PREFIX + tag + "/" + filename)
-                && !url.equals(LEGACY_RELEASE_PREFIX + tag + "/" + filename)) {
-            throw new IllegalArgumentException("Unexpected release asset URL.");
-        }
-    }
-
-    private String readLatestReleaseMetadata() throws Exception {
-        try {
-            return readText(LATEST, 750000);
-        } catch (IllegalStateException error) {
-            // Old repository URL may still redirect while clients transition.
-            // It never broadens the APK host or asset-path allowlist.
-            if (error.getMessage() == null || !error.getMessage().contains("404")) {
-                throw error;
-            }
-            return readText(LEGACY_LATEST, 750000);
-        }
+        ReleaseAssets.validateAssetUrl(url, tag, filename);
     }
 
     private String readText(String url, int maxBytes) throws Exception {
