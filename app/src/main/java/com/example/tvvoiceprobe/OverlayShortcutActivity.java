@@ -4,8 +4,8 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -27,7 +27,8 @@ public final class OverlayShortcutActivity extends Activity {
         unregisterOverlayEvents();
         Toast.makeText(this, "Overlay didn't open. Opening Kellie's Voice.",
                 Toast.LENGTH_LONG).show();
-        startActivity(new Intent(this, VoiceActivity.class));
+        startActivity(new Intent(this, VoiceActivity.class)
+                .setAction("com.example.tvvoiceprobe.OPEN_SETTINGS"));
         finish();
     };
 
@@ -56,28 +57,29 @@ public final class OverlayShortcutActivity extends Activity {
         boolean configured = false;
         try { configured = new CredentialStore(this).load() != null; }
         catch (Exception ignored) { }
-        if (!configured || !Settings.canDrawOverlays(this) ||
-                checkSelfPermission(Manifest.permission.RECORD_AUDIO)
+        if (!configured || !Settings.canDrawOverlays(this)
+                || checkSelfPermission(Manifest.permission.RECORD_AUDIO)
                         != PackageManager.PERMISSION_GRANTED) {
             Toast.makeText(this,
                     "First open Kellie's Voice, then SETTINGS > Floating voice overlay",
                     Toast.LENGTH_LONG).show();
-            startActivity(new Intent(this, VoiceActivity.class));
+            startActivity(new Intent(this, VoiceActivity.class)
+                    .setAction("com.example.tvvoiceprobe.OPEN_SETTINGS"));
             finish();
             return;
         }
         registerOverlayEvents();
         try {
             startForegroundService(new Intent(this, VoiceOverlayService.class));
-            // Finish only after the service has promoted itself. A fixed
-            // delay can background the app first and get the service killed.
-            handler.postDelayed(giveUp, 8000);
-        } catch (Exception error) {
-            unregisterOverlayEvents();
+            // Retain the visible activity until the service signals ready.
+            handler.postDelayed(giveUp, 8000L);
+        } catch (Exception e) {
             handler.removeCallbacks(giveUp);
+            unregisterOverlayEvents();
             Toast.makeText(this, "Overlay not supported. Open Kellie's Voice.",
                     Toast.LENGTH_LONG).show();
-            startActivity(new Intent(this, VoiceActivity.class));
+            startActivity(new Intent(this, VoiceActivity.class)
+                    .setAction("com.example.tvvoiceprobe.OPEN_SETTINGS"));
             finish();
         }
     }
@@ -91,7 +93,8 @@ public final class OverlayShortcutActivity extends Activity {
                     Toast.makeText(OverlayShortcutActivity.this,
                             "Overlay didn't open. Opening Kellie's Voice.",
                             Toast.LENGTH_LONG).show();
-                    startActivity(new Intent(OverlayShortcutActivity.this, VoiceActivity.class));
+                    startActivity(new Intent(OverlayShortcutActivity.this, VoiceActivity.class)
+                            .setAction("com.example.tvvoiceprobe.OPEN_SETTINGS"));
                 }
                 finish();
             }
