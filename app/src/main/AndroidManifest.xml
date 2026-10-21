@@ -32,7 +32,7 @@
             android:exported="true"
             android:excludeFromRecents="true"
             android:banner="@drawable/tv_banner"
-            android:icon="@drawable/ic_julia_wave">
+            android:icon="@drawable/ic_kellie_voice">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
