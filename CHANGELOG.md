@@ -2,6 +2,15 @@
 
 This is an experimental Android TV / Google TV app. Each entry distinguishes **shipped code** from **tested on the onn 4K Pro**.
 
+## v0.10-kellies-voice-brand (2026-10-21) — Warm branding
+
+- Rebranded the visible Android TV app, overlay labels, status notifications, and signed APK workflow as **Kellie's Voice**.
+- Replaced cool blue/violet UI colors with charcoal, copper, rose gold and warm ivory; created new vector icon, TV banner, animated waveform and startup splash.
+- Changed Android `versionCode` to **10** without changing `applicationId` or the private signing key. Install the signed APK **over** the previous one.
+- Prepared the OTA updater for the planned `chadakenn/kellies-voice` repo path with a safe fallback to the current `chadakenn/Julia-Voice` Release URL.
+- GitHub repository is still named `Julia-Voice`, pending a separate owner rename after TVs are upgraded; no new public release was published.
+- The portrait-led marketing renders are separate assets and are not repeated across the live TV overlay.
+
 ## v0.9-seamless-shortcut (2026-10-21) — Skip the full-screen flash
 
 - For an **opted-in ⭐ main-launcher shortcut**, check that Home Assistant credentials and both microphone/overlay permissions are ready, then start the floating voice overlay from a tiny transparent Activity instead of creating the full-screen Julia Voice UI first.
