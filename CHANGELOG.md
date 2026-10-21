@@ -2,6 +2,14 @@
 
 This is an experimental Android TV / Google TV app. Each entry distinguishes **shipped code** from **tested on the onn 4K Pro**.
 
+## v0.9-seamless-shortcut (2026-10-21) — Skip the full-screen flash
+
+- For an **opted-in ⭐ main-launcher shortcut**, check that Home Assistant credentials and both microphone/overlay permissions are ready, then start the floating voice overlay from a tiny transparent Activity instead of creating the full-screen Julia Voice UI first.
+- Use a no-preview launcher theme and disable background dimming for the transparent shortcut; start the microphone foreground service while the Activity is visible, then return the task to the background.
+- If setup or permissions are incomplete, retain the regular full-screen Julia interface and its permission prompts. On launch exceptions, recover to the regular app rather than leaving a blank screen.
+- Continue to open the full UI from the overlay's SETTINGS button; re-used transparent Activities respond to new ⭐ launcher intents.
+- Bumped `versionCode` to **9** with the existing package ID and signing key. **Not yet hardware-verified**; OEM/Android launch animations may still appear momentarily even though our full-screen layout is skipped.
+
 ## v0.8-star-shortcut-fix (2026-10-20) — onn ⭐ picker fallback reliability
 
 - The onn 4K Pro's native ⭐ shortcut picker lists **Julia Voice** but hides the package's separate Julia Voice Overlay launcher entry (confirmed by user photo).
