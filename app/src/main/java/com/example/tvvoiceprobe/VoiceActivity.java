@@ -57,6 +57,20 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
     private UpdateManager updater;
     private boolean manualUpdateCheck;
     private boolean transparentShortcut;
+    private boolean initialConnectionRequested;
+
+    @Override protected void onStart() {
+        super.onStart();
+        // Reuse saved credentials without asking for a manual Reconnect click.
+        // No microphone is activated here, just the authenticated socket.
+        if (transparentShortcut || assist == null || settings == null) return;
+        if (!initialConnectionRequested) {
+            initialConnectionRequested = true;
+            assist.connect(settings.url, settings.token);
+        } else {
+            assist.ensureConnected();
+        }
+    }
 
     @Override public void onCreate(Bundle state) {
         // The onn ⭐ picker starts the package's main Activity. When its
@@ -695,11 +709,17 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
 
     private void connect() {
         if (settings == null) { configure(); return; }
+        initialConnectionRequested = true;
         assist.connect(settings.url, settings.token);
         updateConnectionLabel();
     }
 
     private void startTalk() {
+        if (assist != null && !assist.isConnected()) {
+            assist.ensureConnected();
+            status("Reconnecting to Home Assistant. Try TALK when connected.");
+            return;
+        }
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, MIC_PERMISSION_REQUEST);
         } else {
