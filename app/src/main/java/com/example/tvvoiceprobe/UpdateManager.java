@@ -31,14 +31,15 @@ import java.util.concurrent.Executors;
  * Validates the release checksum and then lets Android enforce package signature.
  */
 public final class UpdateManager {
-    // The owner plans to rename Julia-Voice to kellies-voice after TVs are upgraded.
-    // Keep both exact owner-controlled HTTPS release paths for transition.
+    // Repo rename completed: chadakenn/Kellies-Voice.
+    // GitHub returns this exact capitalization in browser_download_url.
+    // Preserve the previous Julia-Voice address as a tightly scoped legacy fallback.
     private static final String LATEST =
-            "https://api.github.com/repos/chadakenn/kellies-voice/releases/latest";
+            "https://api.github.com/repos/chadakenn/Kellies-Voice/releases/latest";
     private static final String LEGACY_LATEST =
             "https://api.github.com/repos/chadakenn/Julia-Voice/releases/latest";
     private static final String RELEASE_PREFIX =
-            "https://github.com/chadakenn/kellies-voice/releases/download/";
+            "https://github.com/chadakenn/Kellies-Voice/releases/download/";
     private static final String LEGACY_RELEASE_PREFIX =
             "https://github.com/chadakenn/Julia-Voice/releases/download/";
     private static final long MAX_APK_BYTES = 150L * 1024L * 1024L;
@@ -272,8 +273,8 @@ public final class UpdateManager {
     private void post(Runnable runnable) { ui.post(runnable); }
 
     private void validateAssetUrl(String url, String tag, String filename) {
-        // Require the exact known repo path and file name. This also permits
-        // transitional releases from the original repo before renaming.
+        // Require exact owner-controlled repo paths, release tag and filename.
+        // This matches GitHub's canonical case after the completed rename.
         if (!url.equals(RELEASE_PREFIX + tag + "/" + filename)
                 && !url.equals(LEGACY_RELEASE_PREFIX + tag + "/" + filename)) {
             throw new IllegalArgumentException("Unexpected release asset URL.");
@@ -284,7 +285,7 @@ public final class UpdateManager {
         try {
             return readText(LATEST, 750000);
         } catch (IllegalStateException error) {
-            // Retain an explicit fallback for rollout/migration edge cases.
+            // Old repository URL may still redirect while clients transition.
             // It never broadens the APK host or asset-path allowlist.
             if (error.getMessage() == null || !error.getMessage().contains("404")) {
                 throw error;
