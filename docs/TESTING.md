@@ -4,6 +4,20 @@ Updated: **2026-10-20**. Device: user's **onn 4K Pro / Google TV**, with the And
 
 Distinguish what has actually worked on hardware from compiled features. A green build is **not** proof of behavior on a TV.
 
+## v0.13 Home Assistant disconnection recovery (pending TV test)
+
+- [ ] With saved credentials, launch full-screen Kellie's Voice and verify Home Assistant changes to connected **without selecting Reconnect**
+- [ ] Open ⭐ overlay and confirm auto-listen and speech playback still work
+- [ ] Temporarily disable the TV's network or restart HA; verify the overlay/full-screen screen reports **automatic reconnection** and recovers after network returns, without manual Reconnect
+- [ ] With a lost connection, press ⭐ or TALK once. If reconnection completes within 30 seconds, it may start listening; if it takes longer, the microphone must **not** turn on automatically later
+- [ ] Interrupt the network during listening: confirm microphone streaming stops and UI doesn't remain stuck in the listening state
+- [ ] Leave the app in the background, then reopen it; it should retry immediately instead of waiting for the existing retry countdown
+- [ ] With an intentionally invalid token **in a safe, test-only setup**, verify the authentication error is shown and retrying stops; restore the proper token afterward
+- [ ] Check that restarting HA, normal overlay CLOSE/BACK, and intentionally forgetting credentials never trigger zombie sockets or unexpected microphone use
+- [ ] Keep original `com.example.tvvoiceprobe` and signed release key; install over working APK without wiping HA configuration
+
+CI success confirms compilation/signing only. These checks require actual hardware to distinguish Android TV network sleep, multicast-DNS and HA restarts from app logic. A permanently running Home Assistant event receiver and 24/7 socket service are intentionally **not** part of v0.13.
+
 ## v0.12 overlay layout / copper settings acceptance (pending hardware)
 
 Signed [build #108](https://github.com/chadakenn/Kellies-Voice/actions/runs/39598350715) passed compilation and APK signature verification. This **does not** yet establish TV compatibility.
