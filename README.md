@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="docs/branding/kellies-voice-header.svg" alt="Kellie's Voice | Your home. Your voice. Your way." width="100%" />
+  <img src="docs/branding/kellies-voice-approved-banner.webp" alt="Kellie's Voice approved photo banner with Kellie, copper script branding, and smart-home icons" width="100%" />
 </div>
 
 # Kellie's Voice 🎙️🧡
@@ -19,7 +19,7 @@ The signed Android package ID stays `com.example.tvvoiceprobe` and the signing k
 ## Appearance
 
 - Charcoal, copper, warm ivory and rose-gold instead of blue or purple.
-- New scalable GitHub header, Android launcher icon, TV launcher banner, animated waveform and startup splash.
+- The README uses the **approved, original photo banner** from the design you selected, rather than a vector recreation. The Android launcher icon, TV banner, animated waveform and startup splash remain lightweight native assets.
 - The welcome splash includes a **single small portrait of Kellie** ([brand portrait](docs/branding/kellie-portrait.webp)), while the floating TV overlay remains icon-only and unobtrusive. The photo-rich marketing comps are also available separately from the app.
 - Built-in Home Assistant/Ollama conversation routing and saved voice preferences remain intact.
 
