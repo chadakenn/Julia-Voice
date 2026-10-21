@@ -1,4 +1,4 @@
-name: Build Julia Voice Signed APK
+name: Build Kellie's Voice Signed APK
 
 on:
   workflow_dispatch:
@@ -55,10 +55,10 @@ jobs:
             echo "::error::Set repository Actions secrets TV_SIGNING_KEYSTORE_B64 and TV_SIGNING_PASSWORD. See docs/SIGNING.md"
             exit 1
           fi
-          printf '%s' "$TV_KEY_B64" | base64 --decode > "$RUNNER_TEMP/julia-voice-signing.p12"
-          chmod 600 "$RUNNER_TEMP/julia-voice-signing.p12"
-          keytool -list -storetype PKCS12 -keystore "$RUNNER_TEMP/julia-voice-signing.p12" -storepass "$TV_SIGNING_PASSWORD" -alias tvvoice > /dev/null
-          echo "TV_SIGNING_KEYSTORE_PATH=$RUNNER_TEMP/julia-voice-signing.p12" >> "$GITHUB_ENV"
+          printf '%s' "$TV_KEY_B64" | base64 --decode > "$RUNNER_TEMP/kellies-voice-signing.p12"
+          chmod 600 "$RUNNER_TEMP/kellies-voice-signing.p12"
+          keytool -list -storetype PKCS12 -keystore "$RUNNER_TEMP/kellies-voice-signing.p12" -storepass "$TV_SIGNING_PASSWORD" -alias tvvoice > /dev/null
+          echo "TV_SIGNING_KEYSTORE_PATH=$RUNNER_TEMP/kellies-voice-signing.p12" >> "$GITHUB_ENV"
 
       - name: Build signed release APK
         env:
@@ -72,7 +72,7 @@ jobs:
       - name: Upload installable signed APK
         uses: actions/upload-artifact@v4
         with:
-          name: julia-voice-signed
+          name: kellies-voice-signed
           path: app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
 
@@ -88,7 +88,7 @@ jobs:
       - name: Download APK verified by the build job
         uses: actions/download-artifact@v4
         with:
-          name: julia-voice-signed
+          name: kellies-voice-signed
           path: release-files
       - name: Create release metadata with checksum
         id: metadata
@@ -141,6 +141,6 @@ jobs:
             release-files/app-release.apk \
             release-files/update.json \
             --target "$GITHUB_SHA" \
-            --title "Julia Voice $RELEASE_TAG" \
+            --title "Kellie's Voice $RELEASE_TAG" \
             --generate-notes \
             --latest
