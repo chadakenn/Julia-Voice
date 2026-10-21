@@ -60,7 +60,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         // Changing the window theme before super.onCreate avoids the flash of
         // the ordinary TV screen during the service's foreground startup.
         boolean shortcut = shouldLaunchOverlayFromLauncher(getIntent());
-        if (shortcut) setTheme(R.style.JuliaVoiceShortcutTransparentTheme);
+        if (shortcut) setTheme(R.style.KellieVoiceShortcutTransparentTheme);
         super.onCreate(state);
         if (shortcut && canStartOverlayImmediately()) {
             transparentShortcut = true;
@@ -81,7 +81,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                 manualUpdateCheck = false;
                 if (isFinishing() || isDestroyed()) return;
                 new AlertDialog.Builder(VoiceActivity.this)
-                        .setTitle("Julia Voice update available: " + version)
+                        .setTitle("Kellie's Voice update available: " + version)
                         .setMessage("Download the signed update from GitHub Releases?\n\n" +
                                 (notes == null ? "" : notes.substring(0, Math.min(notes.length(), 700))))
                         .setNegativeButton("Later", null)
@@ -106,15 +106,15 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(34, 22, 34, 22);
-        root.setBackgroundColor(0xff0b1732);
+        root.setBackgroundColor(0xff1B1412);
 
-        TextView title = label("JULIA VOICE   ✦   HOME ASSISTANT", 24, 0xff9ed8ff);
+        TextView title = label("KELLIE'S VOICE   ✦   HOME ASSISTANT", 24, 0xffE9B390);
         root.addView(title);
 
-        connection = label("Home Assistant: not configured", 15, 0xffc7d8e9);
+        connection = label("Home Assistant: not configured", 15, 0xffE8D7C9);
         root.addView(connection);
 
-        status = label("Connect, then press TALK.", 17, 0xff5de1ec);
+        status = label("Connect, then press TALK.", 17, 0xffE6AB82);
         root.addView(status);
 
         // Prioritize the conversation on small TV screens. The large seven-button
@@ -126,11 +126,11 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         history.setOrientation(LinearLayout.VERTICAL);
         history.setPadding(10, 6, 10, 6);
 
-        history.addView(label("HOME ASSISTANT SAYS", 16, 0xff8ba6c1));
-        response = label("Your answer will appear here.", 25, 0xffd2e9fd);
+        history.addView(label("HOME ASSISTANT SAYS", 16, 0xffC59A80));
+        response = label("Your answer will appear here.", 25, 0xffF7E8DB);
         history.addView(response);
 
-        history.addView(label("YOU SAID", 16, 0xff8ba6c1));
+        history.addView(label("YOU SAID", 16, 0xffC59A80));
         recognized = label("Nothing yet", 21, 0xffffffff);
         history.addView(recognized);
 
@@ -151,7 +151,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         // microphone behavior remain untouched.
         FrameLayout page = new FrameLayout(this);
         page.addView(root, new FrameLayout.LayoutParams(-1, -1));
-        JuliaSplashView splash = new JuliaSplashView(this);
+        KellieSplashView splash = new KellieSplashView(this);
         page.addView(splash, new FrameLayout.LayoutParams(-1, -1));
         setContentView(page);
         try { settings = store.load(); }
@@ -261,11 +261,11 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         b.setTextColor(0xffffffff);
         b.setFocusable(true);
         b.setFocusableInTouchMode(true);
-        b.setBackgroundTintList(ColorStateList.valueOf(0xff405572));
+        b.setBackgroundTintList(ColorStateList.valueOf(0xff62453B));
         b.setOnClickListener(action);
         b.setOnFocusChangeListener((v, focused) -> {
             if (focused) selected = index;
-            b.setBackgroundTintList(ColorStateList.valueOf(focused ? 0xff097eaf : 0xff405572));
+            b.setBackgroundTintList(ColorStateList.valueOf(focused ? 0xffBA785B : 0xff62453B));
         });
         buttons.add(b);
         parent.addView(b, new LinearLayout.LayoutParams(0, -2, 1f));
@@ -334,7 +334,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                 "Forget saved connection"
         };
         new AlertDialog.Builder(this)
-                .setTitle("Julia Voice settings")
+                .setTitle("Kellie's Voice settings")
                 .setItems(entries, (dialog, which) -> {
                     switch (which) {
                         case 0: configure(); break;
@@ -364,7 +364,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
             return;
         }
         new AlertDialog.Builder(this)
-                .setTitle("Install verified Julia Voice update?")
+                .setTitle("Install verified Kellie's Voice update?")
                 .setMessage("Android will ask you to approve the package update. " +
                         "Your Home Assistant login and preferences should be retained " +
                         "because the release uses our permanent signing key.")
@@ -384,7 +384,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                         (preferences.mainLauncherOpensOverlay() ? "ON" : "OFF")
         };
         new AlertDialog.Builder(this)
-                .setTitle("Julia Voice appearance & launch")
+                .setTitle("Kellie's Voice appearance & launch")
                 .setItems(options, (dialog, index) -> {
                     if (index == 0) {
                         new AlertDialog.Builder(this)
@@ -416,7 +416,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                         new AlertDialog.Builder(this)
                                 .setTitle("⭐ Remote shortcut compatibility")
                                 .setMessage("Enable this ONLY if the onn shortcut list shows " +
-                                        "Julia Voice but not Julia Voice Overlay. " +
+                                        "Kellie's Voice but not Kellie's Voice Overlay. " +
                                         "Launching the main app will then open the overlay. " +
                                         "Use the overlay's SETTINGS button to return here.")
                                 .setNegativeButton("Cancel", null)
@@ -447,7 +447,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         if (!Settings.canDrawOverlays(this)) {
             status("Grant 'Display over other apps', then start the overlay again.");
             new AlertDialog.Builder(this)
-                    .setTitle("Allow Julia Voice overlay")
+                    .setTitle("Allow Kellie's Voice overlay")
                     .setMessage("Google TV must allow this app to display over other apps. " +
                             "The microphone listens after launch when Auto-listen is enabled. " +
                             "The overlay stops completely when you choose CLOSE or BACK. " +
@@ -482,7 +482,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
             if (Settings.canDrawOverlays(this)) {
                 status("Overlay allowed! Open SETTINGS and choose floating overlay again.");
             } else {
-                status("Overlay permission wasn't granted. The Julia Voice app still works.");
+                status("Overlay permission wasn't granted. The Kellie's Voice app still works.");
             }
         }
     }
@@ -492,7 +492,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         form.setPadding(30, 10, 30, 10);
         form.setOrientation(LinearLayout.VERTICAL);
 
-        form.addView(label("Home Assistant URL (prefer HTTPS / Nabu Casa)", 16, 0xff101c2b));
+        form.addView(label("Home Assistant URL (prefer HTTPS / Nabu Casa)", 16, 0xff221713));
         EditText url = new EditText(this);
         url.setSingleLine(true);
         url.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
@@ -500,7 +500,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         url.setText(settings == null ? "" : settings.url);
         form.addView(url);
 
-        form.addView(label("Long-lived access token (never saved in GitHub)", 16, 0xff101c2b));
+        form.addView(label("Long-lived access token (never saved in GitHub)", 16, 0xff221713));
         EditText token = new EditText(this);
         token.setSingleLine(true);
         token.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
