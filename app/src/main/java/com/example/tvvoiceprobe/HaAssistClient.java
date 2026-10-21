@@ -37,6 +37,8 @@ public final class HaAssistClient {
         default void ready() { }
         default void listening() { }
         default void processing() { }
+        default void localSilence() { }
+        default void runEnded() { }
     }
 
     private final Context context;
@@ -319,6 +321,7 @@ public final class HaAssistClient {
             case "run-end":
                 stopForRunEnd();
                 events.status("Ready for another question.");
+                events.runEnded();
                 break;
             default:
                 break;
@@ -449,6 +452,7 @@ public final class HaAssistClient {
                         // Don't finish before sending the final chunk.
                         if (heardUtterance && quietMs >= 1550 && observedMs >= 1100) {
                             events.status("Voice pause detected. Processing your question...");
+                            events.localSilence();
                             endRequested = true;
                             recording.set(false);
                         }

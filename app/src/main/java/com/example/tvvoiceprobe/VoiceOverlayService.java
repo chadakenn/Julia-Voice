@@ -60,6 +60,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
     private MediaPlayer player;
     private int selected = 0;
     private boolean listening = false;
+    private boolean speaking = false;
     private boolean firstAutoListenPending = false;
     private boolean firstAutoListenStarted = false;
     private long autoListenDeadlineMs;
@@ -350,6 +351,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
             player = null;
         }
         listening = true;
+        speaking = false;
         transcriptView.setText("Listening to your voice...");
         answerView.setText("...");
         if (wave != null) wave.setMode(VoiceWaveView.LISTENING);
@@ -440,21 +442,27 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         });
     }
 
+    @Override public void localSilence() {
+        main.post(() -> {
+            listening = false;
+            main.removeCallbacks(endListeningTimeout);
+            if (!closing && wave != null) wave.setMode(VoiceWaveView.THINKING);
+        });
+    }
+
+    @Override public void runEnded() {
+        main.post(() -> {
+            if (closing) return;
+            if (!speaking) {
+                if (wave != null) wave.setMode(VoiceWaveView.IDLE);
+                scheduleIdleDismiss();
+            }
+        });
+    }
+
     @Override public void status(String message) {
         main.post(() -> {
-            if (closing || statusView == null) return;
-            statusView.setText(message);
-            if (message.contains("Ready for another question")) {
-                if (wave != null) wave.setMode(VoiceWaveView.IDLE);
-                scheduleFallbackDismiss();
-            } else if (message.startsWith("Speaking...")) {
-                main.removeCallbacks(dismissAfterReply);
-                if (wave != null) wave.setMode(VoiceWaveView.SPEAKING);
-            } else if (message.contains("Voice pause detected")) {
-                listening = false;
-                main.removeCallbacks(endListeningTimeout);
-                if (wave != null) wave.setMode(VoiceWaveView.THINKING);
-            }
+            if (!closing && statusView != null) statusView.setText(message);
         });
     }
 
@@ -477,16 +485,18 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         });
     }
 
-    private void scheduleFallbackDismiss() {
-        if (preferences != null && preferences.autoHide()) {
-            main.removeCallbacks(dismissAfterReply);
-            main.postDelayed(dismissAfterReply, 25000);
-        }
+    private void scheduleIdleDismiss() {
+        if (closing || preferences == null || !preferences.autoHide()) return;
+        main.removeCallbacks(dismissAfterReply);
+        main.postDelayed(dismissAfterReply, preferences.hideSeconds() * 1000L);
     }
 
     private void playTts(String address) {
         if (connection == null || closing) return;
         try {
+            // TTS may take a moment to prepare; do not dismiss while buffering.
+            speaking = true;
+            main.removeCallbacks(dismissAfterReply);
             HttpUrl playback = TtsUrls.allowedPlaybackUrl(connection.url, address);
             if (player != null) player.release();
             player = new MediaPlayer();
@@ -502,27 +512,28 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
                 p.start();
             });
             player.setOnCompletionListener(p -> {
+                speaking = false;
                 status("Done. Press ⭐ again or choose TALK.");
                 if (wave != null) wave.setMode(VoiceWaveView.IDLE);
-                if (preferences.autoHide()) {
-                    main.removeCallbacks(dismissAfterReply);
-                    main.postDelayed(dismissAfterReply, preferences.hideSeconds() * 1000L);
-                }
+                scheduleIdleDismiss();
             });
             player.setOnErrorListener((p, what, extra) -> {
+                speaking = false;
                 status("Speech playback failed; answer is still shown.");
-                scheduleFallbackDismiss();
+                scheduleIdleDismiss();
                 return true;
             });
             player.prepareAsync();
         } catch (Exception ignored) {
+            speaking = false;
             status("Could not play speech. The answer is still shown.");
-            scheduleFallbackDismiss();
+            scheduleIdleDismiss();
         }
     }
 
     @Override public void onDestroy() {
         closing = true;
+        speaking = false;
         main.removeCallbacksAndMessages(null);
         if (assist != null) { assist.shutdown(); assist = null; }
         if (player != null) { player.release(); player = null; }
