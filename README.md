@@ -23,6 +23,14 @@ Kellie's Voice is a local-first, open-source voice companion for Home Assistant,
 
 **Current release:** v0.15.0 combines the Android TV assistant, Night Signal, more reliable ⭐ overlay startup, remote scrolling, YouTube audio focus, optional Home Assistant layout controls, and opt-in announcement/camera snapshot popups. Voice, scrolling, ducking, and overlay launching have been tested on the onn 4K Pro; announcement and Frigate popup delivery still needs end-to-end testing. The signed Android APK and current HA integration are part of the same source release.
 
+## Experimental live camera viewing (v0.16 development)
+
+Automatic Frigate person alerts still display short snapshots. To request a **real moving live feed**, use the new `kellies_voice.show_live_camera` action after updating the HACS integration to `main` and installing the matching **signed v0.16.0-dev APK** from [GitHub Actions](https://github.com/chadakenn/Kellies-Voice/actions/workflows/build-apk.yml). This has not yet been tested on an actual onn TV. It is not part of the stable v0.15.1 release.
+
+The app asks Home Assistant for a temporary HLS stream over its authenticated WebSocket and displays muted video in a temporary non-focusable overlay, without changing TV playback. The default timeout is 90 seconds. Stream latency and availability depend on the HA camera/stream integration and the TV's decoder.
+
+To make Julia respond to phrases such as "show me the driveway camera," expose a script that calls `kellies_voice.show_live_camera` to her conversation agent. Voice intent handling is separate from the Android streaming transport.
+
 ## Download and upgrade safely
 
 The signed Android package ID stays `com.example.tvvoiceprobe` and the signing key stays the same. Install the latest [signed GitHub Release APK](https://github.com/chadakenn/Kellies-Voice/releases/latest) **over the installed Kellie's Voice app**, or use its verified in-app updater. **Do not uninstall** or you may lose the Home Assistant token and device settings.
