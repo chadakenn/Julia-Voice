@@ -34,7 +34,8 @@ class ForecastDeliveryTests(unittest.IsolatedAsyncioTestCase):
         functions = [node for node in source.body
                      if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
                      and node.name in ("configured_device_ids", "_saved_weather_entity",
-                                       "_async_show_forecast")]
+                                       "_async_show_forecast", "_timer_target", "_async_start_timer",
+                                       "_async_cancel_timer", "_async_dismiss_timers")]
         namespace = dict(vars(validation))
         namespace.update(HomeAssistant=object, ServiceCall=object,
                          ServiceValidationError=ValueError, DOMAIN=const.DOMAIN,
@@ -42,6 +43,7 @@ class ForecastDeliveryTests(unittest.IsolatedAsyncioTestCase):
                          _LOGGER=logging.getLogger(__name__))
         exec(compile(ast.Module(body=functions, type_ignores=[]), "services.py", "exec"), namespace)
         self.handler = namespace["_async_show_forecast"]
+        self.timer_handlers = namespace
         self.hass = SimpleNamespace(
             config_entries=SimpleNamespace(async_entries=lambda domain: [
                 SimpleNamespace(data={"device_id": "living-room"})]),
@@ -67,8 +69,45 @@ class ForecastDeliveryTests(unittest.IsolatedAsyncioTestCase):
             "entity_id": "weather.home", "duration_seconds": 30}))
         self.assertEqual(30, self.hass.bus.async_fire.call_args.args[1]["duration_seconds"])
 
+    async def test_named_timer_commands_target_one_tv_and_keep_alert_options(self):
+        await self.timer_handlers["_async_start_timer"](SimpleNamespace(hass=self.hass, data={
+            "device_id": "living-room", "name": "Pizza", "duration_seconds": 300,
+            "speak_alert": True, "alert_phrase": "Pizza is ready."}))
+        event, payload = self.hass.bus.async_fire.call_args.args
+        self.assertEqual("kellies_voice_timer", event)
+        self.assertEqual("start", payload["operation"])
+        self.assertEqual("living-room", payload["device_id"])
+        self.assertEqual("Pizza", payload["name"])
+        self.assertTrue(payload["speak_alert"])
+        self.assertEqual("Pizza is ready.", payload["alert_phrase"])
+        self.assertAlmostEqual(300000, payload["ends_at_ms"] - payload["issued"] * 1000, delta=1000)
+        await self.timer_handlers["_async_cancel_timer"](SimpleNamespace(hass=self.hass, data={
+            "device_id": "living-room", "name": "Pizza"}))
+        self.assertEqual("cancel", self.hass.bus.async_fire.call_args.args[1]["operation"])
+        await self.timer_handlers["_async_dismiss_timers"](SimpleNamespace(hass=self.hass, data={
+            "device_id": "living-room"}))
+        self.assertEqual("dismiss", self.hass.bus.async_fire.call_args.args[1]["operation"])
+
+    async def test_timer_missing_or_unknown_target_never_broadcasts(self):
+        for target in ("", "bedroom"):
+            with self.subTest(target=target), self.assertRaises(ValueError):
+                await self.timer_handlers["_async_start_timer"](SimpleNamespace(hass=self.hass, data={
+                    "device_id": target, "duration_seconds": 300}))
+        self.hass.bus.async_fire.assert_not_called()
+
 
 class ValidationTests(unittest.TestCase):
+    def test_timer_names_durations_and_phrases_are_bounded(self):
+        self.assertEqual("Pizza timer", validation.clean_timer_name(" Pizza  timer "))
+        self.assertEqual(300, validation.clean_timer_seconds("300"))
+        self.assertEqual("Pizza is ready", validation.clean_timer_phrase("Pizza\n is ready"))
+        for bad in (True, 0, -1, 86401, 1.5, float("inf"), None):
+            with self.subTest(duration=str(bad)), self.assertRaises(ValueError):
+                validation.clean_timer_seconds(bad)
+        for bad in ("", "http://no", "a"*41, None):
+            with self.assertRaises(ValueError): validation.clean_timer_name(bad)
+        with self.assertRaises(ValueError): validation.clean_timer_phrase("a"*141)
+
     def test_forecast_schema_does_not_insert_a_duration_override(self):
         source = ast.parse((_COMPONENT / "services.py").read_text(encoding="utf-8"))
         schema = next(node.value for node in source.body

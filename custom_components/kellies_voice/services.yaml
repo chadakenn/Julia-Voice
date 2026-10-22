@@ -1,3 +1,48 @@
+start_timer:
+  name: Start a TV timer
+  description: Start or replace a named timer on one paired TV. Alert repeats until dismissed.
+  fields:
+    device_id:
+      required: true
+      selector:
+        text:
+    name:
+      default: Timer
+      selector:
+        text:
+    duration_seconds:
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 86400
+          mode: box
+    speak_alert:
+      default: false
+      selector:
+        boolean:
+    alert_phrase:
+      selector:
+        text:
+cancel_timer:
+  name: Cancel a named TV timer
+  fields:
+    device_id:
+      required: true
+      selector:
+        text:
+    name:
+      default: Timer
+      selector:
+        text:
+dismiss_timers:
+  name: Dismiss ringing TV timers
+  description: Dismiss completion alerts on one TV, leaving running timers alone.
+  fields:
+    device_id:
+      required: true
+      selector:
+        text:
 announce:
   fields:
     title:

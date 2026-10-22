@@ -106,6 +106,38 @@ def target_device_ids(requested, configured) -> list:
 
 
 _WEATHER_ENTITY = re.compile(r"^weather\.[a-z0-9_]+$")
+
+
+def clean_timer_name(value):
+    """Named timer keys match the TV's ASCII, case-insensitive rules."""
+    if not isinstance(value, str):
+        raise ValueError("Use a timer name from 1 to 40 letters, digits, spaces, hyphens or underscores.")
+    name = " ".join(value.split())
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9 _-]{0,39}", name):
+        raise ValueError("Use a timer name from 1 to 40 letters, digits, spaces, hyphens or underscores.")
+    return name
+
+
+def clean_timer_seconds(value):
+    if isinstance(value, bool):
+        raise ValueError("Timer duration must be 1 to 86400 whole seconds.")
+    try:
+        seconds = int(value)
+        if float(value) != seconds or not 1 <= seconds <= 86400:
+            raise ValueError
+    except (ValueError, TypeError, OverflowError):
+        raise ValueError("Timer duration must be 1 to 86400 whole seconds.") from None
+    return seconds
+
+
+def clean_timer_phrase(value):
+    if not isinstance(value, str):
+        raise ValueError("Alert phrase must be text.")
+    text = " ".join(value.split())
+    if len(text) > 140 or "://" in text:
+        raise ValueError("Alert phrase must be at most 140 characters, without a URL.")
+    return text
+
 _CONDITIONS = {
     "clear-night", "cloudy", "exceptional", "fog", "hail", "lightning",
     "lightning-rainy", "partlycloudy", "pouring", "rainy", "snowy",

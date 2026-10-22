@@ -40,6 +40,9 @@ from .validation import (
     clean_weather_entity,
     forecast_rows,
     target_device_ids,
+    clean_timer_name,
+    clean_timer_seconds,
+    clean_timer_phrase,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -98,13 +101,29 @@ SHOW_FORECAST_SCHEMA = vol.Schema(
     }
 )
 
+START_TIMER_SCHEMA = vol.Schema({
+    vol.Required("device_id"): cv.string,
+    vol.Optional("name", default="Timer"): clean_timer_name,
+    vol.Required("duration_seconds"): clean_timer_seconds,
+    vol.Optional("speak_alert", default=False): cv.boolean,
+    vol.Optional("alert_phrase", default=""): clean_timer_phrase,
+})
+CANCEL_TIMER_SCHEMA = vol.Schema({
+    vol.Required("device_id"): cv.string,
+    vol.Optional("name", default="Timer"): clean_timer_name,
+})
+DISMISS_TIMERS_SCHEMA = vol.Schema({vol.Required("device_id"): cv.string})
+
 
 def async_register_services(hass: HomeAssistant) -> None:
-    """Register four TV-event services once; HA layout entities remain untouched."""
+    """Register TV-event services once; HA layout entities remain untouched."""
     data = hass.data.setdefault(DOMAIN, {})
     if data.get(_REGISTERED):
         return
     data[_REGISTERED] = True
+    hass.services.async_register(DOMAIN, "start_timer", _async_start_timer, schema=START_TIMER_SCHEMA)
+    hass.services.async_register(DOMAIN, "cancel_timer", _async_cancel_timer, schema=CANCEL_TIMER_SCHEMA)
+    hass.services.async_register(DOMAIN, "dismiss_timers", _async_dismiss_timers, schema=DISMISS_TIMERS_SCHEMA)
     hass.services.async_register(
         DOMAIN, SERVICE_ANNOUNCE, _async_announce, schema=ANNOUNCE_SCHEMA
     )
@@ -130,6 +149,49 @@ def configured_device_ids(hass: HomeAssistant) -> list:
         if isinstance(device_id, str):
             found.append(device_id)
     return found
+
+
+def _timer_target(call):
+    # Timer commands address exactly one paired TV. Never silently broadcast.
+    requested = call.data.get("device_id", "").strip()
+    if not requested:
+        raise ServiceValidationError("Choose one paired TV device id for timers.")
+    try:
+        return target_device_ids(requested, configured_device_ids(call.hass))[0]
+    except ValueError as error:
+        raise ServiceValidationError(str(error)) from None
+
+
+async def _async_start_timer(call: ServiceCall):
+    device_id = _timer_target(call)
+    try:
+        name = clean_timer_name(call.data.get("name", "Timer"))
+        seconds = clean_timer_seconds(call.data.get("duration_seconds"))
+        phrase = clean_timer_phrase(call.data.get("alert_phrase", ""))
+    except ValueError as error:
+        raise ServiceValidationError(str(error)) from None
+    call.hass.bus.async_fire("kellies_voice_timer", {
+        "operation": "start", "device_id": device_id, "name": name,
+        "issued": int(time.time()), "ends_at_ms": int(time.time() * 1000) + seconds * 1000,
+        "speak_alert": call.data.get("speak_alert", False), "alert_phrase": phrase,
+    })
+
+
+async def _async_cancel_timer(call: ServiceCall):
+    device_id = _timer_target(call)
+    try:
+        name = clean_timer_name(call.data.get("name", "Timer"))
+    except ValueError as error:
+        raise ServiceValidationError(str(error)) from None
+    call.hass.bus.async_fire("kellies_voice_timer", {
+        "operation": "cancel", "device_id": device_id, "name": name, "issued": int(time.time()),
+    })
+
+
+async def _async_dismiss_timers(call: ServiceCall):
+    call.hass.bus.async_fire("kellies_voice_timer", {
+        "operation": "dismiss", "device_id": _timer_target(call), "issued": int(time.time()),
+    })
 
 
 async def _async_announce(call: ServiceCall) -> None:

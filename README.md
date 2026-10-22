@@ -218,6 +218,10 @@ On the device page, **Forecast source** is the weather entity used when a script
 
 ## Project status and contributing
 
+### Development draft: voice timers
+
+Named countdown pills and completion alerts are proposed in the timer feature branch. Alerts repeat **two chimes → optional configurable phrase → short pause** until dismissed. See [voice timer setup](docs/VOICE_TIMERS.md) for copy/paste Home Assistant actions, custom sentences, intent scripts, cancellation and unverified hardware limits. This is not part of the installed v0.16.3 release.
+
 **Current release: Android v0.16.3 + Home Assistant integration v0.16.3.** Voice, announcement cards, Frigate snapshots and moving live driveway and doorbell video have been confirmed on the onn 4K Pro. Other camera streams and wider TV compatibility remain under test. Issues and pull requests are welcome, especially **real, redacted screenshots**, hardware results and reproducible problems.
 
 Kellie's Voice is a community-built Home Assistant companion, **not an official Home Assistant or HACS product**.

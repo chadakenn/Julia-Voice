@@ -70,6 +70,8 @@ public final class TvEventsService extends Service {
     private static final int LAYOUT_STATES_ID = 5;
     private static final int HIDE_CAMERA_EVENT_ID = 6;
     private static final int FORECAST_EVENT_ID = 7;
+    private static final int TIMER_EVENT_ID = 8;
+    private TimerOverlayController timerOverlay;
     private static final int MAX_SNAPSHOT_BYTES = 5 * 1024 * 1024;
 
     private final Handler main = new Handler(Looper.getMainLooper());
@@ -156,6 +158,7 @@ public final class TvEventsService extends Service {
             return START_NOT_STICKY;
         }
         stopping = false;
+        if (timerOverlay == null) timerOverlay = new TimerOverlayController(this, windowManager);
         TvEventsRestartReceiver.clearResume(this);
         TvEventsRecovery.note(TvEventsRecovery.RECONNECTING);
         if (ACTION_PREVIEW.equals(action)) {
@@ -274,6 +277,8 @@ public final class TvEventsService extends Service {
                 ws.send(new JSONObject().put("id", FORECAST_EVENT_ID)
                         .put("type", "subscribe_events")
                         .put("event_type", ForecastCard.EVENT).toString());
+                ws.send(new JSONObject().put("id", TIMER_EVENT_ID)
+                        .put("type", "subscribe_events").put("event_type", "kellies_voice_timer").toString());
                 if (new OverlayPreferences(this).haManage()) {
                     layoutStatesId = LAYOUT_STATES_ID;
                     ws.send(new JSONObject().put("id", LAYOUT_EVENT_ID)
@@ -321,7 +326,7 @@ public final class TvEventsService extends Service {
                         && (resultId == ANNOUNCE_ID || resultId == CAMERA_ID
                                 || resultId == LIVE_EVENT_ID
                                 || resultId == HIDE_CAMERA_EVENT_ID
-                                || resultId == FORECAST_EVENT_ID)) {
+                                || resultId == FORECAST_EVENT_ID || resultId == TIMER_EVENT_ID)) {
                     connectionNotice("Event subscriptions rejected; check HA permissions");
                 }
                 return;
@@ -345,6 +350,10 @@ public final class TvEventsService extends Service {
             if (subscription == HIDE_CAMERA_EVENT_ID
                     && TvEventPayload.HIDE_CAMERA.equals(eventType)) {
                 if (cameraVisible) hideCard();
+                return;
+            }
+            if (subscription == TIMER_EVENT_ID && "kellies_voice_timer".equals(eventType)) {
+                if (timerOverlay != null) timerOverlay.command(data);
                 return;
             }
             int duration = TvEventPayload.duration(data.optInt("duration_seconds", 10));
@@ -762,6 +771,7 @@ public final class TvEventsService extends Service {
 
     @Override public void onDestroy() {
         stopping = true;
+        if (timerOverlay != null) { timerOverlay.close(!new OverlayPreferences(this).tvEvents()); timerOverlay = null; }
         main.removeCallbacksAndMessages(null);
         hideCard();
         if (socket != null) {

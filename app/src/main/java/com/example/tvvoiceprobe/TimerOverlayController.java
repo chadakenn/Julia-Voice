@@ -1,0 +1,282 @@
+package com.example.tvvoiceprobe;
+
+import android.content.Context;
+import android.graphics.PixelFormat;
+import android.graphics.drawable.GradientDrawable;
+import android.media.AudioAttributes;
+import android.media.AudioFocusRequest;
+import android.media.AudioManager;
+import android.media.MediaPlayer;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.SystemClock;
+import android.speech.tts.TextToSpeech;
+import android.speech.tts.UtteranceProgressListener;
+import android.view.Gravity;
+import android.view.KeyEvent;
+import android.view.WindowManager;
+import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+/** Separate timer window and bounded callbacks. Never opens a microphone. */
+public final class TimerOverlayController {
+    private final Context context;
+    private final WindowManager windows;
+    private final Handler main = new Handler(Looper.getMainLooper());
+    private final TimerBook timers = new TimerBook();
+    private final AudioManager audio;
+    private final AudioFocusRequest focus;
+    private LinearLayout panel;
+    private MediaPlayer player;
+    private TextToSpeech speech;
+    private boolean speechReady;
+    private boolean closed;
+    private boolean audioInterrupted;
+    private int alertGeneration;
+    private TimerBook.Entry alerting;
+    private Runnable speechFallback;
+    private String expectedSpeech;
+    private int utterance;
+    private String layout = "";
+    private final Runnable tick = new Runnable() {
+        @Override public void run() {
+            if (closed) return;
+            if (timers.tick(SystemClock.elapsedRealtime())) save();
+            render();
+            chooseAlert();
+            main.postDelayed(this, 1000);
+        }
+    };
+
+    public TimerOverlayController(Context context, WindowManager windows) {
+        this.context = context;
+        this.windows = windows;
+        audio = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+        focus = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+                .setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).build())
+                .setOnAudioFocusChangeListener(change -> {
+                    main.post(() -> {
+                        if (closed) return;
+                        if (change == AudioManager.AUDIOFOCUS_GAIN) { audioInterrupted = false; chooseAlert(); }
+                        else if (change < 0) { audioInterrupted = true; silence(); }
+                    });
+                }).build();
+        speech = new TextToSpeech(context, result -> main.post(() -> speechReady = result == TextToSpeech.SUCCESS));
+        speech.setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build());
+        speech.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+            @Override public void onStart(String id) { }
+            @Override public void onDone(String id) { main.post(() -> speechDone(id)); }
+            @Override public void onError(String id) { main.post(() -> speechDone(id)); }
+        });
+        restore();
+        main.post(tick);
+    }
+
+    public void command(JSONObject data) {
+        if (closed || data.optLong("issued", 0) <= 0
+                || !ForecastCard.fresh(data.optLong("issued", 0), System.currentTimeMillis() / 1000)) return;
+        String name = data.optString("name", "Timer");
+        String operation = data.optString("operation", "");
+        if ("start".equals(operation)) {
+            timers.start(name, data.optLong("ends_at_ms", 0), System.currentTimeMillis(),
+                    SystemClock.elapsedRealtime(), data.optBoolean("speak_alert", false), data.optString("alert_phrase", ""));
+        } else if ("cancel".equals(operation)) timers.cancel(name);
+        else if ("dismiss".equals(operation)) timers.dismissRinging();
+        else return;
+        save();
+        render();
+        chooseAlert();
+    }
+
+    private int dp(int value) { return Math.round(value * context.getResources().getDisplayMetrics().density); }
+
+    private void render() {
+        if (windows == null) return;
+        boolean ringing = timers.ringing() != null;
+        StringBuilder signature = new StringBuilder();
+        for (TimerBook.Entry entry : timers.entries()) signature.append(entry.name).append(':').append(entry.finished).append('|');
+        if (panel != null && signature.toString().equals(layout)) {
+            int i = 0;
+            for (TimerBook.Entry timer : timers.entries()) {
+                ((TextView) panel.getChildAt(i++)).setText(timer.name + "   " + timer.remaining(SystemClock.elapsedRealtime())
+                        + (timer.finished ? "  ·  Dismiss" : ""));
+            }
+            return;
+        }
+        layout = signature.toString();
+        if (panel == null && !timers.entries().isEmpty()) {
+            panel = new LinearLayout(context) {
+                @Override public boolean dispatchKeyEvent(KeyEvent event) {
+                    if (event.getAction() == KeyEvent.ACTION_DOWN && event.getKeyCode() == KeyEvent.KEYCODE_BACK
+                            && timers.ringing() != null) {
+                        timers.dismissRinging(); save(); render(); chooseAlert(); return true;
+                    }
+                    return super.dispatchKeyEvent(event);
+                }
+            };
+            panel.setOrientation(LinearLayout.VERTICAL);
+            panel.setPadding(dp(14), dp(8), dp(14), dp(8));
+            GradientDrawable surface = new GradientDrawable();
+            surface.setColor(0xF510182B);
+            surface.setCornerRadius(dp(20));
+            surface.setStroke(dp(1), 0x887DAAFF);
+            panel.setBackground(surface);
+            panel.setFocusableInTouchMode(true);
+            panel.setOnKeyListener((view, code, event) -> {
+                if (event.getAction() == KeyEvent.ACTION_DOWN && code == KeyEvent.KEYCODE_BACK && timers.ringing() != null) {
+                    timers.dismissRinging(); save(); render(); chooseAlert(); return true;
+                }
+                return false;
+            });
+            try { windows.addView(panel, params(ringing)); }
+            catch (RuntimeException rejected) { panel = null; return; }
+        }
+        if (panel == null) return;
+        if (timers.entries().isEmpty()) { removePanel(); return; }
+        panel.removeAllViews();
+        for (TimerBook.Entry timer : timers.entries()) {
+            String text = timer.name + "   " + timer.remaining(SystemClock.elapsedRealtime());
+            if (timer.finished) {
+                Button dismiss = new Button(context);
+                dismiss.setText(text + "  ·  Dismiss");
+                dismiss.setTextColor(0xFFFFFFFF);
+                dismiss.setOnClickListener(view -> { timers.cancel(timer.name); save(); render(); chooseAlert(); });
+                panel.addView(dismiss);
+            } else {
+                TextView pill = new TextView(context);
+                pill.setText(text); pill.setTextSize(18); pill.setTextColor(0xFFE8EEFF);
+                pill.setPadding(dp(8), dp(4), dp(8), dp(4));
+                panel.addView(pill);
+            }
+        }
+        try { windows.updateViewLayout(panel, params(ringing)); }
+        catch (RuntimeException rejected) { removePanel(); }
+    }
+
+    private WindowManager.LayoutParams params(boolean ringing) {
+        int flags = WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN;
+        if (!ringing) flags |= WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
+        int width = Math.min(dp(420), context.getResources().getDisplayMetrics().widthPixels - dp(40));
+        WindowManager.LayoutParams params = new WindowManager.LayoutParams(width, -2,
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY, flags, PixelFormat.TRANSLUCENT);
+        params.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
+        params.y = dp(24);
+        params.setTitle("Kellie's Voice timers");
+        return params;
+    }
+
+    private void chooseAlert() {
+        TimerBook.Entry next = timers.ringing();
+        if (audioInterrupted && next != null) return;
+        if (next == alerting) return;
+        silence();
+        alerting = next;
+        if (next != null) {
+            if (audio != null && audio.requestAudioFocus(focus) != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+                alerting = null;
+                return;
+            }
+            if (panel != null) panel.requestFocus();
+            chime(alertGeneration, 0);
+        }
+    }
+
+    private boolean current(int generation) { return !closed && generation == alertGeneration && alerting != null; }
+
+    private void chime(int generation, int index) {
+        if (!current(generation)) return;
+        releasePlayer();
+        try {
+            player = MediaPlayer.create(context, R.raw.timer_chime,
+                    new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build(), 0);
+            if (player == null) { later(generation, 1500, () -> chime(generation, 0)); return; }
+            player.setOnCompletionListener(done -> {
+                if (!current(generation)) return;
+                releasePlayer();
+                if (index == 0) later(generation, 180, () -> chime(generation, 1));
+                else speakOrRepeat(generation);
+            });
+            player.setOnErrorListener((failed, what, extra) -> {
+                if (!current(generation)) return true;
+                releasePlayer(); later(generation, 1500, () -> chime(generation, 0)); return true;
+            });
+            player.start();
+        } catch (RuntimeException failed) { releasePlayer(); later(generation, 1500, () -> chime(generation, 0)); }
+    }
+
+    private void speakOrRepeat(int generation) {
+        if (!current(generation)) return;
+        if (!alerting.speak || !speechReady) { later(generation, 500, () -> chime(generation, 0)); return; }
+        speechFallback = () -> {
+            if (!current(generation)) return;
+            expectedSpeech = null; speechFallback = null; speech.stop();
+            later(generation, 500, () -> chime(generation, 0));
+        };
+        main.postDelayed(speechFallback, 15000);
+        expectedSpeech = "timer-" + generation + "-" + (++utterance);
+        int result = speech.speak(alerting.phrase, TextToSpeech.QUEUE_FLUSH, null, expectedSpeech);
+        if (result == TextToSpeech.ERROR) speechDone(expectedSpeech);
+    }
+
+    private void speechDone(String id) {
+        if (!current(alertGeneration) || expectedSpeech == null || !expectedSpeech.equals(id) || speechFallback == null) return;
+        expectedSpeech = null;
+        main.removeCallbacks(speechFallback); speechFallback = null;
+        int generation = alertGeneration;
+        later(generation, 500, () -> chime(generation, 0));
+    }
+
+    private void later(int generation, int delay, Runnable action) {
+        main.postDelayed(() -> { if (current(generation)) action.run(); }, delay);
+    }
+
+    private void silence() {
+        alertGeneration++;
+        alerting = null;
+        if (speechFallback != null) main.removeCallbacks(speechFallback);
+        speechFallback = null;
+        expectedSpeech = null;
+        if (speech != null) speech.stop();
+        releasePlayer();
+        if (audio != null) audio.abandonAudioFocusRequest(focus);
+    }
+
+    private void releasePlayer() { if (player != null) { player.release(); player = null; } }
+    private void removePanel() {
+        if (panel != null) { try { windows.removeView(panel); } catch (RuntimeException ignored) { } panel = null; }
+    }
+
+    private void save() {
+        JSONArray state = new JSONArray();
+        for (TimerBook.Entry timer : timers.entries()) {
+            try { state.put(new JSONObject().put("name", timer.name).put("end", timer.endEpochMs)
+                    .put("speak", timer.speak).put("phrase", timer.phrase)); } catch (Exception ignored) { }
+        }
+        context.getSharedPreferences("kellie_timers", 0).edit().putString("active", state.toString()).apply();
+    }
+
+    private void restore() {
+        try {
+            JSONArray state = new JSONArray(context.getSharedPreferences("kellie_timers", 0).getString("active", "[]"));
+            for (int i = 0; i < state.length() && i < TimerBook.MAX_TIMERS; i++) {
+                JSONObject row = state.getJSONObject(i);
+                timers.start(row.optString("name"), row.optLong("end"), System.currentTimeMillis(),
+                        SystemClock.elapsedRealtime(), row.optBoolean("speak"), row.optString("phrase"));
+            }
+        } catch (Exception ignored) { }
+    }
+
+    public void close(boolean forget) {
+        closed = true;
+        silence();
+        main.removeCallbacksAndMessages(null);
+        if (speech != null) { speech.shutdown(); speech = null; }
+        removePanel();
+        if (forget) context.getSharedPreferences("kellie_timers", 0).edit().clear().apply();
+    }
+}

@@ -32,3 +32,5 @@ recordings/
 *.pcm
 *.raw
 *.wav
+# Original synthesized app alert, not a microphone recording.
+!app/src/main/res/raw/timer_chime.wav
