@@ -1,10 +1,10 @@
-# Voice timers (development draft)
+# Voice timers: v0.16.4 and Assist setup
 
 Named TV timers show small countdown pills over the current app. At completion: one chime, a 180 ms gap, a second chime, the optional configured phrase, then a 500 ms pause before the next pair. **Alerts repeat until dismissed, with no automatic cutoff.** Multiple completed timers share one audio sequence; dismiss the current timer to hear the next. Back dismisses every ringing timer, leaving running timers alone. The completion window has D-pad buttons; countdowns do not take remote focus.
 
 The bundled chime plays locally. Optional speech uses the TV's Android text-to-speech engine, not the microphone or HA voice agent; it may sound different from Julia. If speech is unavailable, chimes continue. A stalled utterance is stopped after 15 seconds so the pair sequence can resume. The phrase is configured per timer and limited to 140 characters.
 
-This branch is based on Aurora Glass and the weather fixes. It does not include PR #46 microphone changes. No release, version change, deployment or installation has been performed.
+**Shipped in v0.16.4** for both the signed Android TV APK and the matching Home Assistant integration. Timers need an opted-in TV event receiver and remain an awake-TV feature. The optional hands-free microphone follow-up from PR #46 is not in this release. In v0.16.4 the onn owner confirmed countdown, repeating chimes, and Back-to-dismiss; the remote OK / Dismiss button did not work on their TV and is tracked in [issue #54](https://github.com/chadakenn/Kellies-Voice/issues/54) / draft PR #55. Until that fix is released and verified, use Back or the `dismiss_timers` Home Assistant action.
 
 ## Requirements and behavior
 
@@ -45,9 +45,110 @@ data:
   device_id: REPLACE_WITH_PAIRED_TV_ID
 ```
 
+## Voice control with an LLM agent (Ollama, etc.)
+
+For an LLM-backed conversation agent, **exposing parameterized Home Assistant scripts** is the simplest way to say natural requests such as “Julia, set a pizza timer for five minutes” without a fixed-duration script for every timer. Create these on **Settings → Automations & scenes → Scripts → Create script → Edit in YAML**. These scripts are **not automatically installed by HACS**, because every installation uses a different paired TV ID and conversation agent. Replace `REPLACE_WITH_PAIRED_TV_ID` with the TV's pairing ID shown in **Kellie's Voice → Settings → Home Assistant layout → Show this TV's pairing ID** (the Home Assistant device's `kellie_device_id` attribute contains the same ID).
+
+### Script 1: start or replace a named timer
+
+Save this script as **Julia start TV timer**. Its fields and descriptions tell the LLM how to convert requested minutes/hours to integer seconds.
+
+```yaml
+alias: Julia start TV timer
+description: >-
+  Start or replace a named countdown timer on the Kellie's Voice TV only when
+  the user asks Julia for a timer. Supply duration_seconds as whole seconds:
+  five minutes is 300, one hour is 3600. Optionally name it Pizza or Laundry.
+  The TV repeats completion chimes until dismissed.
+mode: queued
+max: 8
+fields:
+  duration_seconds:
+    name: Timer duration, seconds
+    description: Required integer 1 to 86400. Convert minutes and hours into seconds; 5 minutes is 300.
+    required: true
+    selector:
+      number:
+        min: 1
+        max: 86400
+        step: 1
+        mode: box
+  name:
+    name: Timer name
+    description: Optional short timer name such as Pizza, Laundry or Timer (maximum 40 characters).
+    default: Timer
+    selector:
+      text: {}
+  speak_alert:
+    name: Speak on finish
+    description: True only if the user explicitly asks for spoken completion; false means repeating chimes only.
+    default: false
+    selector:
+      boolean: {}
+  alert_phrase:
+    name: Spoken completion phrase
+    description: Optional text up to 140 characters read by Android TV TTS after the chimes.
+    selector:
+      text: {}
+sequence:
+  - action: kellies_voice.start_timer
+    data:
+      device_id: REPLACE_WITH_PAIRED_TV_ID
+      name: "{{ name | default('Timer', true) }}"
+      duration_seconds: "{{ duration_seconds | int(0) }}"
+      speak_alert: "{{ speak_alert | default(false) | bool }}"
+      alert_phrase: "{{ alert_phrase | default('', true) }}"
+```
+
+### Script 2: cancel a named timer
+
+Create a second script named **Julia cancel TV timer**:
+
+```yaml
+alias: Julia cancel TV timer
+description: >-
+  Cancel the user's named Kellie's Voice TV timer or stop that timer's
+  repeating alarm. Use the requested timer name, or Timer for an unnamed one.
+mode: queued
+fields:
+  name:
+    name: Timer name
+    description: Existing timer name to cancel, such as Pizza, Laundry or Timer.
+    default: Timer
+    selector:
+      text: {}
+sequence:
+  - action: kellies_voice.cancel_timer
+    data:
+      device_id: REPLACE_WITH_PAIRED_TV_ID
+      name: "{{ name | default('Timer', true) }}"
+```
+
+### Script 3: silence currently ringing alerts
+
+Create a third script named **Julia dismiss TV timer alerts**:
+
+```yaml
+alias: Julia dismiss TV timer alerts
+description: >-
+  Stop all currently ringing Kellie's Voice timer alerts when the user says
+  dismiss or silence alarms. Leave unfinished countdown timers running.
+mode: single
+sequence:
+  - action: kellies_voice.dismiss_timers
+    data:
+      device_id: REPLACE_WITH_PAIRED_TV_ID
+```
+
+For **all three scripts**, enable **Assist exposure** in the script's Voice assistants settings (or **Settings → Voice assistants → Expose**). Your Ollama or other LLM conversation integration must have **Control Home Assistant** enabled; the script must be available to the same Assist agent the TV uses. Keep names and descriptions descriptive, as LLM agents choose tools based on them.
+
+Test spoken phrases on the TV: **“Julia, set a pizza timer for five minutes,” “Julia, cancel the pizza timer,”** and **“Julia, dismiss the timer alerts.”** Do not assume the command reached the TV just because the LLM says it ran. Check the visible pill or alarm. Some native Assist pipelines route generic timer phrases to their built-in satellite timer handling; named **TV** requests can resolve that ambiguity. The remote's **Back** key remains a known working dismiss fallback on v0.16.4.
+
+The documented YAML configuration below is an **alternative** for native Assist custom sentences and `intent_script` users who don't want the LLM to choose parameterized tools.
+
 ## Voice setup
 
-Use Home Assistant's documented [custom sentence files](https://www.home-assistant.io/voice_control/custom_sentences_yaml/) and [intent scripts](https://www.home-assistant.io/integrations/intent_script/). This setup is a draft and has not been exercised on the owner's live Assist pipeline. An LLM agent may need local command handling enabled; verify exact matching before relying on it. The “Kellie” variants avoid ambiguity with native satellite timers.
+Use Home Assistant's documented [custom sentence files](https://www.home-assistant.io/voice_control/custom_sentences_yaml/) and [intent scripts](https://www.home-assistant.io/integrations/intent_script/). The custom-sentence and intent-script setup below is still an alternative path and has not been exercised on the owner's Ollama pipeline. An LLM agent may need local command handling enabled; verify exact matching before relying on it. The “Kellie” variants avoid ambiguity with native satellite timers.
 
 Save this as `/config/custom_sentences/en/kellie_timers.yaml`:
 
@@ -126,6 +227,8 @@ Alerts stay silent unless overlay permission is granted and the attached complet
 
 - [ ] Start two named timers over YouTube and verify countdowns without remote-focus theft.
 - [ ] At expiry, verify exactly two chimes, optional complete phrase, short pause, repeat indefinitely until dismissed.
+- [x] Owner's onn v0.16.4: 10-second Pizza timer pill appeared, chimes repeated and Back stopped the alert.
+- [ ] Known v0.16.4 issue: D-pad OK / Dismiss button did not activate; follow #54 / draft PR #55 and retest on next release.
 - [ ] Test D-pad Dismiss, Back, named voice cancellation, replacement while ringing, and multiple expired timers.
 - [ ] Verify dismiss stops MediaPlayer/TTS callbacks, restores audio focus, and cannot restart a stale alert.
 - [ ] Interrupt a ringing alert with other audio, then verify recovery and a later timer. Revoke overlay permission or hide/remove the completion window during chimes and speech: audio must stop; restore controls and verify safe resumption and Dismiss.
