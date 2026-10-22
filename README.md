@@ -10,7 +10,7 @@
 
 [![Open Kellie's Voice in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=chadakenn&repository=Kellies-Voice&category=integration)
 
-**First-time HACS setup:** The badge cannot add a repository that's not yet registered in HACS. In **HACS → ⋮ → Custom repositories**, enter `https://github.com/chadakenn/Kellies-Voice`, select **Integration**, then click **Add**. After that, use the badge above to open it and download **v0.15.0** (or a newer release). The older v0.6 release does not contain this HA integration.
+**First-time HACS setup:** The badge cannot add a repository that's not yet registered in HACS. In **HACS → ⋮ → Custom repositories**, enter `https://github.com/chadakenn/Kellies-Voice`, select **Integration**, then click **Add**. After that, use the badge above to open it and download **v0.16.0** (or a newer release). The older v0.6 release does not contain this HA integration.
 
 After downloading, restart Home Assistant. On the TV, enable **Kellie's Voice → Settings → Home Assistant layout**; in Home Assistant, go to **Settings → Devices & services → Discovered** and add your TV. Enable **Settings → TV announcements & cameras** on the TV for visual announcements and Frigate snapshot popups.
 
@@ -19,13 +19,15 @@ HACS installs only the Home Assistant integration, **not the Android APK**. If y
 
 Kellie's Voice is a local-first, open-source voice companion for Home Assistant, starting with Google TV and Android TV. Ask a question or control a room using the floating overlay, without replacing the TV launcher.
 
-**Latest patch:** v0.15.1 adds **manual TV pairing** for setups where network discovery is blocked and ships Kellie's copper house/microphone integration icon. On the TV select **Settings → Home Assistant layout → Show this TV's pairing ID**, then choose **Add Integration → Kellie's Voice** in HA and type the displayed ID. Keep Home Assistant layout ON. Automatic discovery continues to work when available.
+**Current release: v0.16.0.** The signed Android TV app and matching Home Assistant integration include Night Signal, overlay positioning, reliable reconnection, announcement popups and Frigate camera snapshots. The **new on-demand live video overlay is experimental** and still needs actual onn 4K Pro playback testing.
 
-**Current release:** v0.15.0 combines the Android TV assistant, Night Signal, more reliable ⭐ overlay startup, remote scrolling, YouTube audio focus, optional Home Assistant layout controls, and opt-in announcement/camera snapshot popups. Voice, scrolling, ducking, and overlay launching have been tested on the onn 4K Pro; announcement and Frigate popup delivery still needs end-to-end testing. The signed Android APK and current HA integration are part of the same source release.
+**Verified on the onn 4K Pro:** Home Assistant layout controls really move the overlay; targeted announcements appear over TV; driveway Frigate snapshots display. **Not yet verified on hardware:** live HLS video playback, moving frames, buffering/latency, and shutdown. The existing snapshot automations remain unchanged.
 
-## Experimental live camera viewing (v0.16 development)
+**Setup and manual pairing:** On the TV select **Settings → Home Assistant layout → Show this TV's pairing ID**. In HA select **Add Integration → Kellie's Voice** and enter that ID only if discovery does not detect the TV. Keep Home Assistant layout ON. Native HA branding includes Kellie's copper microphone icon.
 
-Automatic Frigate person alerts still display short snapshots. To request a **real moving live feed**, use the new `kellies_voice.show_live_camera` action after updating the HACS integration to `main` and installing the matching **signed v0.16.0-dev APK** from [GitHub Actions](https://github.com/chadakenn/Kellies-Voice/actions/workflows/build-apk.yml). This has not yet been tested on an actual onn TV. It is not part of the stable v0.15.1 release.
+## Experimental live camera viewing (v0.16.0)
+
+Automatic Frigate person alerts still show short snapshots. For a **moving live feed**, update the Android app using **Settings → Check for app updates**, then update the HACS integration to **v0.16.0** and restart Home Assistant. The in-app updater downloads the published signed APK, verifies its SHA-256 and signing identity, then opens Android's normal installer. No APK sideloading is needed when upgrading from an already-working v0.15.1 installation.
 
 The app asks Home Assistant for a temporary HLS stream over its authenticated WebSocket and displays muted video in a temporary non-focusable overlay, without changing TV playback. The default timeout is 90 seconds. Stream latency and availability depend on the HA camera/stream integration and the TV's decoder.
 
@@ -66,7 +68,7 @@ For [reconnection verification steps](docs/TESTING.md), test a short Wi-Fi inter
 
 Settings are saved locally. **Close and reopen the overlay** to apply position/size/skin changes. Existing installations keep their previous overlay location and size until you choose differently. Audio behavior and permission requirements are unchanged.
 
-**Home Assistant layout control (development):** An opt-in custom integration can configure per-TV overlay position, size, skin (including Night Signal), auto-hide, and auto-listen. A broader dashboard for camera popups, announcements, microphone settings, and updates remains planned. Local settings remain available. This feature still requires testing on the onn box. See [Home Assistant remote configuration plan](docs/REMOTE_CONFIGURATION_PLAN.md).
+**Home Assistant layout control (tested):** The custom integration configures per-TV overlay position, size, skin (including Night Signal), auto-hide, and auto-listen. A change from Top right to Bottom left was confirmed working on the onn 4K Pro. A broader HA-managed dashboard for camera/announcement overlays and other settings is still planned. See [Home Assistant remote configuration plan](docs/REMOTE_CONFIGURATION_PLAN.md).
 
 ## onn ⭐ TV remote shortcut
 
@@ -130,7 +132,7 @@ The image previews below are **illustrative reconstructions based on those actua
 | v0.5 Glass skin, animated waveform and Classic option | 🔶 Signed build passed; await onn field test |
 | v0.5 auto-listen/auto-stop + reply auto-hide | 🔶 Signed build passed; await onn field test |
 | Dedicated **Kellie's Voice Overlay** launcher or main-app ⭐ fallback | 🔶 Built, mapping depends on onn firmware |
-| GitHub Release update check, download, checksum verification and Android installer | 🔶 v0.6 builds successfully; device test pending |
+| GitHub Release updater with signed APK, SHA-256 and Android installer | ✅ v0.16.0 release pipeline; normal in-app update mechanism, finish device verification |
 | Control TV overlay layout from Home Assistant (position, size, Night Signal style, auto-hide, auto-listen) | 🔶 Implemented as an opt-in development feature; onn TV and HA integration tests pending |
 | HA media_player announcements, Frigate person-triggered PiP, dashboard on request | 📋 Planned |
 

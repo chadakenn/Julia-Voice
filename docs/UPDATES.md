@@ -29,3 +29,13 @@ Normal pushes create a **signed development APK artifact**, not a public GitHub 
 **v0.15.0 release:** Publication was owner-authorized. A one-time `[publish-v0.15.0]` gated main-branch workflow path builds/tests the latest app, signs and verifies its APK, and uploads `app-release.apk` with SHA-256 `update.json`. Later releases still require a new owner-authorized version bump/manual workflow.
 
 **v0.15.1 patch release:** Adds a manual pairing fallback and the local Home Assistant brand icon. It retains the same signed Android package identity and publishes after Android and HA tests. HACS may still show a generic icon due to an upstream HACS frontend issue, while Home Assistant's native integration page uses the bundled brand asset.
+
+## v0.16.0: update directly from Kellie's Voice (October 2026)
+
+With version 0.15.1 already installed, open the **Kellie's Voice** TV app → **SETTINGS → Check for app updates**. When v0.16.0 appears, choose **Download update** and then **Install downloaded update**, accepting Android's normal package-installer prompt. You may have to grant Kellie's Voice **Install unknown apps** once. Do not uninstall or clear app data.
+
+The app's built-in updater reads the public stable GitHub Release, requires `app-release.apk` and `update.json`, compares Android `versionCode` values, validates the SHA-256 checksum, package ID and installed signing certificate, then delegates installation to Android. A GitHub Actions artifact **without** a published Release is **not** visible to in-app updates. Developer/prerelease builds are deliberately not offered by the stable update endpoint.
+
+After updating the TV, in **HACS** update the Home Assistant Kellie's Voice integration to **v0.16.0**, then restart HA. The new live camera action is experimental until hardware-tested; announcement and Frigate snapshot popups remain the tested default. The OTA update does not replace or upgrade the HA integration automatically.
+
+The release workflow publishes only when explicitly approved and the signed APK passes tests/signature verification. Normal GitHub pushes continue producing signed artifacts but do not publish user-facing app updates.
