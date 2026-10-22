@@ -30,5 +30,5 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Run host unit tests
-        run: gradle --no-daemon :app:testDebugUnitTest
+      - name: Build debug APK and run host unit tests
+        run: gradle --no-daemon :app:assembleDebug :app:testDebugUnitTest
