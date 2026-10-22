@@ -14,6 +14,9 @@ public final class HaLayout {
     public static final String ALERT_POSITION = "alert_position";
     public static final String ALERT_SIZE = "alert_size";
     public static final String NOISE = "noise";
+    public static final String WEATHER_POSITION = "weather_position";
+    public static final String WEATHER_SIZE = "weather_size";
+    public static final String WEATHER_DURATION = "weather_duration";
 
     private HaLayout() {}
 
@@ -21,7 +24,9 @@ public final class HaLayout {
         return POSITION.equals(setting) || SIZE.equals(setting) || STYLE.equals(setting)
                 || AUTO_HIDE.equals(setting) || AUTO_LISTEN.equals(setting)
                 || ALERT_POSITION.equals(setting) || ALERT_SIZE.equals(setting)
-                || NOISE.equals(setting);
+                || NOISE.equals(setting)
+                || WEATHER_POSITION.equals(setting) || WEATHER_SIZE.equals(setting)
+                || WEATHER_DURATION.equals(setting);
     }
 
     public static boolean changesPanel(String setting) {
@@ -49,6 +54,12 @@ public final class HaLayout {
                 return TvAlertLayout.sizeLabel(prefs.alertSize());
             case NOISE:
                 return MicSensitivity.label(prefs.noise());
+            case WEATHER_POSITION:
+                return WeatherLayout.positionLabel(prefs.weatherPosition());
+            case WEATHER_SIZE:
+                return TvAlertLayout.sizeLabel(prefs.weatherSize());
+            case WEATHER_DURATION:
+                return WeatherLayout.durationLabel(prefs.weatherSeconds());
             default:
                 return null;
         }
@@ -101,6 +112,21 @@ public final class HaLayout {
                 String noise = MicSensitivity.keyOrNull(value);
                 if (noise == null || noise.equals(prefs.noise())) return false;
                 prefs.setNoise(noise);
+                return true;
+            case WEATHER_POSITION:
+                String weatherPosition = WeatherLayout.positionOrNull(value);
+                if (weatherPosition == null || weatherPosition.equals(prefs.weatherPosition())) return false;
+                prefs.setWeatherPosition(weatherPosition);
+                return true;
+            case WEATHER_SIZE:
+                String weatherSize = TvAlertLayout.sizeOrNull(value);
+                if (weatherSize == null || weatherSize.equals(prefs.weatherSize())) return false;
+                prefs.setWeatherSize(weatherSize);
+                return true;
+            case WEATHER_DURATION:
+                int weatherSeconds = WeatherLayout.durationSeconds(value);
+                if (weatherSeconds < 0 || weatherSeconds == prefs.weatherSeconds()) return false;
+                prefs.setWeatherSeconds(weatherSeconds);
                 return true;
             default:
                 return false;

@@ -101,6 +101,24 @@
           "description": "Specific paired TV. Leave blank to close camera popups on all paired Kellie's Voice TVs."
         }
       }
+    },
+    "show_forecast": {
+      "name": "Show forecast",
+      "description": "Fetch today's daily forecast from a Home Assistant weather entity and show it on a configured TV. This does not run on a schedule and does not start the microphone.",
+      "fields": {
+        "entity_id": {
+          "name": "Weather entity",
+          "description": "A weather entity with a daily forecast, such as weather.forecast_home. Leave empty to use Forecast source on the device page."
+        },
+        "duration_seconds": {
+          "name": "Duration (seconds)",
+          "description": "How long the card stays up, from 8 to 45 seconds. The usual value is 20."
+        },
+        "device_id": {
+          "name": "TV device id",
+          "description": "One configured TV. Leave empty to send to every configured Kellie's Voice TV."
+        }
+      }
     }
   }
 }

@@ -104,6 +104,137 @@ def target_device_ids(requested, configured) -> list:
     return [chosen]
 
 
+_WEATHER_ENTITY = re.compile(r"^weather\.[a-z0-9_]+$")
+_CONDITIONS = {
+    "clear-night", "cloudy", "exceptional", "fog", "hail", "lightning",
+    "lightning-rainy", "partlycloudy", "pouring", "rainy", "snowy",
+    "snowy-rainy", "sunny", "windy", "windy-variant",
+}
+
+
+def clean_weather_entity(value) -> str:
+    """Accept only a Home Assistant weather entity id."""
+    if value is None:
+        raise ValueError("Choose a weather entity, such as weather.forecast_home.")
+    entity_id = str(value).strip().lower()
+    if not _WEATHER_ENTITY.fullmatch(entity_id):
+        raise ValueError("Choose a weather entity, such as weather.forecast_home.")
+    return entity_id
+
+
+def clean_forecast_duration(value) -> int:
+    """Forecast cards stay up long enough to read, and no longer than 45 seconds."""
+    if value is None or value == "":
+        return 20
+    try:
+        seconds = int(value)
+    except (TypeError, ValueError):
+        raise ValueError("Forecast duration must be from 8 to 45 seconds.") from None
+    if seconds < 8 or seconds > 45:
+        raise ValueError("Forecast duration must be from 8 to 45 seconds.")
+    return seconds
+
+
+def clean_forecast_place(value) -> str:
+    """A short label from the weather entity name. Never a URL."""
+    text = _clean_line(value)
+    if "://" in text or text.lower().startswith("http"):
+        return "Forecast"
+    if not text:
+        return "Forecast"
+    return text[:40]
+
+
+def clean_forecast_unit(value) -> str:
+    if value in ("°C", "°F", "C", "F"):
+        return "°C" if value in ("°C", "C") else "°F"
+    return "°"
+
+
+def clean_forecast_days(raw_days, tz_name="UTC") -> list:
+    """Keep at most seven usable days. Drop a day that has no temperature."""
+    if not isinstance(raw_days, list):
+        raise ValueError("That weather entity returned no daily forecast.")
+    days = []
+    for raw in raw_days:
+        if len(days) >= 7:
+            break
+        day = _forecast_day(raw, tz_name)
+        if day is not None:
+            days.append(day)
+    if not days:
+        raise ValueError("That weather entity returned no usable daily forecast.")
+    return days
+
+
+def forecast_rows(response, entity_id) -> list:
+    """Read the weather.get_forecasts response without assuming extra wrappers."""
+    if not isinstance(response, dict):
+        return []
+    block = response.get(entity_id)
+    if isinstance(block, dict):
+        rows = block.get("forecast")
+        return rows if isinstance(rows, list) else []
+    return []
+
+
+def _forecast_day(raw, tz_name) -> dict:
+    if not isinstance(raw, dict):
+        return None
+    label = _forecast_label(raw.get("datetime"), tz_name)
+    if label is None:
+        return None
+    high = _forecast_temp(raw.get("temperature"))
+    low = _forecast_temp(raw.get("templow"))
+    if high is None and low is None:
+        return None
+    condition = raw.get("condition")
+    if not isinstance(condition, str) or condition not in _CONDITIONS:
+        condition = "unknown"
+    day = {"label": label, "condition": condition, "high": high, "low": low}
+    precip = _forecast_precip(raw.get("precipitation_probability"))
+    if precip is not None:
+        day["precipitation"] = precip
+    return day
+
+
+def _forecast_label(value, tz_name) -> str:
+    if not isinstance(value, str) or "://" in value:
+        return None
+    text = value.strip()
+    if not text or len(text) > 40:
+        return None
+    try:
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=ZoneInfo("UTC"))
+        zone = ZoneInfo(tz_name or "UTC")
+        local = parsed.astimezone(zone)
+    except Exception:
+        return None
+    return f"{local.strftime('%a')} {local.day}"
+
+
+def _forecast_temp(value):
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    rounded = int(round(float(value)))
+    if rounded < -80 or rounded > 140:
+        return None
+    return rounded
+
+
+def _forecast_precip(value):
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    rounded = int(round(float(value)))
+    if rounded < 0 or rounded > 100:
+        return None
+    return rounded
+
+
 def _clean_line(value) -> str:
     if value is None:
         return ""

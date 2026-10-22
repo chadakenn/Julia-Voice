@@ -78,3 +78,23 @@ hide_camera:
       example: ""
       selector:
         text:
+
+show_forecast:
+  fields:
+    entity_id:
+      example: weather.forecast_home
+      selector:
+        entity:
+          filter:
+            domain: weather
+    duration_seconds:
+      example: 20
+      selector:
+        number:
+          min: 8
+          max: 45
+          mode: box
+    device_id:
+      example: ""
+      selector:
+        text:

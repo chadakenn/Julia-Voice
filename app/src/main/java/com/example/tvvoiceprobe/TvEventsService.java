@@ -69,6 +69,7 @@ public final class TvEventsService extends Service {
     private static final int LAYOUT_EVENT_ID = 4;
     private static final int LAYOUT_STATES_ID = 5;
     private static final int HIDE_CAMERA_EVENT_ID = 6;
+    private static final int FORECAST_EVENT_ID = 7;
     private static final int MAX_SNAPSHOT_BYTES = 5 * 1024 * 1024;
 
     private final Handler main = new Handler(Looper.getMainLooper());
@@ -270,6 +271,9 @@ public final class TvEventsService extends Service {
                 ws.send(new JSONObject().put("id", HIDE_CAMERA_EVENT_ID)
                         .put("type", "subscribe_events")
                         .put("event_type", TvEventPayload.HIDE_CAMERA).toString());
+                ws.send(new JSONObject().put("id", FORECAST_EVENT_ID)
+                        .put("type", "subscribe_events")
+                        .put("event_type", ForecastCard.EVENT).toString());
                 if (new OverlayPreferences(this).haManage()) {
                     layoutStatesId = LAYOUT_STATES_ID;
                     ws.send(new JSONObject().put("id", LAYOUT_EVENT_ID)
@@ -316,7 +320,8 @@ public final class TvEventsService extends Service {
                 if (!message.optBoolean("success", false)
                         && (resultId == ANNOUNCE_ID || resultId == CAMERA_ID
                                 || resultId == LIVE_EVENT_ID
-                                || resultId == HIDE_CAMERA_EVENT_ID)) {
+                                || resultId == HIDE_CAMERA_EVENT_ID
+                                || resultId == FORECAST_EVENT_ID)) {
                     connectionNotice("Event subscriptions rejected; check HA permissions");
                 }
                 return;
@@ -362,9 +367,112 @@ public final class TvEventsService extends Service {
                         TvEventPayload.cleanText(data.optString("title", "Live camera"), 65),
                         "LIVE · Starting muted video…", entity,
                         TvEventPayload.liveDuration(data.optInt("duration_seconds", 90)), true);
+            } else if (subscription == FORECAST_EVENT_ID
+                    && ForecastCard.EVENT.equals(eventType)) {
+                if (!cameraVisible) showForecast(data);
             }
         } catch (Exception ignored) {
             // Never print auth tokens, URLs, or untrusted event payloads.
+        }
+    }
+
+    /** A forecast card never replaces a camera and never opens the microphone. */
+    private void showForecast(JSONObject data) {
+        if (stopping || windowManager == null || !Settings.canDrawOverlays(this)) return;
+        if (!ForecastCard.fresh(data.optLong("issued", 0L), System.currentTimeMillis() / 1000L)) return;
+        org.json.JSONArray rows = data.optJSONArray("days");
+        java.util.ArrayList<ForecastCard.Day> parsed = new java.util.ArrayList<>();
+        if (rows != null) {
+            for (int i = 0; i < rows.length() && parsed.size() < 7; i++) {
+                JSONObject row = rows.optJSONObject(i);
+                if (row == null) continue;
+                ForecastCard.Day day = ForecastCard.day(
+                        row.optString("label", ""),
+                        row.optString("condition", ""),
+                        row.isNull("high") ? null : String.valueOf(row.opt("high")),
+                        row.isNull("low") ? null : String.valueOf(row.opt("low")),
+                        row.isNull("precipitation") ? null : String.valueOf(row.opt("precipitation")));
+                if (day != null) parsed.add(day);
+            }
+        }
+        int requested = data.has("duration_seconds")
+                ? data.optInt("duration_seconds", 20)
+                : new OverlayPreferences(this).weatherSeconds();
+        ForecastCard forecast = ForecastCard.card(
+                data.optString("location", "Forecast"),
+                data.optString("units", ""),
+                requested,
+                parsed);
+        if (forecast == null) return;
+        hideCard();
+        int current = ++generation;
+        OverlayPreferences placement = new OverlayPreferences(this);
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setPadding(dp(16), dp(12), dp(16), dp(12));
+        GradientDrawable background = new GradientDrawable(
+                GradientDrawable.Orientation.LEFT_RIGHT,
+                new int[] {0xf514100E, 0xf5241A14});
+        background.setCornerRadius(dp(14));
+        background.setStroke(dp(2), 0xffC4884A);
+        panel.setBackground(background);
+        panel.addView(label(forecast.location, 18, 0xffEAC296));
+        panel.addView(label(forecast.heading(), 13, 0xffC4884A));
+        for (ForecastCard.Day day : forecast.days) {
+            TextView row = label(day.line(forecast.units), 15, 0xffFAE8D5);
+            row.setMaxLines(1);
+            panel.addView(row);
+        }
+        panel.addView(label("Back closes this forecast", 12, 0xffAD835D));
+        panel.setFocusable(true);
+        panel.setOnKeyListener((view, key, event) -> {
+            if (event.getAction() != android.view.KeyEvent.ACTION_DOWN) return false;
+            if (key == android.view.KeyEvent.KEYCODE_BACK
+                    || key == android.view.KeyEvent.KEYCODE_ESCAPE) {
+                hideCard();
+                return true;
+            }
+            return false;
+        });
+        int screen = getResources().getDisplayMetrics().widthPixels;
+        int width = Math.min(dp(WeatherLayout.widthDp(placement.weatherSize())), screen - dp(48));
+        WindowManager.LayoutParams params = new WindowManager.LayoutParams(
+                width, WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+                PixelFormat.TRANSLUCENT);
+        String position = placement.weatherPosition();
+        params.gravity = weatherGravity(position);
+        params.x = dp(position.equals(WeatherLayout.BOTTOM_CENTER)
+                || position.equals(TvAlertLayout.CENTER) ? 0 : 28);
+        params.y = dp(position.equals(TvAlertLayout.CENTER) ? 0 : 36);
+        params.setTitle("Kellie's Voice forecast");
+        try {
+            windowManager.addView(panel, params);
+            panel.requestFocus();
+            card = panel;
+            cameraVisible = false;
+            main.postDelayed(dismiss, forecast.seconds * 1000L);
+            if (generation != current) hideCard();
+        } catch (RuntimeException ignored) {
+            card = null;
+        }
+    }
+
+    private static int weatherGravity(String position) {
+        switch (WeatherLayout.position(position)) {
+            case TvAlertLayout.TOP_LEFT:
+                return Gravity.TOP | Gravity.START;
+            case TvAlertLayout.BOTTOM_LEFT:
+                return Gravity.BOTTOM | Gravity.START;
+            case TvAlertLayout.BOTTOM_RIGHT:
+                return Gravity.BOTTOM | Gravity.END;
+            case WeatherLayout.BOTTOM_CENTER:
+                return Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
+            case TvAlertLayout.CENTER:
+                return Gravity.CENTER;
+            default:
+                return Gravity.TOP | Gravity.END;
         }
     }
 
@@ -502,7 +610,10 @@ public final class TvEventsService extends Service {
         OverlayPreferences prefs = new OverlayPreferences(this);
         if (!prefs.deviceId().equals(attributes.optString("kellie_device_id"))) return;
         String setting = attributes.optString("kellie_setting");
-        if (!HaLayout.ALERT_POSITION.equals(setting) && !HaLayout.ALERT_SIZE.equals(setting)) return;
+        if (!HaLayout.ALERT_POSITION.equals(setting) && !HaLayout.ALERT_SIZE.equals(setting)
+                && !HaLayout.WEATHER_POSITION.equals(setting)
+                && !HaLayout.WEATHER_SIZE.equals(setting)
+                && !HaLayout.WEATHER_DURATION.equals(setting)) return;
         if (attributes.optInt("kellie_generation", 0) <= 0) return;
         String raw = state.optString("state");
         if ("unavailable".equals(raw) || "unknown".equals(raw) || raw.isEmpty()) return;

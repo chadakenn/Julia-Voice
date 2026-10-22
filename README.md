@@ -188,6 +188,33 @@ Kellie's Voice uses a user-controlled microphone; it **does not intercept the Go
 
 For problems, see [Troubleshooting](docs/TROUBLESHOOTING.md), [Update guide](docs/UPDATES.md), [Known testing procedures](docs/TESTING.md), [Privacy and security guidance](SECURITY.md) and [project vision](docs/PROJECT_VISION.md).
 
+## Seven-day forecast
+
+Ask Julia for the week and a card can appear over the current app. It uses your Home Assistant weather entity. It is not automatic, and it is not a camera.
+
+Create this script, replace the weather entity, and expose it to Assist. The full steps are in [docs/WEATHER_FORECAST.md](docs/WEATHER_FORECAST.md).
+
+```yaml
+alias: Seven day forecast on TV
+description: Show the next seven days of weather on Kellie's Voice.
+mode: single
+sequence:
+  - action: kellies_voice.show_forecast
+    data:
+      entity_id: weather.forecast_home
+      duration_seconds: 20
+```
+
+On the device page, **Forecast source** is the weather entity used when a script leaves `entity_id` empty. **Forecast position**, **Forecast size**, and **Forecast duration** move only that card. The usual spot is bottom center for 20 seconds. Home Assistant 2024.4 or newer is required because the action calls `weather.get_forecasts`. Update HACS and restart Home Assistant, then install the matching Android build over the current app. Do not uninstall it. The card below is a **simulation**, not a photo from the onn.
+
+| Thu 22 | ☀ | 68° / 49° | 10% |
+| Fri 23 | ⛅ | 71° / 52° | 20% |
+| Sat 24 | ☂ | 64° / 50° | 60% |
+| Sun 25 | ☁ | 66° / 48° | 30% |
+| Mon 26 | ☀ | 70° / 47° | 5% |
+| Tue 27 | ❄ | 42° / 31° | 40% |
+| Wed 28 | ☾ | 45° / 33° | — |
+
 ## Project status and contributing
 
 **Current release: Android v0.16.3 + Home Assistant integration v0.16.3.** Voice, announcement cards, Frigate snapshots and moving live driveway and doorbell video have been confirmed on the onn 4K Pro. Other camera streams and wider TV compatibility remain under test. Issues and pull requests are welcome, especially **real, redacted screenshots**, hardware results and reproducible problems.

@@ -44,6 +44,9 @@ public final class OverlayPreferences {
     private static final String KEY_DEVICE = "ha_device_id";
     private static final String KEY_HA_MANAGE = "ha_manage_layout";
     private static final String KEY_TV_EVENTS = "tv_events_enabled";
+    private static final String KEY_WEATHER_POSITION = "weather_position";
+    private static final String KEY_WEATHER_SIZE = "weather_size";
+    private static final String KEY_WEATHER_SECONDS = "weather_seconds";
     private final SharedPreferences preferences;
 
     public OverlayPreferences(Context context) {
@@ -218,5 +221,31 @@ public final class OverlayPreferences {
 
     public void setMainLauncherOpensOverlay(boolean enabled) {
         preferences.edit().putBoolean(KEY_MAIN_SHORTCUT, enabled).apply();
+    }
+
+    public String weatherPosition() {
+        return WeatherLayout.position(preferences.getString(KEY_WEATHER_POSITION, WeatherLayout.BOTTOM_CENTER));
+    }
+
+    public void setWeatherPosition(String value) {
+        preferences.edit().putString(KEY_WEATHER_POSITION, WeatherLayout.position(value)).apply();
+    }
+
+    public String weatherSize() {
+        return TvAlertLayout.size(preferences.getString(KEY_WEATHER_SIZE, TvAlertLayout.MEDIUM));
+    }
+
+    public void setWeatherSize(String value) {
+        preferences.edit().putString(KEY_WEATHER_SIZE, TvAlertLayout.size(value)).apply();
+    }
+
+    public int weatherSeconds() {
+        int value = preferences.getInt(KEY_WEATHER_SECONDS, 20);
+        return value == 8 || value == 30 || value == 45 ? value : 20;
+    }
+
+    public void setWeatherSeconds(int value) {
+        preferences.edit().putInt(KEY_WEATHER_SECONDS,
+                value == 8 || value == 30 || value == 45 ? value : 20).apply();
     }
 }

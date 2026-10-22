@@ -1,6 +1,7 @@
 """Home Assistant services that fire TV events. They do not talk to the TV directly."""
 
 import logging
+import time
 
 import voluptuous as vol
 from homeassistant.core import HomeAssistant, ServiceCall
@@ -16,6 +17,7 @@ from .const import (
     EVENT_CAMERA_POPUP,
     EVENT_LIVE_CAMERA,
     EVENT_HIDE_CAMERA,
+    EVENT_FORECAST,
     MAX_DURATION_SECONDS,
     MAX_LIVE_SECONDS,
     MIN_LIVE_SECONDS,
@@ -24,12 +26,19 @@ from .const import (
     SERVICE_SHOW_CAMERA,
     SERVICE_SHOW_LIVE_CAMERA,
     SERVICE_HIDE_CAMERA,
+    SERVICE_SHOW_FORECAST,
 )
 from .validation import (
     clean_camera_entity,
     clean_duration,
     clean_text,
     clean_title,
+    clean_forecast_days,
+    clean_forecast_duration,
+    clean_forecast_place,
+    clean_forecast_unit,
+    clean_weather_entity,
+    forecast_rows,
     target_device_ids,
 )
 
@@ -79,6 +88,16 @@ HIDE_CAMERA_SCHEMA = vol.Schema(
     }
 )
 
+SHOW_FORECAST_SCHEMA = vol.Schema(
+    {
+        vol.Optional("entity_id"): cv.string,
+        vol.Optional("duration_seconds", default=20): vol.All(
+            vol.Coerce(int), vol.Range(min=8, max=45)
+        ),
+        vol.Optional("device_id"): cv.string,
+    }
+)
+
 
 def async_register_services(hass: HomeAssistant) -> None:
     """Register four TV-event services once; HA layout entities remain untouched."""
@@ -97,6 +116,9 @@ def async_register_services(hass: HomeAssistant) -> None:
     )
     hass.services.async_register(
         DOMAIN, SERVICE_HIDE_CAMERA, _async_hide_camera, schema=HIDE_CAMERA_SCHEMA
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_SHOW_FORECAST, _async_show_forecast, schema=SHOW_FORECAST_SCHEMA
     )
 
 
@@ -206,3 +228,80 @@ async def _async_hide_camera(call: ServiceCall) -> None:
     for device_id in targets:
         call.hass.bus.async_fire(EVENT_HIDE_CAMERA, {"device_id": device_id})
     _LOGGER.debug("Fired %s for %s configured TV(s)", EVENT_HIDE_CAMERA, len(targets))
+
+
+def _saved_weather_entity(hass: HomeAssistant, device_id: str):
+    """The forecast-source select for one TV, if the owner picked a weather entity."""
+    for state in hass.states.async_all("select"):
+        attributes = state.attributes
+        if attributes.get("kellie_setting") != "weather_source":
+            continue
+        if device_id and attributes.get("kellie_device_id") != device_id:
+            continue
+        if isinstance(state.state, str) and state.state.startswith("weather."):
+            return state.state
+    return None
+
+
+async def _async_show_forecast(call: ServiceCall) -> None:
+    """Fetch a daily forecast and send only the cleaned days to the TV.
+
+    Nothing here runs on a schedule. A voice script or the Actions page calls it.
+    """
+    try:
+        requested = call.data.get("entity_id")
+        device_filter = call.data.get("device_id")
+        targets = target_device_ids(device_filter, configured_device_ids(call.hass))
+        if not requested:
+            requested = _saved_weather_entity(
+                call.hass, targets[0] if len(targets) == 1 else ""
+            )
+        entity_id = clean_weather_entity(requested)
+        duration = clean_forecast_duration(call.data.get("duration_seconds", 20))
+    except ValueError as err:
+        raise ServiceValidationError(str(err)) from None
+    state = call.hass.states.get(entity_id)
+    if state is None:
+        raise ServiceValidationError("That weather entity is not in Home Assistant.")
+    try:
+        features = int(state.attributes.get("supported_features", 0) or 0)
+    except (TypeError, ValueError):
+        features = 0
+    if not features & 1:
+        raise ServiceValidationError(
+            "This weather entity does not provide a daily forecast."
+        )
+    try:
+        result = await call.hass.services.async_call(
+            "weather",
+            "get_forecasts",
+            {"entity_id": entity_id, "type": "daily"},
+            blocking=True,
+            return_response=True,
+        )
+    except Exception:
+        raise ServiceValidationError(
+            "Home Assistant could not read that daily forecast."
+        ) from None
+    try:
+        days = clean_forecast_days(
+            forecast_rows(result, entity_id),
+            getattr(call.hass.config, "time_zone", None) or "UTC",
+        )
+    except ValueError as err:
+        raise ServiceValidationError(str(err)) from None
+    place = clean_forecast_place(state.attributes.get("friendly_name") or state.name)
+    unit = clean_forecast_unit(state.attributes.get("temperature_unit"))
+    for device_id in targets:
+        call.hass.bus.async_fire(
+            EVENT_FORECAST,
+            {
+                "location": place,
+                "units": unit,
+                "duration_seconds": duration,
+                "issued": int(time.time()),
+                "days": days,
+                "device_id": device_id,
+            },
+        )
+    _LOGGER.debug("Fired %s with %s day(s)", EVENT_FORECAST, len(days))

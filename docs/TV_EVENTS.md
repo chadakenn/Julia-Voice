@@ -27,7 +27,7 @@ GitHub files, screenshots, automation YAML, or logs.
 ## Event contract
 
 The companion Home Assistant integration can implement the
-`kellies_voice.announce` and `kellies_voice.show_camera` services. The
+`kellies_voice.announce` and `kellies_voice.show_camera` services. A seven-day forecast is a separate on-demand action, documented in [WEATHER_FORECAST.md](WEATHER_FORECAST.md). The
 Android side listens for the following raw **Home Assistant event bus** events:
 
 ### Visual announcement (text only in phase 1)
@@ -76,6 +76,15 @@ overlay, so video apps and remote controls remain usable.
 **Note:** Some Frigate entities may not expose a usable Home Assistant
 camera snapshot. Use an HA `camera.*` entity that supports `camera_proxy`,
 or the popup will show its text without an image.
+
+### Seven-day forecast
+
+- Event type: `kellies_voice_forecast`
+- Fired only by `kellies_voice.show_forecast` after a successful `weather.get_forecasts` call
+- Data is a cleaned location label, `°C` or `°F`, 1 to 7 days, and a duration from 8 to 45 seconds
+- The TV ignores a forecast older than two minutes and will not cover a camera that is already showing
+
+Do not put a weather URL or a token in this event. Setup steps and the Assist script are in [WEATHER_FORECAST.md](WEATHER_FORECAST.md).
 
 ## Developer test checklist
 

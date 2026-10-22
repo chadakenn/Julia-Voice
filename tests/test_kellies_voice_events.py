@@ -93,6 +93,32 @@ class ValidationTests(unittest.TestCase):
         self.assertIn("if (cameraVisible) hideCard()", android)
         self.assertIn("HIDE_CAMERA_EVENT_ID = 6", android)
 
+    def test_forecast_keeps_seven_days_and_drops_bad_fields(self):
+        rows = []
+        for day in range(1, 10):
+            rows.append({
+                "datetime": f"2026-10-{day:02d}T12:00:00+00:00",
+                "condition": "sunny" if day != 2 else "http://nope.example/icon",
+                "temperature": 70 if day != 3 else None,
+                "templow": 48 if day != 3 else None,
+                "precipitation_probability": 10 if day != 4 else 250,
+            })
+        cleaned = validation.clean_forecast_days(rows, "America/New_York")
+        self.assertEqual(7, len(cleaned))
+        self.assertEqual("unknown", cleaned[1]["condition"])
+        self.assertNotIn("precipitation", cleaned[2])
+        self.assertNotIn("://", str(cleaned))
+        self.assertEqual("°F", validation.clean_forecast_unit("F"))
+        self.assertEqual("Forecast", validation.clean_forecast_place("https://home.example/secret"))
+        with self.assertRaises(ValueError):
+            validation.clean_forecast_days([], "UTC")
+        with self.assertRaises(ValueError):
+            validation.clean_weather_entity("camera.door")
+        self.assertEqual([], validation.forecast_rows({"weather.home": {}}, "weather.home"))
+        self.assertEqual(20, validation.clean_forecast_duration(None))
+        with self.assertRaises(ValueError):
+            validation.clean_forecast_duration(90)
+
     def test_title_and_text_limits(self):
         self.assertEqual(validation.clean_title("  Washer   done "), "Washer done")
         with self.assertRaises(ValueError):
