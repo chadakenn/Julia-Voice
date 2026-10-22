@@ -18,6 +18,18 @@ public class TvEventPayloadTest {
         assertNull(TvEventPayload.cameraEntity("sensor.temperature"));
     }
 
+    @Test public void liveStreamIsExplicitAndUrlIsSameOrigin() {
+        assertEquals("kellies_voice_live_camera", TvEventPayload.LIVE_CAMERA);
+        assertEquals(90, TvEventPayload.liveDuration(0));
+        assertEquals(15, TvEventPayload.liveDuration(1));
+        assertEquals(180, TvEventPayload.liveDuration(999));
+        assertTrue(TvEventPayload.hlsPathAllowed("/api/hls/token/master_playlist.m3u8"));
+        assertFalse(TvEventPayload.hlsPathAllowed("https://evil.example/playlist.m3u8"));
+        assertFalse(TvEventPayload.hlsPathAllowed("//evil.example/api/hls/video.m3u8"));
+        assertFalse(TvEventPayload.hlsPathAllowed("/api/hls/../etc/video.m3u8"));
+        assertFalse(TvEventPayload.hlsPathAllowed("/api/hls/token/master_playlist.m3u8?leak=1"));
+    }
+
     @Test public void durationAndTextAreBounded() {
         assertEquals(10, TvEventPayload.duration(0));
         assertEquals(4, TvEventPayload.duration(1));

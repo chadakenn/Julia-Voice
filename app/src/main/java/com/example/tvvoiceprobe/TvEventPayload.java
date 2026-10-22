@@ -6,6 +6,7 @@ import java.util.regex.Pattern;
 public final class TvEventPayload {
     public static final String ANNOUNCEMENT = "kellies_voice_announcement";
     public static final String CAMERA_POPUP = "kellies_voice_camera_popup";
+    public static final String LIVE_CAMERA = "kellies_voice_live_camera";
     private static final Pattern CAMERA_ID = Pattern.compile("camera\\.[a-zA-Z0-9_]{1,80}");
 
     private TvEventPayload() { }
@@ -24,6 +25,18 @@ public final class TvEventPayload {
 
     public static int duration(int seconds) {
         return Math.min(45, Math.max(4, seconds <= 0 ? 10 : seconds));
+    }
+
+    public static int liveDuration(int seconds) {
+        return Math.min(180, Math.max(15, seconds <= 0 ? 90 : seconds));
+    }
+
+    public static boolean hlsPathAllowed(String path) {
+        return path != null && path.startsWith("/api/hls/")
+                && path.endsWith(".m3u8") && !path.contains("..")
+                && !path.contains("\\\\") && !path.contains("//")
+                && !path.contains("?") && !path.contains("#")
+                && path.length() <= 600;
     }
 
     public static String cameraEntity(String value) {

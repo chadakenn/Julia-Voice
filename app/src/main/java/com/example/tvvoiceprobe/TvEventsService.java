@@ -23,6 +23,12 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import androidx.media3.common.MediaItem;
+import androidx.media3.common.PlaybackException;
+import androidx.media3.common.Player;
+import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.ui.PlayerView;
+
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
@@ -55,6 +61,7 @@ public final class TvEventsService extends Service {
     private static final int NOTICE_ID = 2242;
     private static final int ANNOUNCE_ID = 1;
     private static final int CAMERA_ID = 2;
+    private static final int LIVE_EVENT_ID = 3;
     private static final int MAX_SNAPSHOT_BYTES = 5 * 1024 * 1024;
 
     private final Handler main = new Handler(Looper.getMainLooper());
@@ -68,6 +75,12 @@ public final class TvEventsService extends Service {
     private WindowManager windowManager;
     private View card;
     private ImageView photo;
+    private PlayerView liveSurface;
+    private TextView liveStatus;
+    private ExoPlayer livePlayer;
+    private int requestCounter = 100;
+    private int liveRequestId = -1;
+    private int liveRequestGeneration = -1;
     private WebSocket socket;
     private CredentialStore.Connection credentials;
     private boolean stopping;
@@ -226,13 +239,30 @@ public final class TvEventsService extends Service {
                 ws.send(new JSONObject().put("id", CAMERA_ID)
                         .put("type", "subscribe_events")
                         .put("event_type", TvEventPayload.CAMERA_POPUP).toString());
+                ws.send(new JSONObject().put("id", LIVE_EVENT_ID)
+                        .put("type", "subscribe_events")
+                        .put("event_type", TvEventPayload.LIVE_CAMERA).toString());
                 connectionNotice("Connected, waiting for TV alerts");
                 return;
             }
-            if ("result".equals(type) && !message.optBoolean("success", false)
-                    && (message.optInt("id") == ANNOUNCE_ID
-                            || message.optInt("id") == CAMERA_ID)) {
-                connectionNotice("Event subscriptions rejected; check HA permissions");
+            if ("result".equals(type)) {
+                int resultId = message.optInt("id", -1);
+                if (resultId == liveRequestId && liveRequestGeneration == generation) {
+                    liveRequestId = -1;
+                    if (message.optBoolean("success", false)) {
+                        JSONObject result = message.optJSONObject("result");
+                        String path = result == null ? "" : result.optString("url");
+                        playLiveStream(path);
+                    } else if (liveStatus != null) {
+                        liveStatus.setText("Live stream unavailable from Home Assistant.");
+                    }
+                    return;
+                }
+                if (!message.optBoolean("success", false)
+                        && (resultId == ANNOUNCE_ID || resultId == CAMERA_ID
+                                || resultId == LIVE_EVENT_ID)) {
+                    connectionNotice("Event subscriptions rejected; check HA permissions");
+                }
                 return;
             }
             if (!"event".equals(type)) return;
@@ -257,6 +287,13 @@ public final class TvEventsService extends Service {
                 if (entity != null) showCard(
                         TvEventPayload.cleanText(data.optString("title", "Camera alert"), 65),
                         "Home Assistant camera snapshot", entity, duration);
+            } else if (subscription == LIVE_EVENT_ID
+                    && TvEventPayload.LIVE_CAMERA.equals(eventType)) {
+                String entity = TvEventPayload.cameraEntity(data.optString("entity_id"));
+                if (entity != null) showCard(
+                        TvEventPayload.cleanText(data.optString("title", "Live camera"), 65),
+                        "LIVE · Starting muted video…", entity,
+                        TvEventPayload.liveDuration(data.optInt("duration_seconds", 90)), true);
             }
         } catch (Exception ignored) {
             // Never print auth tokens, URLs, or untrusted event payloads.
@@ -278,6 +315,10 @@ public final class TvEventsService extends Service {
     }
 
     private void showCard(String title, String text, String entity, int seconds) {
+        showCard(title, text, entity, seconds, false);
+    }
+
+    private void showCard(String title, String text, String entity, int seconds, boolean live) {
         if (stopping || windowManager == null || !Settings.canDrawOverlays(this)) return;
         hideCard();
         int current = ++generation;
@@ -296,9 +337,18 @@ public final class TvEventsService extends Service {
         goldRule.setBackgroundColor(0xffE1B27B);
         panel.addView(goldRule, new LinearLayout.LayoutParams(-1, dp(3)));
         panel.addView(label(title.isEmpty() ? "Kellie's Voice" : title, 19, 0xffEAC296));
-        panel.addView(label(text, 16, 0xffFAE8D5));
+        TextView subtitle = label(text, 16, 0xffFAE8D5);
+        panel.addView(subtitle);
         photo = null;
-        if (entity != null) {
+        if (entity != null && live) {
+            liveStatus = subtitle;
+            PlayerView surface = new PlayerView(this);
+            surface.setUseController(false);
+            surface.setKeepScreenOn(true);
+            surface.setBackgroundColor(0xff100b09);
+            panel.addView(surface, new LinearLayout.LayoutParams(-1, dp(295)));
+            liveSurface = surface;
+        } else if (entity != null) {
             ImageView image = new ImageView(this);
             image.setScaleType(ImageView.ScaleType.CENTER_CROP);
             image.setBackgroundColor(0xff2D211C);
@@ -307,7 +357,7 @@ public final class TvEventsService extends Service {
         }
 
         int screen = getResources().getDisplayMetrics().widthPixels;
-        int width = Math.min(dp(entity == null ? 430 : 505), screen - dp(48));
+        int width = Math.min(dp(entity == null ? 430 : live ? 570 : 505), screen - dp(48));
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(
                 width, WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
@@ -322,11 +372,77 @@ public final class TvEventsService extends Service {
         try {
             windowManager.addView(panel, params);
             card = panel;
-            if (entity != null) fetchSnapshot(entity, photo, current);
-            main.postDelayed(dismiss, TvEventPayload.duration(seconds) * 1000L);
+            if (entity != null) {
+                if (live) requestLiveStream(entity, current);
+                else fetchSnapshot(entity, photo, current);
+            }
+            main.postDelayed(dismiss,
+                    (live ? TvEventPayload.liveDuration(seconds)
+                            : TvEventPayload.duration(seconds)) * 1000L);
         } catch (RuntimeException ignored) {
             card = null;
             photo = null;
+        }
+    }
+
+    private void requestLiveStream(String entity, int current) {
+        if (socket == null || liveSurface == null) {
+            if (liveStatus != null) liveStatus.setText("Waiting for Home Assistant connection.");
+            return;
+        }
+        int id = ++requestCounter;
+        liveRequestId = id;
+        liveRequestGeneration = current;
+        try {
+            boolean sent = socket.send(new JSONObject().put("id", id)
+                    .put("type", "camera/stream").put("entity_id", entity)
+                    .put("format", "hls").toString());
+            if (!sent && liveStatus != null) liveStatus.setText("Could not request live camera.");
+        } catch (Exception ignored) {
+            if (liveStatus != null) liveStatus.setText("Could not request live camera.");
+        }
+    }
+
+    private void playLiveStream(String path) {
+        // The stream URL is generated by HA over our authenticated socket, never
+        // supplied by a TV event. Reject other hosts or protocols completely.
+        if (liveSurface == null || credentials == null || !TvEventPayload.hlsPathAllowed(path)) {
+            if (liveStatus != null) liveStatus.setText("Home Assistant did not return a valid HLS stream.");
+            return;
+        }
+        HttpUrl base = HttpUrl.parse(credentials.url);
+        HttpUrl url = base == null ? null : base.resolve(path);
+        if (base == null || url == null || !base.scheme().equals(url.scheme())
+                || !base.host().equals(url.host()) || base.port() != url.port()
+                || !url.encodedPath().startsWith("/api/hls/")) {
+            if (liveStatus != null) liveStatus.setText("Untrusted HLS stream address rejected.");
+            return;
+        }
+        try {
+            ExoPlayer player = new ExoPlayer.Builder(this).build();
+            player.setVolume(0f); // Never interrupt the sound of the playing TV program.
+            player.addListener(new Player.Listener() {
+                @Override public void onPlaybackStateChanged(int state) {
+                    if (player != livePlayer || liveStatus == null) return;
+                    if (state == Player.STATE_READY) liveStatus.setText("LIVE · muted");
+                }
+                @Override public void onPlayerError(PlaybackException error) {
+                    if (player == livePlayer && liveStatus != null) {
+                        liveStatus.setText("Live HLS playback failed. Try again.");
+                    }
+                }
+            });
+            livePlayer = player;
+            liveSurface.setPlayer(player);
+            player.setMediaItem(MediaItem.fromUri(url.toString()));
+            player.prepare();
+            player.play();
+        } catch (RuntimeException ignored) {
+            if (liveStatus != null) liveStatus.setText("Video playback could not start.");
+            if (livePlayer != null) {
+                livePlayer.release();
+                livePlayer = null;
+            }
         }
     }
 
@@ -378,6 +494,15 @@ public final class TvEventsService extends Service {
     private void hideCard() {
         main.removeCallbacks(dismiss);
         ++generation;
+        liveRequestId = -1;
+        liveRequestGeneration = -1;
+        if (liveSurface != null) liveSurface.setPlayer(null);
+        if (livePlayer != null) {
+            livePlayer.release();
+            livePlayer = null;
+        }
+        liveSurface = null;
+        liveStatus = null;
         if (windowManager != null && card != null) {
             try { windowManager.removeView(card); } catch (RuntimeException ignored) { }
         }
