@@ -147,7 +147,7 @@ For problems, see [Troubleshooting](docs/TROUBLESHOOTING.md), [Update guide](doc
 
 ## Project status and contributing
 
-**Current Android version: v0.16.1 (Home Assistant integration v0.16.0).** Voice, announcement cards, Frigate snapshots and moving live driveway and doorbell video have been confirmed on the onn 4K Pro. Other camera streams and wider TV compatibility remain under test. Issues and pull requests are welcome, especially **real, redacted screenshots**, hardware results and reproducible problems.
+**Current Android version: v0.16.2 (Home Assistant integration v0.16.2).** Voice, announcement cards, Frigate snapshots and moving live driveway and doorbell video have been confirmed on the onn 4K Pro. Other camera streams and wider TV compatibility remain under test. Issues and pull requests are welcome, especially **real, redacted screenshots**, hardware results and reproducible problems.
 
 Kellie's Voice is a community-built Home Assistant companion, **not an official Home Assistant or HACS product**.
 
