@@ -27,3 +27,5 @@ Kellie's Voice pairs a **native Android TV / Google TV voice app** with this **H
 ### New in v0.16.2: close cameras on demand
 
 Use `kellies_voice.hide_camera` (optionally targeted to one TV) to dismiss a camera popup immediately, without affecting TV playback or text announcements. Expose an Assist script called **Close camera on TV** to say “Julia, close the camera.” Live-camera actions support 15–180 second durations; voice agents may need a script with an explicit duration, such as **Show doorbell for 30 seconds**, to honor that phrase. Requires both v0.16.2 components.
+
+**Copy-and-paste setup:** [Home Assistant voice camera scripts (close, 30-second doorbell/driveway, pairing and Assist exposure)](https://github.com/chadakenn/Kellies-Voice/blob/main/docs/VOICE_CAMERA_SCRIPTS.md). The TV app and HACS integration are separate updates. Sample script YAML is also in the [project README](https://github.com/chadakenn/Kellies-Voice#copy-and-paste-home-assistant-script-setup).

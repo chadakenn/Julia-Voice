@@ -163,3 +163,40 @@ data:
 ```
 
 `show_live_camera` already supports **15–180 second** durations. Expose camera scripts with a `duration_seconds` field if your Assist agent can pass script arguments; a named 30-second camera script is a reliable alternative for simple speech commands. **Voice recognition of these new commands must be checked on your chosen conversation agent**. Both the v0.16.2 Android app **and** v0.16.2 HACS integration are required for the hide action.
+
+### Copy-and-paste Home Assistant script setup
+
+The Android app alone cannot make Julia understand new camera phrases. **Create and expose the corresponding Home Assistant scripts**. Detailed full YAML for driveway, doorbell, 30-second requests, instant close, multi-TV targeting, and Frigate automations is in the **[Home Assistant voice-camera script setup guide](docs/VOICE_CAMERA_SCRIPTS.md)**.
+
+**Example: Close camera on TV** (Home Assistant → Settings → Automations & scenes → Scripts → Create script → Edit in YAML):
+
+```yaml
+alias: Close camera on TV
+description: >
+  When asked to close or hide the camera, dismiss the current
+  Kellie's Voice camera window without stopping recordings.
+icon: mdi:close-box
+mode: single
+sequence:
+  - action: kellies_voice.hide_camera
+    data: {}
+```
+
+**Example: Show doorbell for 30 seconds** (create as a second script):
+
+```yaml
+alias: Show doorbell camera for 30 seconds on TV
+description: >
+  Open the live doorbell camera on the TV for 30 seconds
+  when the user asks for a 30-second view.
+icon: mdi:cctv
+mode: single
+sequence:
+  - action: kellies_voice.show_live_camera
+    data:
+      entity_id: camera.doorbell
+      title: Live doorbell
+      duration_seconds: 30
+```
+
+Substitute your own `camera.*` entity IDs. On Home Assistant's **Settings → Voice assistants → Expose** screen, expose these scripts to Assist. If multiple TVs are paired, add `device_id` inside each action's `data` to target just one. Both the TV app and HACS integration must be at **v0.16.2 or later**, followed by a Home Assistant restart and reopening the TV app so its receiver reconnects. Voice phrases depend on the selected Assist conversation agent.
