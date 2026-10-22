@@ -10,8 +10,8 @@ android {
         applicationId 'com.example.tvvoiceprobe'
         minSdk 26
         targetSdk 35
-        versionCode 19
-        versionName '0.16.2'
+        versionCode 20
+        versionName '0.16.3'
     }
 
     // The keystore is private and supplied from GitHub Actions secrets.

@@ -206,3 +206,7 @@ This does not change the announcement, camera, or hide-camera actions. The TV ap
 - Dropped Wi-Fi or a Home Assistant restart reconnects while the receiver is still running. Events from the gap are not replayed.
 - If automatic start is blocked, open Kellie's Voice. **Settings → TV alert status** explains whether it is connected, reconnecting, missing overlay permission, signed out, or stopped, and **Resume TV alerts** starts it again. A one-time "Resume TV alerts" notification may also appear in the Android TV notification list. It is not a repeating nag.
 - Revoking **Display over other apps** or signing out stops popups until those are restored. Disabling TV alerts keeps them off across reboots.
+
+## Install v0.16.3 and configure alert placement
+
+Use HACS to update the Kellie's Voice custom integration to **v0.16.3**, then restart Home Assistant. Independently install the **v0.16.3 Android TV APK** using the app's signed in-place updater. The TV's HA device page now has **TV alert position** (Top left, Top right, Bottom left, Bottom right, Center) and **TV alert size** (Small, Medium, Large). The current layout appears on the **next** camera or announcement popup; the main voice overlay is unaffected. The Android receiver may auto-resume after a reboot or app update if you had enabled it, but Android can prevent background starts. Check the TV's **Settings → TV alert status** when delivery stops. No new scripts are required for these features; the [complete script setup](../../docs/VOICE_CAMERA_SCRIPTS.md) remains valid for voice camera commands.
