@@ -29,15 +29,31 @@ Imagine you're watching YouTube and want to turn on the garage lights. Instead o
 
 ## See it in action 📸
 
-The project's brand banner above is promotional artwork, **not a screenshot**. We're assembling a gallery of **actual onn 4K Pro captures** showing:
+The banner at the top is promotional artwork, **not a screenshot**. These are phone photos of Kellie's Voice on a real onn 4K Pro running Google TV. They are not mockups. The camera views are this home's own doorbell and yard.
 
-- The Kellie's Voice settings screen and the floating voice overlay.
-- An on-screen Home Assistant announcement while video plays behind it.
-- A Frigate driveway or doorbell snapshot popup.
-- The **real live driveway and doorbell camera overlays** (moving video confirmed with v0.16.1). Screenshot captures pending.
-- The Kellie's Voice device controls in Home Assistant.
+### Voice overlay
 
-**Real-device captures are being collected.** We won't label design mockups as actual app screenshots. See the [real screenshot capture checklist](docs/screenshots/README.md) if you'd like to contribute photos or ADB captures. The older [illustrative concept previews](docs/screenshots/conversation-preview.svg) remain available as design references, not proof of real-device appearance.
+![Kellie's Voice on a real onn 4K Pro answering What time is it with 4:23 AM](docs/screenshots/onn-voice-time.jpg)
+
+The floating card over the Google TV apps screen. The question was "What time is it?" and Home Assistant answered **4:23 AM**.
+
+![Kellie's Voice overlay hearing Show me the doorbell camera](docs/screenshots/onn-voice-doorbell.gif)
+
+The same overlay while Home Assistant is still answering "Show me the doorbell camera."
+
+### Camera snapshot
+
+![Still camera snapshot popup titled Snapshot Test After Reopening App](docs/screenshots/onn-snapshot-popup.jpg)
+
+An opt-in **still snapshot** popup, titled "Snapshot Test After Reopening App," after the app was opened again. This is not live video.
+
+### Live doorbell
+
+![Live doorbell card starting over the voice overlay on Google TV](docs/screenshots/onn-live-doorbell.jpg)
+
+The muted live doorbell card opening on top of the voice overlay. The voice card still says the doorbell camera is live. This photo is one moment from that test, not a recording of the motion. Moving doorbell and driveway video was already checked on this TV with Android v0.16.1.
+
+The older [illustrative concept previews](docs/screenshots/conversation-preview.svg) are still in the repo as design references only. See [docs/screenshots](docs/screenshots/README.md).
 
 ## How it works
 
