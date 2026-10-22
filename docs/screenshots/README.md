@@ -13,7 +13,7 @@ We want people browsing HACS to understand what Kellie's Voice looks like on a *
 | Announcement popup | The opt-in on-screen text announcement above a TV app | `actual-announcement.png` |
 | Frigate popup | A real camera **still snapshot** overlay, preferably driveway or doorbell | `actual-frigate-snapshot.png` |
 | HA device settings | HA device page with overlay position, size, style, auto-hide and auto-listen | `actual-ha-device-controls.png` |
-| Live camera, only after real testing | Actual moving HLS camera video frame with overlay clearly visible | `actual-live-camera.png` |
+| Live camera, **moving playback verified with driveway and doorbell on onn 4K Pro v0.16.1** | Capture actual HLS video overlay (not a mockup); on-device screenshot has not yet been supplied | `actual-live-camera.png` |
 
 ## Easy way to capture and contribute
 
