@@ -91,6 +91,16 @@
           "description": "Optional specific TV; blank sends to all configured Kellie's Voice TVs."
         }
       }
+    },
+    "hide_camera": {
+      "name": "Hide camera",
+      "description": "Dismiss a currently visible Kellie's Voice camera snapshot or live stream on the selected TV. Does not dismiss announcements or start the microphone.",
+      "fields": {
+        "device_id": {
+          "name": "TV device id",
+          "description": "Specific paired TV. Leave blank to close camera popups on all paired Kellie's Voice TVs."
+        }
+      }
     }
   }
 }

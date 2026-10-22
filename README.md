@@ -150,3 +150,16 @@ For problems, see [Troubleshooting](docs/TROUBLESHOOTING.md), [Update guide](doc
 **Current Android version: v0.16.1 (Home Assistant integration v0.16.0).** Voice, announcement cards, Frigate snapshots and moving live driveway and doorbell video have been confirmed on the onn 4K Pro. Other camera streams and wider TV compatibility remain under test. Issues and pull requests are welcome, especially **real, redacted screenshots**, hardware results and reproducible problems.
 
 Kellie's Voice is a community-built Home Assistant companion, **not an official Home Assistant or HACS product**.
+
+## Close a camera by voice (v0.16.2)
+
+Kellie's Voice adds a dedicated `kellies_voice.hide_camera` action to **dismiss a live or snapshot camera popup immediately**. It does not turn off video playback from your other TV apps, dismiss text announcements, or operate the microphone. Configure an Assist-exposed script named **Close camera on TV**, then say **“Julia, close the camera on the TV.”** You can also call the HA action directly:
+
+```yaml
+action: kellies_voice.hide_camera
+data:
+  # Leave empty for all configured TVs, or select one paired TV:
+  device_id: "your-kellies-voice-tv-id"
+```
+
+`show_live_camera` already supports **15–180 second** durations. Expose camera scripts with a `duration_seconds` field if your Assist agent can pass script arguments; a named 30-second camera script is a reliable alternative for simple speech commands. **Voice recognition of these new commands must be checked on your chosen conversation agent**. Both the v0.16.2 Android app **and** v0.16.2 HACS integration are required for the hide action.

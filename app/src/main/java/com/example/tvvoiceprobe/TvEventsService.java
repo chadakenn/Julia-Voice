@@ -64,6 +64,8 @@ public final class TvEventsService extends Service {
     private static final int ANNOUNCE_ID = 1;
     private static final int CAMERA_ID = 2;
     private static final int LIVE_EVENT_ID = 3;
+    // Use 6 to avoid overlapping Grok's alert-layout sync (IDs 4 and 5).
+    private static final int HIDE_CAMERA_EVENT_ID = 6;
     private static final int MAX_SNAPSHOT_BYTES = 5 * 1024 * 1024;
 
     private final Handler main = new Handler(Looper.getMainLooper());
@@ -87,6 +89,7 @@ public final class TvEventsService extends Service {
     private WebSocket socket;
     private CredentialStore.Connection credentials;
     private boolean stopping;
+    private boolean cameraVisible;
     private int failedAttempts;
     private int generation;
 
@@ -245,6 +248,9 @@ public final class TvEventsService extends Service {
                 ws.send(new JSONObject().put("id", LIVE_EVENT_ID)
                         .put("type", "subscribe_events")
                         .put("event_type", TvEventPayload.LIVE_CAMERA).toString());
+                ws.send(new JSONObject().put("id", HIDE_CAMERA_EVENT_ID)
+                        .put("type", "subscribe_events")
+                        .put("event_type", TvEventPayload.HIDE_CAMERA).toString());
                 connectionNotice("Connected, waiting for TV alerts");
                 return;
             }
@@ -268,7 +274,8 @@ public final class TvEventsService extends Service {
                 }
                 if (!message.optBoolean("success", false)
                         && (resultId == ANNOUNCE_ID || resultId == CAMERA_ID
-                                || resultId == LIVE_EVENT_ID)) {
+                                || resultId == LIVE_EVENT_ID
+                                || resultId == HIDE_CAMERA_EVENT_ID)) {
                     connectionNotice("Event subscriptions rejected; check HA permissions");
                 }
                 return;
@@ -282,6 +289,13 @@ public final class TvEventsService extends Service {
             if (data == null) return;
             if (!TvEventPayload.addressedTo(data.optString("device_id", ""),
                     new OverlayPreferences(this).deviceId())) return;
+            // A close command never starts a new overlay or microphone.
+            // Ignore it when a text announcement (or nothing) is visible.
+            if (subscription == HIDE_CAMERA_EVENT_ID
+                    && TvEventPayload.HIDE_CAMERA.equals(eventType)) {
+                if (cameraVisible) hideCard();
+                return;
+            }
             int duration = TvEventPayload.duration(data.optInt("duration_seconds", 10));
             if (subscription == ANNOUNCE_ID
                     && TvEventPayload.ANNOUNCEMENT.equals(eventType)) {
@@ -391,6 +405,7 @@ public final class TvEventsService extends Service {
         try {
             windowManager.addView(panel, params);
             card = panel;
+            cameraVisible = entity != null;
             if (entity != null) {
                 if (live) {
                     // This is explicitly a still-image fallback, never label it "LIVE".
@@ -544,6 +559,7 @@ public final class TvEventsService extends Service {
         }
         liveSurface = null;
         liveStatus = null;
+        cameraVisible = false;
         if (windowManager != null && card != null) {
             try { windowManager.removeView(card); } catch (RuntimeException ignored) { }
         }

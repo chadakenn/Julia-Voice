@@ -171,3 +171,17 @@ data:
 For voice, expose an appropriately named script to your Assist/Ollama agent that calls the service with a fixed camera entity. Adding a new HA action alone does not guarantee your custom Julia agent recognizes "show driveway camera". A sentence-triggered HA automation may be used as a fallback.
 
 The TV receiver requests a temporary HLS URL through Home Assistant's authenticated WebSocket `camera/stream` command. Events never carry stream URLs, tokens, or RTSP credentials. Playback is muted and released on timeout, a new popup, or receiver shutdown. HLS has more delay than WebRTC. Both the v0.16.0 or newer HACS integration and the matching signed Android APK with Media3 HLS support are needed. Moving live video has been confirmed on the onn 4K Pro with `camera.driveway` and `camera.doorbell` using Android v0.16.1. Other TV models and cameras have not been field-tested.
+
+## Close a live or snapshot camera on demand (v0.16.2)
+
+Use `kellies_voice.hide_camera` to dismiss **only** a camera window without waiting for its scheduled timeout. This clears live video and releases Media3 playback on the TV; text announcements and the listening overlay are not touched. When `device_id` is omitted, the action targets every configured Kellie's Voice TV. No entity id or URL is needed.
+
+```yaml
+action: kellies_voice.hide_camera
+data:
+  device_id: "your-kellies-voice-tv-id"
+```
+
+For Julia/Ollama, expose a Home Assistant script called **Close camera on TV** that calls the action. For “show doorbell for 30 seconds” either expose a parameterized camera script whose `duration_seconds` field is 30 or a specifically named 30-second script. The `kellies_voice.show_live_camera` action already supports integer durations between 15 and 180 seconds; voice model recognition of script arguments is not guaranteed until tested.
+
+**Update both components to v0.16.2** and restart Home Assistant for the new action, then open the Kellie's Voice TV app to restart its opt-in alert listener after APK installation.

@@ -15,6 +15,7 @@ from .const import (
     EVENT_ANNOUNCEMENT,
     EVENT_CAMERA_POPUP,
     EVENT_LIVE_CAMERA,
+    EVENT_HIDE_CAMERA,
     MAX_DURATION_SECONDS,
     MAX_LIVE_SECONDS,
     MIN_LIVE_SECONDS,
@@ -22,6 +23,7 @@ from .const import (
     SERVICE_ANNOUNCE,
     SERVICE_SHOW_CAMERA,
     SERVICE_SHOW_LIVE_CAMERA,
+    SERVICE_HIDE_CAMERA,
 )
 from .validation import (
     clean_camera_entity,
@@ -71,8 +73,15 @@ SHOW_LIVE_SCHEMA = vol.Schema(
 )
 
 
+HIDE_CAMERA_SCHEMA = vol.Schema(
+    {
+        vol.Optional("device_id"): cv.string,
+    }
+)
+
+
 def async_register_services(hass: HomeAssistant) -> None:
-    """Register three camera/announcement services once. Layout entities are untouched."""
+    """Register four TV-event services once; HA layout entities remain untouched."""
     data = hass.data.setdefault(DOMAIN, {})
     if data.get(_REGISTERED):
         return
@@ -85,6 +94,9 @@ def async_register_services(hass: HomeAssistant) -> None:
     )
     hass.services.async_register(
         DOMAIN, SERVICE_SHOW_LIVE_CAMERA, _async_show_live_camera, schema=SHOW_LIVE_SCHEMA
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_HIDE_CAMERA, _async_hide_camera, schema=HIDE_CAMERA_SCHEMA
     )
 
 
@@ -177,3 +189,20 @@ async def _async_show_live_camera(call: ServiceCall) -> None:
             },
         )
     _LOGGER.debug("Fired %s for %s configured TV(s)", EVENT_LIVE_CAMERA, len(targets))
+
+
+async def _async_hide_camera(call: ServiceCall) -> None:
+    """Close the current camera (snapshot or live) on a configured TV.
+
+    No camera URL, credentials or arbitrary entity ids are accepted here.
+    Announcements and the separate voice overlay are unaffected.
+    """
+    try:
+        targets = target_device_ids(
+            call.data.get("device_id"), configured_device_ids(call.hass)
+        )
+    except ValueError as err:
+        raise ServiceValidationError(str(err)) from None
+    for device_id in targets:
+        call.hass.bus.async_fire(EVENT_HIDE_CAMERA, {"device_id": device_id})
+    _LOGGER.debug("Fired %s for %s configured TV(s)", EVENT_HIDE_CAMERA, len(targets))

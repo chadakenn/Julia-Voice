@@ -43,3 +43,11 @@ The release workflow publishes only when explicitly approved and the signed APK 
 ## v0.16.1 live streaming TV compatibility update
 
 Use `Kellie's Voice → Settings → Check for app updates` after the v0.16.1 GitHub Release is published. This patch uses `TextureView` for Android TV overlays and shows a real, **clearly labeled snapshot fallback** when live streaming fails. The live camera is still experimental and needs moving-video proof on an onn TV. No changes to the Frigate person popups, HA pairing or TV announcement services. The HACS integration does not require a new version for this Android-only update.
+
+## v0.16.2: dismiss camera by voice, timed camera requests
+
+The new signed Android TV update can receive a `kellies_voice_hide_camera` event and immediately dismiss only the active live or snapshot camera popup. A matching v0.16.2 HACS integration registers `kellies_voice.hide_camera`, with optional `device_id` to target a single paired TV. Regular announcements and voice overlay remain untouched. The player stops and releases its resources. The existing `show_live_camera` action accepts durations from 15 to 180 seconds, including 30 seconds. Scripts exposed to Assist can optionally accept a `duration_seconds` field, although named 30-second scripts may be more reliable for voice agents that cannot pass script parameters.
+
+**Upgrade sequence:** TV app Settings → Check for app updates → install v0.16.2 over v0.16.1; **HACS** → Kellie's Voice integration → update to v0.16.2 → restart Home Assistant; open the TV app so the event receiver reconnects. Do not uninstall or clear credentials.
+
+**Test:** call `kellies_voice.show_live_camera` with `duration_seconds: 30` and confirm it automatically disappears; during a longer 90-second camera view call `kellies_voice.hide_camera` and confirm immediate dismissal without changing the TV playback. Confirm the command does not dismiss an on-screen text-only announcement. Use voice-assistant scripts for natural phrases.
