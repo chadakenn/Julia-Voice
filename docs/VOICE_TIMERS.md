@@ -146,6 +146,94 @@ Test spoken phrases on the TV: **“Julia, set a pizza timer for five minutes,�
 
 The documented YAML configuration below is an **alternative** for native Assist custom sentences and `intent_script` users who don't want the LLM to choose parameterized tools.
 
+## Reliable Julia phrases using Home Assistant sentence triggers
+
+If saying **“Julia, set a two-minute Coffee timer”** produces **“Sorry, timers are not supported on this device,”** Home Assistant's *native* Assist timer handler is intercepting the phrase. Native Assist timers belong to a registered, timer-capable satellite; Kellie's Voice v0.16.4 instead manages its **own TV countdowns**. A Home Assistant log may show `TimersNotSupportedError: device_id=None`. This is not evidence that Kellie's Voice's TV countdown failed.
+
+For a reliable custom route that avoids asking a small local LLM to select a complex script tool, create the following **three separate Home Assistant automations** under **Settings → Automations & scenes → Create automation → Edit in YAML**. Replace `REPLACE_WITH_PAIRED_TV_ID` in every action with your own TV pairing ID from Kellie's Voice settings. The examples are intentionally limited to commands beginning with **Julia** or ending with **on the TV**, so they do not hijack ordinary voice timers on other Assist satellites.
+
+Home Assistant tests sentence automations **before** built-in commands, but only in its own conversation agent. If your pipeline uses Ollama, enable **Prefer handling commands locally** in the Home Assistant voice assistant pipeline to run sentence triggers first. If it is off, Ollama might answer using its own tools and this automation may not fire. Ask the exact phrases below; the wake word/name needs to be present in the recognized text.
+
+### A. Start a named countdown by voice (minutes)
+
+```yaml
+alias: Julia TV countdown by voice
+description: Direct Julia-specific named timer requests to the paired Kellie's Voice TV.
+triggers:
+  - trigger: conversation
+    command:
+      - "Julia set a {1..1440:minutes} minute {countdown_label} timer"
+      - "Julia set a {countdown_label} timer for {1..1440:minutes} minutes"
+      - "Julia start a {countdown_label} countdown for {1..1440:minutes} minutes"
+      - "Julia start a {1..1440:minutes} minute {countdown_label} countdown"
+      - "set a {1..1440:minutes} minute {countdown_label} timer on the TV"
+      - "set a {countdown_label} timer for {1..1440:minutes} minutes on the TV"
+      - "start a {countdown_label} countdown for {1..1440:minutes} minutes on the TV"
+actions:
+  - action: kellies_voice.start_timer
+    data:
+      device_id: REPLACE_WITH_PAIRED_TV_ID
+      name: "{{ trigger.slots.countdown_label | trim }}"
+      duration_seconds: "{{ (trigger.slots.minutes | int(0)) * 60 }}"
+      speak_alert: false
+  - set_conversation_response: "Started the {{ trigger.slots.countdown_label | trim }} countdown on the TV for {{ trigger.slots.minutes | int(0) }} minutes."
+mode: queued
+max: 8
+```
+
+The `{1..1440:minutes}` matcher understands spoken numbers (e.g., **two**) as well as digits. Example: **“Julia, set a two-minute Coffee timer.”** This creates a local timer on the paired TV with the name Coffee and duration 120 seconds. It is different from Home Assistant's built-in voice-timer service. Add a separate seconds/hour matcher if your household needs those units. Use a name allowed by the TV app (ASCII letters, digits, spaces, hyphens, underscores; max 40).
+
+### B. Cancel a named countdown
+
+```yaml
+alias: Julia cancel TV countdown by voice
+triggers:
+  - trigger: conversation
+    command:
+      - "Julia cancel the {countdown_label} timer"
+      - "Julia cancel the {countdown_label} countdown"
+      - "Julia stop the {countdown_label} timer"
+      - "Julia stop the {countdown_label} countdown"
+      - "cancel the {countdown_label} timer on the TV"
+      - "cancel the {countdown_label} countdown on the TV"
+      - "stop the {countdown_label} countdown on the TV"
+actions:
+  - action: kellies_voice.cancel_timer
+    data:
+      device_id: REPLACE_WITH_PAIRED_TV_ID
+      name: "{{ trigger.slots.countdown_label | trim }}"
+  - set_conversation_response: "Sent the cancel command for {{ trigger.slots.countdown_label | trim }} to the TV."
+mode: queued
+max: 8
+```
+
+Example: **“Julia, cancel the Coffee timer.”** Cancel also stops that timer's ringing alarm, if it has already expired.
+
+### C. Silence all currently ringing chimes
+
+```yaml
+alias: Julia dismiss TV timer chimes by voice
+triggers:
+  - trigger: conversation
+    command:
+      - "Julia dismiss the TV timer alerts"
+      - "Julia dismiss the timer alerts"
+      - "Julia silence the TV timer chimes"
+      - "Julia stop the TV timer alarm"
+      - "dismiss the ringing TV timers"
+      - "silence the TV timer alarm"
+actions:
+  - action: kellies_voice.dismiss_timers
+    data:
+      device_id: REPLACE_WITH_PAIRED_TV_ID
+  - set_conversation_response: "Stopped the ringing TV timer alerts."
+mode: single
+```
+
+These automations are **home-specific configuration**, not a universal HACS installation: each owner must supply their own paired TV ID. They are independent of the optional LLM scripts above. Prefer one matching route per phrasing so the command isn't delivered twice.
+
+**Verified in the developer's Home Assistant with text sent to the default conversation agent:** a 15-minute Coffee command matched the sentence automation, called `kellies_voice.start_timer`, and a separate spoken-style Coffee cancel command called `kellies_voice.cancel_timer`. All 15-minute test timers were canceled. **Physical spoken microphone verification is still pending.** The current signed v0.16.4 app is unchanged.
+
 ## Voice setup
 
 Use Home Assistant's documented [custom sentence files](https://www.home-assistant.io/voice_control/custom_sentences_yaml/) and [intent scripts](https://www.home-assistant.io/integrations/intent_script/). The custom-sentence and intent-script setup below is still an alternative path and has not been exercised on the owner's Ollama pipeline. An LLM agent may need local command handling enabled; verify exact matching before relying on it. The “Kellie” variants avoid ambiguity with native satellite timers.
