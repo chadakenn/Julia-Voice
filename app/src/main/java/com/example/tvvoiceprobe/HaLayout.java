@@ -11,12 +11,15 @@ public final class HaLayout {
     public static final String STYLE = "style";
     public static final String AUTO_HIDE = "auto_hide";
     public static final String AUTO_LISTEN = "auto_listen";
+    public static final String ALERT_POSITION = "alert_position";
+    public static final String ALERT_SIZE = "alert_size";
 
     private HaLayout() {}
 
     public static boolean known(String setting) {
         return POSITION.equals(setting) || SIZE.equals(setting) || STYLE.equals(setting)
-                || AUTO_HIDE.equals(setting) || AUTO_LISTEN.equals(setting);
+                || AUTO_HIDE.equals(setting) || AUTO_LISTEN.equals(setting)
+                || ALERT_POSITION.equals(setting) || ALERT_SIZE.equals(setting);
     }
 
     public static boolean changesPanel(String setting) {
@@ -38,6 +41,10 @@ public final class HaLayout {
                 return prefs.autoHide() ? prefs.hideSeconds() + " seconds" : "Never";
             case AUTO_LISTEN:
                 return prefs.autoListen() ? "on" : "off";
+            case ALERT_POSITION:
+                return TvAlertLayout.positionLabel(prefs.alertPosition());
+            case ALERT_SIZE:
+                return TvAlertLayout.sizeLabel(prefs.alertSize());
             default:
                 return null;
         }
@@ -75,6 +82,16 @@ public final class HaLayout {
                 boolean enabled = "on".equals(value);
                 if (enabled == prefs.autoListen()) return false;
                 prefs.setAutoListen(enabled);
+                return true;
+            case ALERT_POSITION:
+                String alertPosition = TvAlertLayout.positionOrNull(value);
+                if (alertPosition == null || alertPosition.equals(prefs.alertPosition())) return false;
+                prefs.setAlertPosition(alertPosition);
+                return true;
+            case ALERT_SIZE:
+                String alertSize = TvAlertLayout.sizeOrNull(value);
+                if (alertSize == null || alertSize.equals(prefs.alertSize())) return false;
+                prefs.setAlertSize(alertSize);
                 return true;
             default:
                 return false;
