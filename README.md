@@ -21,11 +21,11 @@ Imagine you're watching YouTube and want to turn on the garage lights. Instead o
 | Ask "Turn off the kitchen lights" or "What's the weather?" | Send your question to your configured Home Assistant Assist pipeline, then show and speak the response. Actual answers and device control depend on that pipeline and its tools. |
 | Know when laundry finishes | Show a brief text announcement from a Home Assistant automation. |
 | See who's approaching the front door | Display a short **camera snapshot popup** when a Frigate person sensor triggers. |
-| Check the driveway on demand | Request an **experimental muted live camera overlay**, without leaving the current TV app. Hardware compatibility still needs testing. |
+| Check the driveway on demand | Request an **experimental muted live camera overlay**, without leaving the current TV app. Moving live video **verified on onn 4K Pro with the driveway camera in v0.16.1**; doorbell and other devices still need testing. |
 | Move the assistant out of the way | Set voice-overlay position, size, appearance, auto-hide, and auto-listen from Home Assistant. |
 | Stay current | Check for a signed Android app update right inside Kellie's Voice. HACS updates its *separate* Home Assistant component. |
 
-**A key distinction:** automatic Frigate alerts currently show **still snapshots**, not live video. Live HLS streaming is a separate, experimental **on-demand** feature in v0.16.0. Camera windows are Android overlays, not native system picture-in-picture. Announcements are **on-screen text**, not spoken TTS broadcasts.
+**A key distinction:** automatic Frigate alerts currently show **still snapshots**, not live video. Live HLS streaming is a separate, **on-demand** feature, confirmed playing moving driveway video on the onn 4K Pro in Android v0.16.1 (HA integration v0.16.0). Other cameras/devices remain experimental. Camera windows are Android overlays, not native system picture-in-picture. Announcements are **on-screen text**, not spoken TTS broadcasts.
 
 ## See it in action 📸
 
@@ -34,7 +34,7 @@ The project's brand banner above is promotional artwork, **not a screenshot**. W
 - The Kellie's Voice settings screen and the floating voice overlay.
 - An on-screen Home Assistant announcement while video plays behind it.
 - A Frigate driveway or doorbell snapshot popup.
-- The experimental live camera overlay **once moving video has been verified**.
+- The **real live driveway camera overlay** (moving video confirmed with v0.16.1). Screenshot capture pending.
 - The Kellie's Voice device controls in Home Assistant.
 
 **Real-device captures are being collected.** We won't label design mockups as actual app screenshots. See the [real screenshot capture checklist](docs/screenshots/README.md) if you'd like to contribute photos or ADB captures. The older [illustrative concept previews](docs/screenshots/conversation-preview.svg) remain available as design references, not proof of real-device appearance.
@@ -120,7 +120,7 @@ data:
   duration_seconds: 90
 ```
 
-Requires a streaming-capable HA camera and matching v0.16.0 or newer Android/HA components. This uses a muted, temporary HLS player and **has not been verified with live moving video on the onn 4K Pro**. Giving your Assist agent an exposed script can make this callable by voice, but installing this action alone does not teach an LLM what to say or call.
+Requires a streaming-capable HA camera and matching v0.16.0 or newer Android/HA components. This uses a muted, temporary HLS player and **has been verified with moving driveway video on the onn 4K Pro using Android v0.16.1**; this doesn't yet establish support for every camera or Android TV model. Giving your Assist agent an exposed script can make this callable by voice, but installing this action alone does not teach an LLM what to say or call.
 
 </details>
 
@@ -138,7 +138,7 @@ See [TV event setup](docs/TV_EVENTS.md), [HA service details](custom_components/
 | Targeted text announcements over TV | **Tested** on onn 4K Pro |
 | Frigate still-image camera popups | **Tested** with driveway camera on onn 4K Pro |
 | Person-detection automations for driveway and doorbell | **Configured** in HA; natural detection end-to-end test pending |
-| Live HLS camera overlay | **Experimental**; passes build/tests, physical TV playback not yet confirmed |
+| Live HLS camera overlay | **Verified** moving driveway video on onn 4K Pro with Android v0.16.1; other cameras and devices still need testing |
 | Other Google TV and Android TV brands | **Not comprehensively tested** |
 
 Kellie's Voice uses a user-controlled microphone; it **does not intercept the Google Assistant voice button** or promise access to the remote's Bluetooth microphone. Some streaming apps or protected content may limit overlays. The TV event listener is opt-in and Android may stop it while suspended; delivery is not guaranteed 24/7. No external ports need to be opened on the TV for Home Assistant events.
@@ -147,6 +147,6 @@ For problems, see [Troubleshooting](docs/TROUBLESHOOTING.md), [Update guide](doc
 
 ## Project status and contributing
 
-**Current version: v0.16.0.** The core app, Home Assistant integration, text notices and Frigate snapshots work on the tested device. Live camera playback and wider TV compatibility are active development. Issues and pull requests are welcome, especially **real, redacted screenshots**, hardware results and reproducible problems.
+**Current Android version: v0.16.1 (Home Assistant integration v0.16.0).** Voice, announcement cards, Frigate snapshots and moving live driveway video have been confirmed on the onn 4K Pro. Other camera streams and wider TV compatibility remain under test. Issues and pull requests are welcome, especially **real, redacted screenshots**, hardware results and reproducible problems.
 
 Kellie's Voice is a community-built Home Assistant companion, **not an official Home Assistant or HACS product**.
