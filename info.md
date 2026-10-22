@@ -8,7 +8,7 @@ Kellie's Voice pairs a **native Android TV / Google TV voice app** with this **H
 - **Per-TV controls:** move and resize the voice overlay, choose its look, auto-hide and auto-listen behavior.
 - **Text announcements:** use `kellies_voice.announce` for laundry reminders, home status and other automations.
 - **Camera popups:** use `kellies_voice.show_camera` to show an HA camera snapshot over the TV. Trigger from Frigate person detection for driveway and doorbell alerts.
-- **Experimental live view:** use `kellies_voice.show_live_camera` for a muted temporary HLS overlay on request. Moving driveway HLS video is now **verified** on the onn 4K Pro running Android v0.16.1; other cameras and devices need testing.
+- **Experimental live view:** use `kellies_voice.show_live_camera` for a muted temporary HLS overlay on request. Moving **driveway and doorbell** HLS video is verified on the onn 4K Pro running Android v0.16.1; other cameras and devices need testing.
 
 **Important:** HACS installs only the Home Assistant integration. You must separately install the [signed Kellie's Voice Android TV APK](https://github.com/chadakenn/Kellies-Voice/releases/latest) and enable **Home Assistant layout** and, for alerts, **TV announcements & cameras** in its settings.
 
@@ -22,4 +22,4 @@ Kellie's Voice pairs a **native Android TV / Google TV voice app** with this **H
 
 [**Full overview and examples**](https://github.com/chadakenn/Kellies-Voice#readme) · [**Detailed integration guide**](https://github.com/chadakenn/Kellies-Voice/blob/main/custom_components/kellies_voice/README.md) · [**Releases**](https://github.com/chadakenn/Kellies-Voice/releases/latest)
 
-> Built and verified primarily on the onn 4K Pro. Other Android TV models and non-driveway live camera feeds are not yet fully hardware-tested. This is a community project, not an official Home Assistant or HACS product.
+> Built and verified primarily on the onn 4K Pro. Other Android TV models and additional camera streams are not yet hardware-tested. This is a community project, not an official Home Assistant or HACS product.

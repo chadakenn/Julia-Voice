@@ -2,7 +2,7 @@
 
 **Give your TV a voice, useful popups, and quick access to security-camera views without replacing your TV launcher.** Kellie's Voice consists of a native Android TV/Google TV app and this Home Assistant integration. The TV handles speech and on-screen overlays; the integration lets HA automations and controls talk to it.
 
-**Why it matters:** ask your Assist agent about the house while a show plays, get a text alert when the washing machine finishes, or see a Frigate driveway/doorbell snapshot when a person approaches. On-demand live video is available as an **experimental** option; moving driveway video is now confirmed on the onn 4K Pro with Android v0.16.1, though other cameras/devices need verification.
+**Why it matters:** ask your Assist agent about the house while a show plays, get a text alert when the washing machine finishes, or see a Frigate driveway/doorbell snapshot when a person approaches. On-demand live video is available as an **experimental** option; moving driveway **and doorbell** video is now confirmed on the onn 4K Pro with Android v0.16.1, though other cameras/devices need verification.
 
 | User-facing feature | Home Assistant feature |
 | --- | --- |
@@ -170,4 +170,4 @@ data:
 
 For voice, expose an appropriately named script to your Assist/Ollama agent that calls the service with a fixed camera entity. Adding a new HA action alone does not guarantee your custom Julia agent recognizes "show driveway camera". A sentence-triggered HA automation may be used as a fallback.
 
-The TV receiver requests a temporary HLS URL through Home Assistant's authenticated WebSocket `camera/stream` command. Events never carry stream URLs, tokens, or RTSP credentials. Playback is muted and released on timeout, a new popup, or receiver shutdown. HLS has more delay than WebRTC. Both the v0.16.0 or newer HACS integration and the matching signed Android APK with Media3 HLS support are needed. Hardware compatibility and live-moving-video delivery are not yet confirmed.
+The TV receiver requests a temporary HLS URL through Home Assistant's authenticated WebSocket `camera/stream` command. Events never carry stream URLs, tokens, or RTSP credentials. Playback is muted and released on timeout, a new popup, or receiver shutdown. HLS has more delay than WebRTC. Both the v0.16.0 or newer HACS integration and the matching signed Android APK with Media3 HLS support are needed. Moving live video has been confirmed on the onn 4K Pro with `camera.driveway` and `camera.doorbell` using Android v0.16.1. Other TV models and cameras have not been field-tested.
