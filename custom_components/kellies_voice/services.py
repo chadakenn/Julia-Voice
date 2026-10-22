@@ -10,13 +10,18 @@ from homeassistant.helpers import config_validation as cv
 from .const import (
     DEFAULT_ANNOUNCE_SECONDS,
     DEFAULT_CAMERA_SECONDS,
+    DEFAULT_LIVE_SECONDS,
     DOMAIN,
     EVENT_ANNOUNCEMENT,
     EVENT_CAMERA_POPUP,
+    EVENT_LIVE_CAMERA,
     MAX_DURATION_SECONDS,
+    MAX_LIVE_SECONDS,
+    MIN_LIVE_SECONDS,
     MIN_DURATION_SECONDS,
     SERVICE_ANNOUNCE,
     SERVICE_SHOW_CAMERA,
+    SERVICE_SHOW_LIVE_CAMERA,
 )
 from .validation import (
     clean_camera_entity,
@@ -54,8 +59,20 @@ SHOW_CAMERA_SCHEMA = vol.Schema(
 )
 
 
+SHOW_LIVE_SCHEMA = vol.Schema(
+    {
+        vol.Required("entity_id"): cv.string,
+        vol.Optional("title", default="Live camera"): cv.string,
+        vol.Optional("duration_seconds", default=DEFAULT_LIVE_SECONDS): vol.All(
+            vol.Coerce(int), vol.Range(min=MIN_LIVE_SECONDS, max=MAX_LIVE_SECONDS)
+        ),
+        vol.Optional("device_id"): cv.string,
+    }
+)
+
+
 def async_register_services(hass: HomeAssistant) -> None:
-    """Register the two services once. Layout entities are untouched."""
+    """Register three camera/announcement services once. Layout entities are untouched."""
     data = hass.data.setdefault(DOMAIN, {})
     if data.get(_REGISTERED):
         return
@@ -65,6 +82,9 @@ def async_register_services(hass: HomeAssistant) -> None:
     )
     hass.services.async_register(
         DOMAIN, SERVICE_SHOW_CAMERA, _async_show_camera, schema=SHOW_CAMERA_SCHEMA
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_SHOW_LIVE_CAMERA, _async_show_live_camera, schema=SHOW_LIVE_SCHEMA
     )
 
 
@@ -126,3 +146,34 @@ async def _async_show_camera(call: ServiceCall) -> None:
             },
         )
     _LOGGER.debug("Fired %s for %s configured TV(s)", EVENT_CAMERA_POPUP, len(targets))
+
+
+
+async def _async_show_live_camera(call: ServiceCall) -> None:
+    """Request a live HLS session on a configured TV without sharing stream URLs."""
+    try:
+        entity_id = clean_camera_entity(call.data.get("entity_id"))
+        title = clean_title(call.data.get("title", "Live camera"))
+        duration = int(call.data.get("duration_seconds", DEFAULT_LIVE_SECONDS))
+        if not MIN_LIVE_SECONDS <= duration <= MAX_LIVE_SECONDS:
+            raise ValueError("Live duration must be from 15 to 180 seconds.")
+        targets = target_device_ids(call.data.get("device_id"), configured_device_ids(call.hass))
+    except (ValueError, TypeError) as err:
+        raise ServiceValidationError(str(err)) from None
+    camera = call.hass.states.get(entity_id)
+    if camera is None:
+        raise ServiceValidationError("That camera is not in Home Assistant.")
+    # CameraEntityFeature.STREAM == 2; reject still-only camera entities.
+    if not int(camera.attributes.get("supported_features", 0)) & 2:
+        raise ServiceValidationError("This camera does not support live streams in Home Assistant.")
+    for device_id in targets:
+        call.hass.bus.async_fire(
+            EVENT_LIVE_CAMERA,
+            {
+                "entity_id": entity_id,
+                "title": title,
+                "duration_seconds": duration,
+                "device_id": device_id,
+            },
+        )
+    _LOGGER.debug("Fired %s for %s configured TV(s)", EVENT_LIVE_CAMERA, len(targets))
