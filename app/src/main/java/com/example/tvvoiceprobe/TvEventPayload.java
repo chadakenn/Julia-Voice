@@ -7,6 +7,7 @@ public final class TvEventPayload {
     public static final String ANNOUNCEMENT = "kellies_voice_announcement";
     public static final String CAMERA_POPUP = "kellies_voice_camera_popup";
     public static final String LIVE_CAMERA = "kellies_voice_live_camera";
+    public static final String HIDE_CAMERA = "kellies_voice_hide_camera";
     private static final Pattern CAMERA_ID = Pattern.compile("camera\\.[a-zA-Z0-9_]{1,80}");
 
     private TvEventPayload() { }

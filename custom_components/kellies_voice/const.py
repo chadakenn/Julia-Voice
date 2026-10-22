@@ -26,9 +26,11 @@ SELECTS = (
 EVENT_ANNOUNCEMENT = "kellies_voice_announcement"
 EVENT_CAMERA_POPUP = "kellies_voice_camera_popup"
 EVENT_LIVE_CAMERA = "kellies_voice_live_camera"
+EVENT_HIDE_CAMERA = "kellies_voice_hide_camera"
 SERVICE_ANNOUNCE = "announce"
 SERVICE_SHOW_CAMERA = "show_camera"
 SERVICE_SHOW_LIVE_CAMERA = "show_live_camera"
+SERVICE_HIDE_CAMERA = "hide_camera"
 
 MAX_TITLE_LENGTH = 65
 MAX_TEXT_LENGTH = 500

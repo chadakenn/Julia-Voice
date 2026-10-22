@@ -26,6 +26,7 @@ class ValidationTests(unittest.TestCase):
         self.assertIn("confirm", shipped["config"]["step"])
         self.assertIn("announce", shipped["services"])
         self.assertIn("show_camera", shipped["services"])
+        self.assertIn("hide_camera", shipped["services"])
 
     def test_manual_tv_pairing_identifier(self):
         stable = str(uuid.uuid4())
@@ -49,6 +50,18 @@ class ValidationTests(unittest.TestCase):
         self.assertIn("kellies_voice_live_camera", const)
         self.assertIn("MIN_LIVE_SECONDS = 15", const)
         self.assertIn("MAX_LIVE_SECONDS = 180", const)
+
+    def test_hide_camera_event_registration_and_targeting(self):
+        services = (_COMPONENT / "services.py").read_text(encoding="utf-8")
+        constants = (_COMPONENT / "const.py").read_text(encoding="utf-8")
+        android = (pathlib.Path(__file__).resolve().parents[1] / "app" / "src" / "main" / "java" / "com" / "example" / "tvvoiceprobe" / "TvEventsService.java").read_text(encoding="utf-8")
+        self.assertIn('EVENT_HIDE_CAMERA = "kellies_voice_hide_camera"', constants)
+        self.assertIn('SERVICE_HIDE_CAMERA = "hide_camera"', constants)
+        self.assertIn("HIDE_CAMERA_SCHEMA", services)
+        self.assertIn("_async_hide_camera", services)
+        self.assertIn("configured_device_ids(call.hass)", services)
+        self.assertIn("if (cameraVisible) hideCard()", android)
+        self.assertIn("HIDE_CAMERA_EVENT_ID = 6", android)
 
     def test_title_and_text_limits(self):
         self.assertEqual(validation.clean_title("  Washer   done "), "Washer done")

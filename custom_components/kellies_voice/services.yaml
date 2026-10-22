@@ -71,3 +71,10 @@ show_live_camera:
       example: ""
       selector:
         text:
+
+hide_camera:
+  fields:
+    device_id:
+      example: ""
+      selector:
+        text:

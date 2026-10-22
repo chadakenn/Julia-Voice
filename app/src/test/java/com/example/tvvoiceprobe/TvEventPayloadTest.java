@@ -20,6 +20,7 @@ public class TvEventPayloadTest {
 
     @Test public void liveStreamIsExplicitAndUrlIsSameOrigin() {
         assertEquals("kellies_voice_live_camera", TvEventPayload.LIVE_CAMERA);
+        assertEquals("kellies_voice_hide_camera", TvEventPayload.HIDE_CAMERA);
         assertEquals(90, TvEventPayload.liveDuration(0));
         assertEquals(15, TvEventPayload.liveDuration(1));
         assertEquals(180, TvEventPayload.liveDuration(999));
