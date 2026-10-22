@@ -216,6 +216,12 @@ On the device page, **Forecast source** is the weather entity used when a script
 | Tue 27 | ❄ | 42° / 31° | 40% |
 | Wed 28 | ☾ | 45° / 33° | — |
 
+## Wake word (not in the installed release)
+
+Kellie's Voice can listen on the TV for **Okay Nabu**, the same microWakeWord model the Home Assistant Android app uses. It is **off** until you turn it on at **Settings → Wake word**. A reboot or an app update does not start it. While it is on, the microphone stays open and Android's privacy indicator stays on. Audio is not sent to Home Assistant until the word is heard and the normal voice overlay opens.
+
+Turn it off in that same menu. Force-stopping the app or rebooting the TV leaves it off. The listener needs a microphone that can record 16 kHz. It has **not** been tried on the onn. Loud TV audio can miss the phrase or hear it by mistake. There is no "Hey Kellie" model. Details are in [docs/WAKE_WORD.md](docs/WAKE_WORD.md).
+
 ## Project status and contributing
 
 ### Development draft: voice timers

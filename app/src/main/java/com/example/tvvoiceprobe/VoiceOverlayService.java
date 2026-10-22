@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import okhttp3.HttpUrl;
 
@@ -41,6 +42,7 @@ import okhttp3.HttpUrl;
  * v0.5 opt-in Home Assistant voice overlay. Starts from a visible activity;
  * no always-on microphone or wake word. Recording is explicitly tied to a
  * user-initiated overlay launch / TALK, with STOP and watchdog escape hatches.
+ * An optional Okay Nabu listener lives in WakeWordService and is off by default.
  */
 public final class VoiceOverlayService extends Service implements HaAssistClient.Events {
     public static final String ACTION_CLOSE = "com.example.tvvoiceprobe.CLOSE_OVERLAY";
@@ -48,6 +50,9 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
     public static final String ACTION_OVERLAY_FAILED = "com.example.tvvoiceprobe.OVERLAY_FAILED";
     private static final String CHANNEL_ID = "ha_tv_voice_overlay";
     private static final int NOTIFICATION_ID = 2217;
+    private static final AtomicInteger OPEN = new AtomicInteger();
+
+    public static boolean isOpen() { return OPEN.get() > 0; }
 
     private final Handler main = new Handler(Looper.getMainLooper());
     private final List<Button> actions = new ArrayList<>();
@@ -70,6 +75,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
     private boolean firstAutoListenStarted = false;
     private long autoListenDeadlineMs;
     private boolean closing = false;
+    private boolean countedOpen = false;
 
     private final Runnable endListeningTimeout = () -> {
         if (listening && assist != null) {
@@ -160,6 +166,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
                 return START_NOT_STICKY;
             }
             showPanel();
+            markOpen();
             assist = new HaAssistClient(this, this);
             assist.setLayoutSync(preferences.haManage());
             HaDiscovery.setWanted(this, preferences.haManage());
@@ -698,6 +705,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
     }
 
     @Override public void onDestroy() {
+        markClosed();
         closing = true;
         HaDiscovery.release(this);
         speaking = false;
@@ -719,5 +727,19 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         actions.clear();
         stopForeground(STOP_FOREGROUND_REMOVE);
         super.onDestroy();
+    }
+
+    private void markOpen() {
+        if (!countedOpen) {
+            countedOpen = true;
+            OPEN.incrementAndGet();
+        }
+    }
+
+    private void markClosed() {
+        if (countedOpen) {
+            countedOpen = false;
+            OPEN.decrementAndGet();
+        }
     }
 }
