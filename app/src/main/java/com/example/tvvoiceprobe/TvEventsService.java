@@ -17,17 +17,19 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.provider.Settings;
 import android.view.Gravity;
+import android.view.TextureView;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.media3.common.MediaItem;
+import androidx.media3.common.MimeTypes;
 import androidx.media3.common.PlaybackException;
 import androidx.media3.common.Player;
 import androidx.media3.exoplayer.ExoPlayer;
-import androidx.media3.ui.PlayerView;
 
 import org.json.JSONObject;
 
@@ -45,7 +47,7 @@ import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
 
 /**
- * Opt-in, microphone-free foreground listener for two authenticated Home
+ * Opt-in, microphone-free foreground listener for authenticated Home
  * Assistant events. Popup windows are non-focusable and never intercept the
  * remote or take audio focus away from a video.
  *
@@ -75,7 +77,8 @@ public final class TvEventsService extends Service {
     private WindowManager windowManager;
     private View card;
     private ImageView photo;
-    private PlayerView liveSurface;
+    private TextureView liveSurface;
+    private boolean liveFirstFrame;
     private TextView liveStatus;
     private ExoPlayer livePlayer;
     private int requestCounter = 100;
@@ -254,7 +257,12 @@ public final class TvEventsService extends Service {
                         String path = result == null ? "" : result.optString("url");
                         playLiveStream(path);
                     } else if (liveStatus != null) {
-                        liveStatus.setText("Live stream unavailable from Home Assistant.");
+                        JSONObject err = message.optJSONObject("error");
+                        String code = err == null ? "" : err.optString("code");
+                        // Error codes only; never expose free-form HA errors, credentials, or URLs.
+                        if (!code.matches("[a-z_]{1,40}")) code = "unknown";
+                        liveStatus.setText("HA stream request failed (" + code
+                                + "); showing camera snapshot.");
                     }
                     return;
                 }
@@ -342,12 +350,23 @@ public final class TvEventsService extends Service {
         photo = null;
         if (entity != null && live) {
             liveStatus = subtitle;
-            PlayerView surface = new PlayerView(this);
-            surface.setUseController(false);
+            // SurfaceView can show black in TYPE_APPLICATION_OVERLAY on some TVs.
+            // TextureView is composited with the rest of this popup window.
+            // Keep a real camera still behind the player until the first video frame.
+            FrameLayout preview = new FrameLayout(this);
+            ImageView still = new ImageView(this);
+            still.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            still.setBackgroundColor(0xff2D211C);
+            preview.addView(still, new FrameLayout.LayoutParams(-1, -1));
+            photo = still;
+            TextureView surface = new TextureView(this);
+            surface.setOpaque(false);
+            surface.setAlpha(0f);
             surface.setKeepScreenOn(true);
-            surface.setBackgroundColor(0xff100b09);
-            panel.addView(surface, new LinearLayout.LayoutParams(-1, dp(295)));
+            preview.addView(surface, new FrameLayout.LayoutParams(-1, -1));
             liveSurface = surface;
+            liveFirstFrame = false;
+            panel.addView(preview, new LinearLayout.LayoutParams(-1, dp(295)));
         } else if (entity != null) {
             ImageView image = new ImageView(this);
             image.setScaleType(ImageView.ScaleType.CENTER_CROP);
@@ -373,8 +392,17 @@ public final class TvEventsService extends Service {
             windowManager.addView(panel, params);
             card = panel;
             if (entity != null) {
-                if (live) requestLiveStream(entity, current);
-                else fetchSnapshot(entity, photo, current);
+                if (live) {
+                    // This is explicitly a still-image fallback, never label it "LIVE".
+                    fetchSnapshot(entity, photo, current);
+                    requestLiveStream(entity, current);
+                    main.postDelayed(() -> {
+                        if (generation == current && !liveFirstFrame && liveStatus != null) {
+                            liveStatus.setText("Live video taking longer than expected; "
+                                    + "showing camera snapshot.");
+                        }
+                    }, 18000L);
+                } else fetchSnapshot(entity, photo, current);
             }
             main.postDelayed(dismiss,
                     (live ? TvEventPayload.liveDuration(seconds)
@@ -407,7 +435,8 @@ public final class TvEventsService extends Service {
         // The stream URL is generated by HA over our authenticated socket, never
         // supplied by a TV event. Reject other hosts or protocols completely.
         if (liveSurface == null || credentials == null || !TvEventPayload.hlsPathAllowed(path)) {
-            if (liveStatus != null) liveStatus.setText("Home Assistant did not return a valid HLS stream.");
+            if (liveStatus != null) liveStatus.setText(
+                    "HA returned an unsupported HLS address; showing camera snapshot.");
             return;
         }
         HttpUrl base = HttpUrl.parse(credentials.url);
@@ -420,25 +449,34 @@ public final class TvEventsService extends Service {
         }
         try {
             ExoPlayer player = new ExoPlayer.Builder(this).build();
-            player.setVolume(0f); // Never interrupt the sound of the playing TV program.
+            player.setVolume(0f); // Do not steal focus or sound from the TV program.
             player.addListener(new Player.Listener() {
-                @Override public void onPlaybackStateChanged(int state) {
-                    if (player != livePlayer || liveStatus == null) return;
-                    if (state == Player.STATE_READY) liveStatus.setText("LIVE · muted");
+                @Override public void onRenderedFirstFrame() {
+                    if (player != livePlayer || liveSurface == null || liveStatus == null) return;
+                    liveFirstFrame = true;
+                    liveSurface.setAlpha(1f);
+                    liveStatus.setText("LIVE · muted");
                 }
                 @Override public void onPlayerError(PlaybackException error) {
                     if (player == livePlayer && liveStatus != null) {
-                        liveStatus.setText("Live HLS playback failed. Try again.");
+                        // The numeric Media3 code distinguishes HTTP errors,
+                        // missing media segments, and decoder incompatibility.
+                        // Never include exception details containing the signed URL.
+                        liveStatus.setText("Live playback error "
+                                + error.errorCode + "; showing camera snapshot.");
+                        if (liveSurface != null) liveSurface.setAlpha(0f);
                     }
                 }
             });
             livePlayer = player;
-            liveSurface.setPlayer(player);
-            player.setMediaItem(MediaItem.fromUri(url.toString()));
+            player.setVideoTextureView(liveSurface);
+            player.setMediaItem(new MediaItem.Builder().setUri(url.toString())
+                    .setMimeType(MimeTypes.APPLICATION_M3U8).build());
             player.prepare();
             player.play();
         } catch (RuntimeException ignored) {
-            if (liveStatus != null) liveStatus.setText("Video playback could not start.");
+            if (liveStatus != null) liveStatus.setText(
+                    "Cannot start video player; showing camera snapshot.");
             if (livePlayer != null) {
                 livePlayer.release();
                 livePlayer = null;
@@ -496,7 +534,10 @@ public final class TvEventsService extends Service {
         ++generation;
         liveRequestId = -1;
         liveRequestGeneration = -1;
-        if (liveSurface != null) liveSurface.setPlayer(null);
+        liveFirstFrame = false;
+        if (livePlayer != null && liveSurface != null) {
+            livePlayer.clearVideoTextureView(liveSurface);
+        }
         if (livePlayer != null) {
             livePlayer.release();
             livePlayer = null;

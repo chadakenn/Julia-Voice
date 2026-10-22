@@ -94,3 +94,9 @@ The latter is still optional and keeps its own setting.
 ## On-demand experimental live camera
 
 The matching v0.16.0 Android TV app and HACS integration also support a third, opt-in event `kellies_voice_live_camera` via action `kellies_voice.show_live_camera` with `entity_id`, optional `title`, `duration_seconds` (15–180, default 90), and optional `device_id`. Only Home Assistant camera entities supporting streaming are accepted. The TV requests a short-lived HLS URL from Home Assistant over its own authenticated WebSocket and plays the video muted. This is **not yet verified on the actual onn 4K Pro**, and live feed performance can be device/camera dependent. The event never contains untrusted stream URLs or secrets.
+
+## Live camera black screen follow-up (v0.16.1)
+
+This patch switches video compositing to an Android `TextureView` inside the overlay instead of the default Media3 `SurfaceView`, which can be invisible on some TV overlay windows. It also loads a clearly labeled snapshot as fallback while HLS is preparing or when playback fails. The small status label shows the **Home Assistant stream error code** or **Media3 playback error code** without printing signed streaming URLs or access tokens. No new permissions, ports or stream-host allowlists are added.
+
+When testing, use `kellies_voice.show_live_camera`. A fallback still image is **not proof** that the live stream works. Confirm moving frames and the status `LIVE · muted` before declaring success. If it fails, report the exact visible code (e.g. `Live playback error 2004`) and whether the fallback snapshot loaded.
