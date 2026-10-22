@@ -51,3 +51,22 @@ The new signed Android TV update can receive a `kellies_voice_hide_camera` event
 **Upgrade sequence:** TV app Settings → Check for app updates → install v0.16.2 over v0.16.1; **HACS** → Kellie's Voice integration → update to v0.16.2 → restart Home Assistant; open the TV app so the event receiver reconnects. Do not uninstall or clear credentials.
 
 **Test:** call `kellies_voice.show_live_camera` with `duration_seconds: 30` and confirm it automatically disappears; during a longer 90-second camera view call `kellies_voice.hide_camera` and confirm immediate dismissal without changing the TV playback. Confirm the command does not dismiss an on-screen text-only announcement. Use voice-assistant scripts for natural phrases.
+
+## v0.16.3: per-TV alert location, size and safer restarts
+
+**Android:** open Kellie's Voice → **Settings → Check for app updates** → install the **signed v0.16.3 APK over v0.16.2**. Keep credentials and app data. **Home Assistant:** open HACS → Kellie's Voice → update to **v0.16.3** and restart Home Assistant. These are two independent updates.
+
+In HA **Settings → Devices & services → Kellie's Voice → your TV** adjust the **TV alert position** and **TV alert size** entities. Five locations and Small/Medium/Large sizes control on-screen announcements, Frigate camera snapshots and muted live video. They don't move the voice assistant overlay. Defaults are **Top right** and **Medium**. Changes affect the next popup, not one already visible. No scripts need to be installed just to use these layout settings.
+
+With **TV announcements & cameras** already enabled, Android attempts to restore the event listener after an app update or reboot without activating the microphone. This is best effort, *not* guaranteed always-on behavior. If Android prevents background starts, open the main app or go to **Settings → TV alert status → Resume TV alerts**. Force-stopping or some standby/OS conditions will still require opening the app. Disabling alerts stays disabled. The receiver never replays old events after a gap.
+
+### Real onn 4K Pro acceptance checklist (not yet verified)
+
+1. Adjust both HA controls and verify **next** live doorbell, live driveway, still snapshot and announcement popup size/position, while normal TV playback continues.
+2. Verify the **voice assistant overlay stays put** when only the TV alert controls change.
+3. During a live 90-second camera view say **“Julia, close the camera”** and confirm prompt dismissal. For a fixed 30-second Assist script, verify the timeout without stopping TV playback.
+4. Install the APK in place with alerts enabled; confirm alerts recover automatically or TV alert status explains that Android blocked it.
+5. Reboot the TV and test delivery. Repeat with the TV alerts setting OFF (must remain OFF).
+6. Revoke **Display over other apps**, unplug networking, resume standby, and observe the safe status/reconnect behavior. Events from outages must not replay.
+
+See [voice scripts and Assist setup](VOICE_CAMERA_SCRIPTS.md) for copy/paste actions and the tested camera names only as examples, not universal device IDs.

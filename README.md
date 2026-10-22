@@ -163,7 +163,7 @@ For problems, see [Troubleshooting](docs/TROUBLESHOOTING.md), [Update guide](doc
 
 ## Project status and contributing
 
-**Current Android version: v0.16.2 (Home Assistant integration v0.16.2).** Voice, announcement cards, Frigate snapshots and moving live driveway and doorbell video have been confirmed on the onn 4K Pro. Other camera streams and wider TV compatibility remain under test. Issues and pull requests are welcome, especially **real, redacted screenshots**, hardware results and reproducible problems.
+**Current release: Android v0.16.3 + Home Assistant integration v0.16.3.** Voice, announcement cards, Frigate snapshots and moving live driveway and doorbell video have been confirmed on the onn 4K Pro. Other camera streams and wider TV compatibility remain under test. Issues and pull requests are welcome, especially **real, redacted screenshots**, hardware results and reproducible problems.
 
 Kellie's Voice is a community-built Home Assistant companion, **not an official Home Assistant or HACS product**.
 
@@ -216,3 +216,11 @@ sequence:
 ```
 
 Substitute your own `camera.*` entity IDs. On Home Assistant's **Settings → Voice assistants → Expose** screen, expose these scripts to Assist. If multiple TVs are paired, add `device_id` inside each action's `data` to target just one. Both the TV app and HACS integration must be at **v0.16.2 or later**, followed by a Home Assistant restart and reopening the TV app so its receiver reconnects. Voice phrases depend on the selected Assist conversation agent.
+
+## v0.16.3: TV camera placement and alert recovery
+
+On your Kellie's Voice TV's **Home Assistant device** page, configure **TV alert position** (top left, top right, bottom left, bottom right or center) and **TV alert size** (small, medium or large). These are separate from the microphone/voice overlay placement. The defaults keep the existing top-right medium popup and changes apply to the *next* announcement, snapshot or live camera window.
+
+Android v0.16.3 also attempts to restart the **already opted-in** TV alert receiver after a reboot or in-place APK update. It never automatically enables alerts or starts the microphone. Because Android TV can block background service startup, go to **Kellie's Voice → Settings → TV alert status → Resume TV alerts** if needed. Wi-Fi disconnects use the receiver's existing reconnect backoff; no stale alerts are replayed. An Android force-stop or some standby conditions still require opening the app.
+
+**Update both parts:** install Android v0.16.3 using **Settings → Check for app updates**, then update the Kellie's Voice HACS integration to v0.16.3 and **restart Home Assistant**. Don't uninstall the Android app or delete settings. On-TV verification of the *new* size/position controls and reboot/update recovery remains to be done. The live `TextureView` camera player and `hide_camera` action are preserved.
