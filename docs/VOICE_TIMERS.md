@@ -4,7 +4,7 @@ Named TV timers show small countdown pills over the current app. At completion: 
 
 The bundled chime plays locally. Optional speech uses the TV's Android text-to-speech engine, not the microphone or HA voice agent; it may sound different from Julia. If speech is unavailable, chimes continue. A stalled utterance is stopped after 15 seconds so the pair sequence can resume. The phrase is configured per timer and limited to 140 characters.
 
-This branch is based on Aurora Glass and the weather fixes. It does not include PR #46 microphone changes. No release, version change, deployment or installation has been performed.
+The timer feature shipped in v0.16.4. The optional hands-free follow-up microphone feature from PR #46 is not included. The remote OK / Dismiss focus improvement is a separate, unreleased draft PR and requires physical TV validation.
 
 ## Requirements and behavior
 
@@ -126,6 +126,8 @@ Alerts stay silent unless overlay permission is granted and the attached complet
 
 - [ ] Start two named timers over YouTube and verify countdowns without remote-focus theft.
 - [ ] At expiry, verify exactly two chimes, optional complete phrase, short pause, repeat indefinitely until dismissed.
+- [x] v0.16.4 onn field test: 10-second Pizza countdown appeared, chimes repeated until dismissed, and **Back** stopped them.
+- [ ] **Known v0.16.4 bug (#54):** owner reported D-pad **OK** did not activate the Dismiss button. Verify the proposed focus fix on the real TV, not just the host tests. During ringing press OK *without navigating first*, then start another timer and use Down/OK to dismiss the selected one. Check button focus is visible; Back must still dismiss all ringing alerts. Normal countdown must never steal remote focus.
 - [ ] Test D-pad Dismiss, Back, named voice cancellation, replacement while ringing, and multiple expired timers.
 - [ ] Verify dismiss stops MediaPlayer/TTS callbacks, restores audio focus, and cannot restart a stale alert.
 - [ ] Interrupt a ringing alert with other audio, then verify recovery and a later timer. Revoke overlay permission or hide/remove the completion window during chimes and speech: audio must stop; restore controls and verify safe resumption and Dismiss.
