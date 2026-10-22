@@ -15,7 +15,7 @@ public class WakeWordTest {
     @Test public void shippedOkayNabuConfigIsTheOnlyModel() throws Exception {
         Path dir = Path.of("src/main/assets/wakeword");
         WakeWordConfig config = WakeWordConfig.parse(
-                Files.readString(dir.resolve("okay_nabu.json")));
+                new String(Files.readAllBytes(dir.resolve("okay_nabu.json")), StandardCharsets.UTF_8));
         assertEquals("Okay Nabu", config.phrase);
         assertEquals("okay_nabu.tflite", config.model);
         assertEquals(0.85f, config.probabilityCutoff, 0.0001f);
@@ -79,7 +79,8 @@ public class WakeWordTest {
     private static final class FilesQuiet {
         static String ok() {
             try {
-                return Files.readString(Path.of("src/main/assets/wakeword/okay_nabu.json"),
+                return new String(Files.readAllBytes(
+                        Path.of("src/main/assets/wakeword/okay_nabu.json")),
                         StandardCharsets.UTF_8);
             } catch (Exception error) {
                 throw new RuntimeException(error);
