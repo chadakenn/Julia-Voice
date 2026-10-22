@@ -38,6 +38,15 @@ class ValidationTests(unittest.TestCase):
         self.assertNotIn("Original location", const.ALERT_POSITIONS)
         self.assertNotIn("Bottom center", const.ALERT_POSITIONS)
 
+    def test_microphone_sensitivity_defaults_to_normal(self):
+        setting, name, options, icon, initial = const.NOISE_SELECTS[0]
+        self.assertEqual(setting, "noise")
+        self.assertEqual(name, "Microphone sensitivity")
+        self.assertEqual(options, ["Quiet room", "Normal", "TV on"])
+        self.assertEqual(initial, "Normal")
+        self.assertNotIn("noise", [item[0] for item in const.SELECTS])
+        self.assertNotIn("on", options)
+
     def test_custom_integration_english_translations(self):
         # Custom HA integrations load translations/en.json, not strings.json.
         source = json.loads((_COMPONENT / "strings.json").read_text(encoding="utf-8"))

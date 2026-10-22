@@ -7,7 +7,7 @@ from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from .const import ALERT_SELECTS, DOMAIN, SELECTS
+from .const import ALERT_SELECTS, DOMAIN, NOISE_SELECTS, SELECTS
 
 
 async def async_setup_entry(
@@ -22,6 +22,10 @@ async def async_setup_entry(
     entities.extend(
         KellieSelect(entry, setting, name, options, icon, initial)
         for setting, name, options, icon, initial in ALERT_SELECTS
+    )
+    entities.extend(
+        KellieSelect(entry, setting, name, options, icon, initial)
+        for setting, name, options, icon, initial in NOISE_SELECTS
     )
     async_add_entities(entities)
 

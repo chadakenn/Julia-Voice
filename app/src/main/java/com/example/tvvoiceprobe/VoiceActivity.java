@@ -642,6 +642,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                 "Controls the automatic pause detector. STOP still ends listening.",
                 options, which -> {
                     prefs.setNoise(values[which]);
+                    pushLayout(HaLayout.NOISE);
                     status("Microphone sensitivity: " + OverlayPreferences.noiseLabel(prefs.noise()));
                     showSettingsMenu();
                 });
