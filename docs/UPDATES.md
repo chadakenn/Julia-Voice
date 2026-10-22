@@ -39,3 +39,7 @@ The app's built-in updater reads the public stable GitHub Release, requires `app
 After updating the TV, in **HACS** update the Home Assistant Kellie's Voice integration to **v0.16.0**, then restart HA. The new live camera action is experimental until hardware-tested; announcement and Frigate snapshot popups remain the tested default. The OTA update does not replace or upgrade the HA integration automatically.
 
 The release workflow publishes only when explicitly approved and the signed APK passes tests/signature verification. Normal GitHub pushes continue producing signed artifacts but do not publish user-facing app updates.
+
+## v0.16.1 live streaming TV compatibility update
+
+Use `Kellie's Voice → Settings → Check for app updates` after the v0.16.1 GitHub Release is published. This patch uses `TextureView` for Android TV overlays and shows a real, **clearly labeled snapshot fallback** when live streaming fails. The live camera is still experimental and needs moving-video proof on an onn TV. No changes to the Frigate person popups, HA pairing or TV announcement services. The HACS integration does not require a new version for this Android-only update.
