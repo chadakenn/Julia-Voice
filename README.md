@@ -72,6 +72,33 @@ Android TV / Google TV
 
 Kellie's Voice uses **your existing Home Assistant Assist pipeline**. It works with the conversation agent and speech components you configure in Home Assistant. Local Ollama/LLM agents are optional, not required, and aren't installed by the Android APK.
 
+## What Home Assistant can change
+
+The HACS integration and the Android APK are separate. Update HACS, restart Home Assistant, then install a signed APK over the current app. Do not uninstall it. Turn **Settings → Home Assistant layout** on and leave Kellie's Voice connected once so the new control is adopted. After that, the TV can be closed and a change waits until the next connection.
+
+| Control | Where it lives |
+| --- | --- |
+| Overlay position, size, style, auto-hide, auto-listen | Home Assistant device page, when layout control is on |
+| TV alert position and size | Home Assistant device page. These do not move the voice overlay |
+| Microphone sensitivity: Quiet room, Normal, TV on | Home Assistant device page. It changes the pause detector on the **next** question. It does not turn the microphone on |
+| Home Assistant URL, access token, pairing ID | TV only |
+| Microphone permission, display-over-apps permission, alert opt-in, alert resume | TV only |
+| Connect, new conversation, diagnostics, app update, forget login | TV only |
+
+No new voice script is required for sensitivity. The real photos in [See it in action](#see-it-in-action-) show the overlay and camera cards, not the Home Assistant device page. To set the preset from an automation, use your own entity id:
+
+```yaml
+action: select.select_option
+target:
+  entity_id: select.your_tv_microphone_sensitivity
+data:
+  option: "TV on"
+```
+
+Turning **Home Assistant layout** off stops later remote changes. A TV that has never changed sensitivity stays on **Normal**. The on-TV menu still works and, while layout control is on, copies the choice back. These controls are not a plan to remove the TV setup screen. Login, permissions, alert opt-in, and updates stay on the TV.
+
+The full camera script examples, including close and a 30 second view, are in [docs/VOICE_CAMERA_SCRIPTS.md](docs/VOICE_CAMERA_SCRIPTS.md).
+
 ## Get started: install both parts
 
 The Android app and the HACS integration are **two different downloads**. You need both for Home Assistant-controlled overlay settings and camera announcements.

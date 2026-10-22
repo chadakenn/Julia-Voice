@@ -167,3 +167,19 @@ Change both entity IDs to the actual Frigate entities in **your** Home Assistant
 - The floating popup is intentionally non-focusable and does not capture remote keys. Back-button dismissal is **not** part of this version. Use the voice/script close command or wait for the timeout.
 
 **Security:** Only expose trusted camera scripts to your conversation agent. Avoid scripts that accept arbitrary camera URLs, RTSP credentials or shell commands; Home Assistant keeps camera access and the TV fetches its temporary stream over the authenticated connection.
+
+## Microphone sensitivity (no camera script)
+
+This is a device-page select, not a voice script. HACS must include the **Microphone sensitivity** control, and the TV app must be new enough to read it. Restart Home Assistant after the HACS update. On the TV, turn **Settings → Home Assistant layout** on and open Kellie's Voice once. The APK and the HACS download are different updates. Do not uninstall the app.
+
+The choices are **Quiet room**, **Normal**, and **TV on**. Normal is the existing default. Changing it does not start the microphone, enable auto-listen, or turn on TV alerts. It applies to the next question. The same choice remains in the TV settings menu and syncs back while layout control is on.
+
+```yaml
+action: select.select_option
+target:
+  entity_id: select.your_tv_microphone_sensitivity
+data:
+  option: "TV on"
+```
+
+Replace `select.your_tv_microphone_sensitivity` with the entity on your Kellie's Voice device. Do not publish a pairing ID or token. Login, permissions, alert opt-in, and app updates stay on the TV. Later setup may move more safe preferences to Home Assistant, but those local controls are staying.

@@ -37,6 +37,12 @@ ALERT_SELECTS = (
     ("alert_size", "TV alert size", ALERT_SIZES, "mdi:relative-scale", "Medium"),
 )
 
+# Pause detector only. Normal matches a TV that has never changed this setting.
+NOISE_PRESETS = ["Quiet room", "Normal", "TV on"]
+NOISE_SELECTS = (
+    ("noise", "Microphone sensitivity", NOISE_PRESETS, "mdi:microphone-settings", "Normal"),
+)
+
 EVENT_ANNOUNCEMENT = "kellies_voice_announcement"
 EVENT_CAMERA_POPUP = "kellies_voice_camera_popup"
 EVENT_LIVE_CAMERA = "kellies_voice_live_camera"

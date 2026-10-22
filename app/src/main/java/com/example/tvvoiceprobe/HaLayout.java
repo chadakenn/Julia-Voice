@@ -13,13 +13,15 @@ public final class HaLayout {
     public static final String AUTO_LISTEN = "auto_listen";
     public static final String ALERT_POSITION = "alert_position";
     public static final String ALERT_SIZE = "alert_size";
+    public static final String NOISE = "noise";
 
     private HaLayout() {}
 
     public static boolean known(String setting) {
         return POSITION.equals(setting) || SIZE.equals(setting) || STYLE.equals(setting)
                 || AUTO_HIDE.equals(setting) || AUTO_LISTEN.equals(setting)
-                || ALERT_POSITION.equals(setting) || ALERT_SIZE.equals(setting);
+                || ALERT_POSITION.equals(setting) || ALERT_SIZE.equals(setting)
+                || NOISE.equals(setting);
     }
 
     public static boolean changesPanel(String setting) {
@@ -45,6 +47,8 @@ public final class HaLayout {
                 return TvAlertLayout.positionLabel(prefs.alertPosition());
             case ALERT_SIZE:
                 return TvAlertLayout.sizeLabel(prefs.alertSize());
+            case NOISE:
+                return MicSensitivity.label(prefs.noise());
             default:
                 return null;
         }
@@ -92,6 +96,11 @@ public final class HaLayout {
                 String alertSize = TvAlertLayout.sizeOrNull(value);
                 if (alertSize == null || alertSize.equals(prefs.alertSize())) return false;
                 prefs.setAlertSize(alertSize);
+                return true;
+            case NOISE:
+                String noise = MicSensitivity.keyOrNull(value);
+                if (noise == null || noise.equals(prefs.noise())) return false;
+                prefs.setNoise(noise);
                 return true;
             default:
                 return false;
