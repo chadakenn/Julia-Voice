@@ -190,6 +190,14 @@ For Julia/Ollama, expose a Home Assistant script called **Close camera on TV** t
 
 **Update both components to v0.16.2** and restart Home Assistant for the new action. The TV tries to resume an already enabled alert receiver after the APK update or a reboot. If the popups do not return, open Kellie's Voice once. No extra Home Assistant script is required for that resume.
 
+### Voice timers (v0.16.4)
+
+Kellie's Voice supports named TV timers through `kellies_voice.start_timer`, `kellies_voice.cancel_timer`, and `kellies_voice.dismiss_timers`. Timers run on the paired Android TV after the initial action is received, with a visible countdown and repeating chimes until dismissed. Both the **v0.16.4 HACS integration** and matching Android APK are required, along with the TV's opt-in event receiver and overlay permission.
+
+For Julia/Ollama or other LLM agents, create **three Assist-exposed parameterized Home Assistant scripts** (start, cancel, dismiss), rather than hardcoding one duration. Include script descriptions and a `duration_seconds` input field so a request for five minutes becomes 300 seconds. Replace the paired TV ID placeholder with your own. The [complete setup with copy/paste YAML and an alternative native Assist sentence configuration](../../docs/VOICE_TIMERS.md) is kept with the project README.
+
+An owner test on the onn 4K Pro verified a ten-second countdown, repeating chimes and **Back** dismissal. The remote OK / Dismiss button remains a [known v0.16.4 issue](https://github.com/chadakenn/Kellies-Voice/issues/54), pending another release and hardware retest. LLM voice command success depends on the user's selected HA agent and requires its own voice test. There is no timer acknowledgment, offline command queue, wake-lock or exact-alarm guarantee.
+
 ### Set up the required Home Assistant scripts for voice requests
 
 For the specific spoken phrases **"show me the driveway"**, **"show doorbell for 30 seconds"**, and **"close the camera"**, create named HA scripts that call `kellies_voice.show_live_camera` or `kellies_voice.hide_camera`. Expose each intended script to Home Assistant **Assist** under Settings → Voice assistants → Expose, and ensure the conversation agent can execute scripts. **No script is automatically installed by HACS**, since each installation has its own camera IDs, TV pairing IDs, and voice agent permissions.
