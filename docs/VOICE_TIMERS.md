@@ -152,6 +152,16 @@ If saying **“Julia, set a two-minute Coffee timer”** produces **“Sorry, ti
 
 For a reliable custom route that avoids asking a small local LLM to select a complex script tool, create the following **three separate Home Assistant automations** under **Settings → Automations & scenes → Create automation → Edit in YAML**. Replace `REPLACE_WITH_PAIRED_TV_ID` in every action with your own TV pairing ID from Kellie's Voice settings. The examples are intentionally limited to commands beginning with **Julia** or ending with **on the TV**, so they do not hijack ordinary voice timers on other Assist satellites.
 
+**Speech-to-text matching caveat (confirmed during onn QA):** Home Assistant's conversation log received `Set a 2 minute coffee timer.` with no `Julia` and no `on the TV`. No Julia-prefixed/TV-suffixed automation matched, so Home Assistant's native timer intent responded `Device does not support timers`. The owner's workaround adds **only** two unprefixed **Coffee-specific** start sentences and four Coffee cancel sentences, not a blanket unprefixed wildcard that would reroute timers on all Assist satellites. In the Start automation's `command` list, optionally add:
+
+```yaml
+      - "set a {1..1440:minutes} minute Coffee timer"
+      - "set a Coffee timer for {1..1440:minutes} minutes"
+```
+
+If you add these without a `{countdown_label}` slot, use `{{ trigger.slots.countdown_label | default('Coffee', true) | trim }}` for both `name` and the name in the confirmation. In the Cancel automation's `command` list, add `cancel the Coffee timer`, `cancel the Coffee countdown`, `stop the Coffee timer`, and `stop the Coffee countdown`; likewise default its missing `countdown_label` slot to `Coffee`. Those scoped additions made both sentences **`Set a 2 minute coffee timer.`** and **`Cancel the coffee timer.`** pass in the owner's default Home Assistant conversation test, with successful automation traces and cleanup. Real speech hardware still requires confirmation. General unprefixed dynamic timer routing needs a reliable HA device ID or a fully timer-capable Assist satellite handler; avoid routing every household timer to one TV by default.
+
+
 Home Assistant tests sentence automations **before** built-in commands, but only in its own conversation agent. If your pipeline uses Ollama, enable **Prefer handling commands locally** in the Home Assistant voice assistant pipeline to run sentence triggers first. If it is off, Ollama might answer using its own tools and this automation may not fire. Ask the exact phrases below; the wake word/name needs to be present in the recognized text.
 
 ### A. Start a named countdown by voice (minutes)
