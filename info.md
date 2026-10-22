@@ -18,7 +18,7 @@ Kellie's Voice pairs a **native Android TV / Google TV voice app** with this **H
 3. In **Settings → Devices & services**, add the discovered Kellie's Voice TV, or choose manual pairing with the stable ID shown in the TV app.
 4. Open the TV's HA device page to configure the overlay and use the actions above.
 
-**Screenshots:** We're collecting verified real-device photos of the app, announcement cards and Frigate popups. The brand banner and older illustrated previews are **concept graphics**, not real captures. [Real screenshot gallery plan](https://github.com/chadakenn/Kellies-Voice/blob/main/docs/screenshots/README.md).
+**Screenshots:** Real onn 4K Pro photos are in the [README gallery](https://github.com/chadakenn/Kellies-Voice/blob/main/README.md#see-it-in-action-). They show the voice overlay, a still camera snapshot, and the live doorbell card starting. The brand banner and older illustrated previews are still concept graphics.
 
 [**Full overview and examples**](https://github.com/chadakenn/Kellies-Voice#readme) · [**Detailed integration guide**](https://github.com/chadakenn/Kellies-Voice/blob/main/custom_components/kellies_voice/README.md) · [**Releases**](https://github.com/chadakenn/Kellies-Voice/releases/latest)
 
