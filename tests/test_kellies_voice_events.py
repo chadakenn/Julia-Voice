@@ -69,6 +69,20 @@ class ForecastDeliveryTests(unittest.IsolatedAsyncioTestCase):
 
 
 class ValidationTests(unittest.TestCase):
+    def test_forecast_schema_does_not_insert_a_duration_override(self):
+        source = ast.parse((_COMPONENT / "services.py").read_text(encoding="utf-8"))
+        schema = next(node.value for node in source.body
+                      if isinstance(node, ast.Assign)
+                      and any(isinstance(target, ast.Name) and target.id == "SHOW_FORECAST_SCHEMA"
+                              for target in node.targets))
+        fields = schema.args[0]
+        duration_key = next(key for key in fields.keys
+                            if isinstance(key, ast.Call) and key.args
+                            and isinstance(key.args[0], ast.Constant)
+                            and key.args[0].value == "duration_seconds")
+        self.assertFalse(any(keyword.arg == "default" for keyword in duration_key.keywords),
+                         "Omitted duration must reach the TV without a schema default")
+
     def test_non_finite_forecast_values_do_not_abort_valid_days(self):
         for bad in (float("nan"), float("inf"), -float("inf"), 10 ** 1000):
             with self.subTest(value=str(bad)):
