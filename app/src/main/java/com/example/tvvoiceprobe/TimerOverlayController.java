@@ -10,6 +10,7 @@ import android.media.MediaPlayer;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
+import android.provider.Settings;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
 import android.view.Gravity;
@@ -28,18 +29,19 @@ public final class TimerOverlayController {
     private final Handler main = new Handler(Looper.getMainLooper());
     private final TimerBook timers = new TimerBook();
     private final AudioManager audio;
-    private final AudioFocusRequest focus;
+    private AudioFocusRequest focus;
+    private final TimerAlertSession alerts;
+    private boolean controlsReady;
     private LinearLayout panel;
     private MediaPlayer player;
     private TextToSpeech speech;
     private boolean speechReady;
     private boolean closed;
-    private boolean audioInterrupted;
-    private int alertGeneration;
     private TimerBook.Entry alerting;
     private Runnable speechFallback;
     private String expectedSpeech;
     private int utterance;
+    private int speakingGeneration;
     private String layout = "";
     private final Runnable tick = new Runnable() {
         @Override public void run() {
@@ -55,15 +57,19 @@ public final class TimerOverlayController {
         this.context = context;
         this.windows = windows;
         audio = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-        focus = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
-                .setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).build())
-                .setOnAudioFocusChangeListener(change -> {
-                    main.post(() -> {
-                        if (closed) return;
-                        if (change == AudioManager.AUDIOFOCUS_GAIN) { audioInterrupted = false; chooseAlert(); }
-                        else if (change < 0) { audioInterrupted = true; silence(); }
-                    });
-                }).build();
+        alerts = new TimerAlertSession(new TimerAlertSession.Output() {
+            @Override public boolean requestFocus(int token) { return requestAlertFocus(token); }
+            @Override public void abandonFocus() {
+                AudioFocusRequest previous = focus;
+                focus = null;
+                if (audio != null && previous != null) audio.abandonAudioFocusRequest(previous);
+            }
+            @Override public void stopPlayback() { stopAlertPlayback(); }
+            @Override public void startPlayback(int token) {
+                if (panel != null) panel.requestFocus();
+                chime(token, 0);
+            }
+        });
         speech = new TextToSpeech(context, result -> main.post(() -> speechReady = result == TextToSpeech.SUCCESS));
         speech.setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM)
                 .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build());
@@ -95,7 +101,8 @@ public final class TimerOverlayController {
     private int dp(int value) { return Math.round(value * context.getResources().getDisplayMetrics().density); }
 
     private void render() {
-        if (windows == null) return;
+        if (windows == null || !Settings.canDrawOverlays(context)) { removePanel(); return; }
+        if (panel != null && !panel.isAttachedToWindow()) removePanel();
         boolean ringing = timers.ringing() != null;
         StringBuilder signature = new StringBuilder();
         for (TimerBook.Entry entry : timers.entries()) signature.append(entry.name).append(':').append(entry.finished).append('|');
@@ -118,6 +125,13 @@ public final class TimerOverlayController {
                     return super.dispatchKeyEvent(event);
                 }
             };
+            panel.addOnAttachStateChangeListener(new android.view.View.OnAttachStateChangeListener() {
+                @Override public void onViewAttachedToWindow(android.view.View view) { }
+                @Override public void onViewDetachedFromWindow(android.view.View view) {
+                    controlsReady = false;
+                    alerts.update(timers.ringing(), false, SystemClock.elapsedRealtime());
+                }
+            });
             panel.setOrientation(LinearLayout.VERTICAL);
             panel.setPadding(dp(14), dp(8), dp(14), dp(8));
             GradientDrawable surface = new GradientDrawable();
@@ -133,7 +147,7 @@ public final class TimerOverlayController {
                 return false;
             });
             try { windows.addView(panel, params(ringing)); }
-            catch (RuntimeException rejected) { panel = null; return; }
+            catch (RuntimeException rejected) { removePanel(); return; }
         }
         if (panel == null) return;
         if (timers.entries().isEmpty()) { removePanel(); return; }
@@ -153,7 +167,7 @@ public final class TimerOverlayController {
                 panel.addView(pill);
             }
         }
-        try { windows.updateViewLayout(panel, params(ringing)); }
+        try { windows.updateViewLayout(panel, params(ringing)); controlsReady = ringing; }
         catch (RuntimeException rejected) { removePanel(); }
     }
 
@@ -170,22 +184,43 @@ public final class TimerOverlayController {
     }
 
     private void chooseAlert() {
-        TimerBook.Entry next = timers.ringing();
-        if (audioInterrupted && next != null) return;
-        if (next == alerting) return;
-        silence();
-        alerting = next;
-        if (next != null) {
-            if (audio != null && audio.requestAudioFocus(focus) != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
-                alerting = null;
-                return;
-            }
-            if (panel != null) panel.requestFocus();
-            chime(alertGeneration, 0);
-        }
+        alerting = timers.ringing();
+        alerts.update(alerting, controlsAvailable(), SystemClock.elapsedRealtime());
     }
 
-    private boolean current(int generation) { return !closed && generation == alertGeneration && alerting != null; }
+    private boolean controlsAvailable() {
+        return !closed && controlsReady && Settings.canDrawOverlays(context)
+                && panel != null && panel.isAttachedToWindow()
+                && panel.getWindowVisibility() == android.view.View.VISIBLE;
+    }
+
+    private boolean requestAlertFocus(int token) {
+        if (audio == null || !controlsAvailable()) return false;
+        focus = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+                .setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).build())
+                .setOnAudioFocusChangeListener(change -> main.post(() -> {
+                    if (closed) return;
+                    if (!controlsAvailable()) {
+                        alerts.update(timers.ringing(), false, SystemClock.elapsedRealtime());
+                        return;
+                    }
+                    TimerAlertSession.Focus event;
+                    if (change == AudioManager.AUDIOFOCUS_GAIN) event = TimerAlertSession.Focus.GAIN;
+                    else if (change == AudioManager.AUDIOFOCUS_LOSS) event = TimerAlertSession.Focus.LOSS;
+                    else if (change < 0) event = TimerAlertSession.Focus.TRANSIENT_LOSS;
+                    else return;
+                    alerts.focusChanged(token, event, SystemClock.elapsedRealtime());
+                })).build();
+        return audio.requestAudioFocus(focus) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
+    }
+
+    private boolean current(int generation) {
+        if (!controlsAvailable()) {
+            alerts.update(timers.ringing(), false, SystemClock.elapsedRealtime());
+            return false;
+        }
+        return alerts.isPlaying(generation);
+    }
 
     private void chime(int generation, int index) {
         if (!current(generation)) return;
@@ -212,6 +247,7 @@ public final class TimerOverlayController {
     private void speakOrRepeat(int generation) {
         if (!current(generation)) return;
         if (!alerting.speak || !speechReady) { later(generation, 500, () -> chime(generation, 0)); return; }
+        speakingGeneration = generation;
         speechFallback = () -> {
             if (!current(generation)) return;
             expectedSpeech = null; speechFallback = null; speech.stop();
@@ -224,10 +260,11 @@ public final class TimerOverlayController {
     }
 
     private void speechDone(String id) {
-        if (!current(alertGeneration) || expectedSpeech == null || !expectedSpeech.equals(id) || speechFallback == null) return;
+        if (expectedSpeech == null || !expectedSpeech.equals(id) || speechFallback == null) return;
+        int generation = speakingGeneration;
+        if (!current(generation)) return;
         expectedSpeech = null;
         main.removeCallbacks(speechFallback); speechFallback = null;
-        int generation = alertGeneration;
         later(generation, 500, () -> chime(generation, 0));
     }
 
@@ -235,19 +272,18 @@ public final class TimerOverlayController {
         main.postDelayed(() -> { if (current(generation)) action.run(); }, delay);
     }
 
-    private void silence() {
-        alertGeneration++;
-        alerting = null;
+    private void stopAlertPlayback() {
         if (speechFallback != null) main.removeCallbacks(speechFallback);
         speechFallback = null;
         expectedSpeech = null;
         if (speech != null) speech.stop();
         releasePlayer();
-        if (audio != null) audio.abandonAudioFocusRequest(focus);
     }
 
     private void releasePlayer() { if (player != null) { player.release(); player = null; } }
     private void removePanel() {
+        controlsReady = false;
+        alerts.update(timers.ringing(), false, SystemClock.elapsedRealtime());
         if (panel != null) { try { windows.removeView(panel); } catch (RuntimeException ignored) { } panel = null; }
     }
 
@@ -273,7 +309,7 @@ public final class TimerOverlayController {
 
     public void close(boolean forget) {
         closed = true;
-        silence();
+        alerts.close();
         main.removeCallbacksAndMessages(null);
         if (speech != null) { speech.shutdown(); speech = null; }
         removePanel();
