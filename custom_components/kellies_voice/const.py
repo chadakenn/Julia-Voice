@@ -23,6 +23,20 @@ SELECTS = (
     ("auto_hide", "Overlay auto-hide", HIDE_TIMES, "mdi:timer-outline"),
 )
 
+# Separate from the voice overlay. Top right and Medium match the TV's current popup.
+ALERT_POSITIONS = [
+    "Top left",
+    "Top right",
+    "Bottom left",
+    "Bottom right",
+    "Center",
+]
+ALERT_SIZES = ["Small", "Medium", "Large"]
+ALERT_SELECTS = (
+    ("alert_position", "TV alert position", ALERT_POSITIONS, "mdi:picture-in-picture-top-right", "Top right"),
+    ("alert_size", "TV alert size", ALERT_SIZES, "mdi:relative-scale", "Medium"),
+)
+
 EVENT_ANNOUNCEMENT = "kellies_voice_announcement"
 EVENT_CAMERA_POPUP = "kellies_voice_camera_popup"
 EVENT_LIVE_CAMERA = "kellies_voice_live_camera"

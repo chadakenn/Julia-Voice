@@ -7,7 +7,7 @@ from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from .const import DOMAIN, SELECTS
+from .const import ALERT_SELECTS, DOMAIN, SELECTS
 
 
 async def async_setup_entry(
@@ -15,10 +15,15 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    async_add_entities(
+    entities = [
         KellieSelect(entry, setting, name, options, icon)
         for setting, name, options, icon in SELECTS
+    ]
+    entities.extend(
+        KellieSelect(entry, setting, name, options, icon, initial)
+        for setting, name, options, icon, initial in ALERT_SELECTS
     )
+    async_add_entities(entities)
 
 
 class KellieSelect(SelectEntity, RestoreEntity):
@@ -26,14 +31,15 @@ class KellieSelect(SelectEntity, RestoreEntity):
     _attr_has_entity_name = True
     _attr_entity_category = EntityCategory.CONFIG
 
-    def __init__(self, entry: ConfigEntry, setting: str, name: str, options: list, icon: str):
+    def __init__(self, entry: ConfigEntry, setting: str, name: str, options: list, icon: str,
+                 initial=None):
         self._setting = setting
         self._device_id = entry.data["device_id"]
         self._generation = 0
         self._attr_name = name
         self._attr_unique_id = f"{self._device_id}_{setting}"
         self._attr_options = list(options)
-        self._attr_current_option = self._attr_options[0]
+        self._attr_current_option = initial if initial in self._attr_options else self._attr_options[0]
         self._attr_icon = icon
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, self._device_id)},
