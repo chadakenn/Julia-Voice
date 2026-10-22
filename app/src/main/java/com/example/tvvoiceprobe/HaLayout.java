@@ -179,6 +179,7 @@ public final class HaLayout {
     }
 
     private static String styleKey(String value) {
+        if ("Aurora Glass".equals(value)) return OverlayPreferences.SKIN_AURORA;
         switch (value) {
             case "Copper Glass":
             case OverlayPreferences.SKIN_GLASS:

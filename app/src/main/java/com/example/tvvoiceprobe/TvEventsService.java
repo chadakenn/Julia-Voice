@@ -407,6 +407,7 @@ public final class TvEventsService extends Service {
         hideCard();
         int current = ++generation;
         OverlayPreferences placement = new OverlayPreferences(this);
+        boolean aurora = OverlayPreferences.SKIN_AURORA.equals(placement.skin());
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding(dp(16), dp(12), dp(16), dp(12));
@@ -415,15 +416,15 @@ public final class TvEventsService extends Service {
                 new int[] {0xf514100E, 0xf5241A14});
         background.setCornerRadius(dp(14));
         background.setStroke(dp(2), 0xffC4884A);
-        panel.setBackground(background);
-        panel.addView(label(forecast.location, 18, 0xffEAC296));
-        panel.addView(label(forecast.heading(), 13, 0xffC4884A));
+        panel.setBackground(aurora ? new AuroraGlassDrawable(dp(14)) : background);
+        panel.addView(label(forecast.location, 18, aurora ? 0xffEDF3FF : 0xffEAC296));
+        panel.addView(label(forecast.heading(), 13, aurora ? 0xffA6BFEA : 0xffC4884A));
         for (ForecastCard.Day day : forecast.days) {
-            TextView row = label(day.line(forecast.units), 15, 0xffFAE8D5);
+            TextView row = label(day.line(forecast.units), 15, aurora ? 0xffF2F5FF : 0xffFAE8D5);
             row.setMaxLines(1);
             panel.addView(row);
         }
-        panel.addView(label("Back closes this forecast", 12, 0xffAD835D));
+        panel.addView(label("Back closes this forecast", 12, aurora ? 0xffA6BFEA : 0xffAD835D));
         panel.setFocusable(true);
         panel.setOnKeyListener((view, key, event) -> {
             if (event.getAction() != android.view.KeyEvent.ACTION_DOWN) return false;
