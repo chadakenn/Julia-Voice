@@ -218,11 +218,13 @@ On the device page, **Forecast source** is the weather entity used when a script
 
 ## Project status and contributing
 
-### Development draft: voice timers
+### Voice timers (v0.16.4)
 
-Named countdown pills and completion alerts are proposed in the timer feature branch. Alerts repeat **two chimes → optional configurable phrase → short pause** until dismissed. See [voice timer setup](docs/VOICE_TIMERS.md) for copy/paste Home Assistant actions, custom sentences, intent scripts, cancellation and unverified hardware limits. This is not part of the installed v0.16.3 release.
+Named countdown pills and completion alerts are available on the TV in **v0.16.4**. At completion the alert repeats **two chimes → optional Android TV spoken phrase → short pause** until dismissed. An onn 4K Pro has been verified to show countdowns, ring and stop with **Back**; remote OK / Dismiss is a known v0.16.4 issue being fixed for the next release ([issue #54](https://github.com/chadakenn/Kellies-Voice/issues/54)).
 
-**Current release: Android v0.16.3 + Home Assistant integration v0.16.3.** Voice, announcement cards, Frigate snapshots and moving live driveway and doorbell video have been confirmed on the onn 4K Pro. Other camera streams and wider TV compatibility remain under test. Issues and pull requests are welcome, especially **real, redacted screenshots**, hardware results and reproducible problems.
+**To enable Julia/Ollama voice commands:** create and expose Home Assistant scripts that call `kellies_voice.start_timer`, `cancel_timer`, and `dismiss_timers`, pointing at your own TV's pairing ID. The [full voice timer setup guide](docs/VOICE_TIMERS.md) includes complete copy/paste script YAML with LLM-exposed fields for timer names and durations, plus an alternative custom-sentence/intent-script configuration. Scripts are not automatically created by HACS because each home has different device IDs and voice agent settings. **Speech-command success must be tested on each user's agent.**
+
+**Current stable release: Android v0.16.4 + Home Assistant integration v0.16.4.** Voice, announcements, Frigate snapshots, moving live driveway and doorbell video, and the seven-day forecast popup have been confirmed on the owner's onn 4K Pro. Other TV brands and some new controls remain under test. Issues and pull requests are welcome, especially **real, redacted screenshots**, hardware results and reproducible problems.
 
 Kellie's Voice is a community-built Home Assistant companion, **not an official Home Assistant or HACS product**.
 
