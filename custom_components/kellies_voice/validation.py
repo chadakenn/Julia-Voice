@@ -1,5 +1,6 @@
 """Input checks for TV events. These functions do not log or store secrets."""
 
+import math
 import re
 from uuid import UUID
 
@@ -220,7 +221,9 @@ def _forecast_label(value, tz_name) -> str:
 def _forecast_temp(value):
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         return None
-    rounded = int(round(float(value)))
+    if not -80 <= value <= 140 or not math.isfinite(value):
+        return None
+    rounded = int(round(value))
     if rounded < -80 or rounded > 140:
         return None
     return rounded
@@ -229,7 +232,9 @@ def _forecast_temp(value):
 def _forecast_precip(value):
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         return None
-    rounded = int(round(float(value)))
+    if not 0 <= value <= 100 or not math.isfinite(value):
+        return None
+    rounded = int(round(value))
     if rounded < 0 or rounded > 100:
         return None
     return rounded

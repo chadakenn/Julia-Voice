@@ -142,7 +142,9 @@ public final class ForecastCard {
     private static Integer number(String raw, int low, int high) {
         if (raw == null || raw.trim().isEmpty() || "null".equals(raw)) return null;
         try {
-            int value = (int) Math.round(Double.parseDouble(raw.trim()));
+            double parsed = Double.parseDouble(raw.trim());
+            if (Double.isNaN(parsed) || Double.isInfinite(parsed) || parsed < low || parsed > high) return null;
+            int value = (int) Math.round(parsed);
             if (value < low || value > high) return null;
             return value;
         } catch (NumberFormatException ignored) {

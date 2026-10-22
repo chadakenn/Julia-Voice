@@ -29,7 +29,6 @@ sequence:
   - action: kellies_voice.show_forecast
     data:
       entity_id: weather.forecast_home
-      duration_seconds: 20
 ```
 
 Save it. Then **Settings → Voice assistants → Expose** and expose **Seven day forecast on TV** to Assist. Ask:
@@ -39,6 +38,8 @@ Save it. Then **Settings → Voice assistants → Expose** and expose **Seven da
 - What's the forecast for the next seven days?
 
 You can also run `kellies_voice.show_forecast` from **Developer tools → Actions**. Leave `device_id` empty to send it to every paired TV. The picture in the README is a labeled simulation until it is photographed on a TV.
+
+Leave `duration_seconds` out to use each TV's saved **Forecast duration** (20 seconds initially). Add `duration_seconds: 30` under `data` to override it for that request; 8 to 45 seconds are accepted.
 
 The spoken answer still comes from your Assist agent. The card is the seven-day view. If the weather entity is missing, has no daily forecast, or Home Assistant cannot read it, the action fails and no card is shown.
 

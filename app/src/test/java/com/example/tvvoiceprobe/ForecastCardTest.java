@@ -11,6 +11,15 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class ForecastCardTest {
+    @Test public void nonFiniteAndOverflowingNumbersAreMissingInsteadOfZero() {
+        for (String bad : new String[] {"NaN", "Infinity", "-Infinity", "1e100", "4294967296"}) {
+            ForecastCard.Day day = ForecastCard.day("Sat 24", "rainy", bad, "50", bad);
+            assertNull(day.high);
+            assertNull(day.precipitation);
+            assertEquals(Integer.valueOf(50), day.low);
+        }
+    }
+
     @Test public void sevenDaysRenderAndAnEighthIsDropped() {
         List<ForecastCard.Day> days = new ArrayList<>();
         for (int i = 0; i < 8; i++) {

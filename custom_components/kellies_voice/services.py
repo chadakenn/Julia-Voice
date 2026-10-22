@@ -91,7 +91,7 @@ HIDE_CAMERA_SCHEMA = vol.Schema(
 SHOW_FORECAST_SCHEMA = vol.Schema(
     {
         vol.Optional("entity_id"): cv.string,
-        vol.Optional("duration_seconds", default=20): vol.All(
+        vol.Optional("duration_seconds"): vol.All(
             vol.Coerce(int), vol.Range(min=8, max=45)
         ),
         vol.Optional("device_id"): cv.string,
@@ -257,7 +257,8 @@ async def _async_show_forecast(call: ServiceCall) -> None:
                 call.hass, targets[0] if len(targets) == 1 else ""
             )
         entity_id = clean_weather_entity(requested)
-        duration = clean_forecast_duration(call.data.get("duration_seconds", 20))
+        duration = (clean_forecast_duration(call.data["duration_seconds"])
+                    if "duration_seconds" in call.data else None)
     except ValueError as err:
         raise ServiceValidationError(str(err)) from None
     state = call.hass.states.get(entity_id)
@@ -293,15 +294,14 @@ async def _async_show_forecast(call: ServiceCall) -> None:
     place = clean_forecast_place(state.attributes.get("friendly_name") or state.name)
     unit = clean_forecast_unit(state.attributes.get("temperature_unit"))
     for device_id in targets:
-        call.hass.bus.async_fire(
-            EVENT_FORECAST,
-            {
-                "location": place,
-                "units": unit,
-                "duration_seconds": duration,
-                "issued": int(time.time()),
-                "days": days,
-                "device_id": device_id,
-            },
-        )
+        payload = {
+            "location": place,
+            "units": unit,
+            "issued": int(time.time()),
+            "days": days,
+            "device_id": device_id,
+        }
+        if duration is not None:
+            payload["duration_seconds"] = duration
+        call.hass.bus.async_fire(EVENT_FORECAST, payload)
     _LOGGER.debug("Fired %s with %s day(s)", EVENT_FORECAST, len(days))

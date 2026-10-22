@@ -202,8 +202,9 @@ sequence:
   - action: kellies_voice.show_forecast
     data:
       entity_id: weather.forecast_home
-      duration_seconds: 20
 ```
+
+Omit `duration_seconds` to use the TV's saved **Forecast duration**. Add it under `data` (8 to 45 seconds) only to override the duration for this request.
 
 On the device page, **Forecast source** is the weather entity used when a script leaves `entity_id` empty. **Forecast position**, **Forecast size**, and **Forecast duration** move only that card. The usual spot is bottom center for 20 seconds. Home Assistant 2024.4 or newer is required because the action calls `weather.get_forecasts`. Update HACS and restart Home Assistant, then install the matching Android build over the current app. Do not uninstall it. The card below is a **simulation**, not a photo from the onn.
 

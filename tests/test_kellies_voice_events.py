@@ -1,10 +1,13 @@
 """Checks for announcement and camera event inputs. No Home Assistant install required."""
 
 import importlib.util
+import ast
 import json
 import pathlib
 import uuid
 import unittest
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, Mock
 
 import sys
 
@@ -19,7 +22,66 @@ const = importlib.util.module_from_spec(_CONST_SPEC)
 _CONST_SPEC.loader.exec_module(const)
 
 
+class ForecastDeliveryTests(unittest.IsolatedAsyncioTestCase):
+    """Exercise the real service handler with fake HA I/O, without installing HA."""
+
+    async def asyncSetUp(self):
+        import logging
+        import time
+
+        source = ast.parse((_COMPONENT / "services.py").read_text(encoding="utf-8"))
+        # Keep production functions; replace only HA imports and external I/O.
+        functions = [node for node in source.body
+                     if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                     and node.name in ("configured_device_ids", "_saved_weather_entity",
+                                       "_async_show_forecast")]
+        namespace = dict(vars(validation))
+        namespace.update(HomeAssistant=object, ServiceCall=object,
+                         ServiceValidationError=ValueError, DOMAIN=const.DOMAIN,
+                         EVENT_FORECAST=const.EVENT_FORECAST, time=time,
+                         _LOGGER=logging.getLogger(__name__))
+        exec(compile(ast.Module(body=functions, type_ignores=[]), "services.py", "exec"), namespace)
+        self.handler = namespace["_async_show_forecast"]
+        self.hass = SimpleNamespace(
+            config_entries=SimpleNamespace(async_entries=lambda domain: [
+                SimpleNamespace(data={"device_id": "living-room"})]),
+            config=SimpleNamespace(time_zone="UTC"),
+            states=SimpleNamespace(get=lambda entity: SimpleNamespace(
+                attributes={"supported_features": 1, "temperature_unit": "°F",
+                            "friendly_name": "Home"})),
+            services=SimpleNamespace(async_call=AsyncMock(return_value={
+                "weather.home": {"forecast": [{"datetime": "2026-10-24T12:00:00Z",
+                                               "temperature": 70, "templow": 50}]}})),
+            bus=SimpleNamespace(async_fire=Mock()))
+
+    async def test_omitted_duration_preserves_tv_preference(self):
+        await self.handler(SimpleNamespace(hass=self.hass, data={"entity_id": "weather.home"}))
+        event, payload = self.hass.bus.async_fire.call_args.args
+        self.assertEqual(const.EVENT_FORECAST, event)
+        self.assertEqual("living-room", payload["device_id"])
+        self.assertNotIn("duration_seconds", payload)
+        self.assertEqual(1, len(payload["days"]))
+
+    async def test_explicit_duration_overrides_tv_preference(self):
+        await self.handler(SimpleNamespace(hass=self.hass, data={
+            "entity_id": "weather.home", "duration_seconds": 30}))
+        self.assertEqual(30, self.hass.bus.async_fire.call_args.args[1]["duration_seconds"])
+
+
 class ValidationTests(unittest.TestCase):
+    def test_non_finite_forecast_values_do_not_abort_valid_days(self):
+        for bad in (float("nan"), float("inf"), -float("inf"), 10 ** 1000):
+            with self.subTest(value=str(bad)):
+                days = validation.clean_forecast_days([{
+                    "datetime": "2026-10-24T12:00:00+00:00",
+                    "temperature": bad,
+                    "templow": 50,
+                    "precipitation_probability": bad,
+                }], "UTC")
+                self.assertIsNone(days[0]["high"])
+                self.assertEqual(50, days[0]["low"])
+                self.assertNotIn("precipitation", days[0])
+
     def test_alert_layout_is_separate_from_the_voice_overlay(self):
         voice_settings = [item[0] for item in const.SELECTS]
         self.assertEqual(voice_settings, ["position", "size", "style", "auto_hide"])
