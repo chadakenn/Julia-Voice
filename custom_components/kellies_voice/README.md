@@ -2,7 +2,7 @@
 
 **Give your TV a voice, useful popups, and quick access to security-camera views without replacing your TV launcher.** Kellie's Voice consists of a native Android TV/Google TV app and this Home Assistant integration. The TV handles speech and on-screen overlays; the integration lets HA automations and controls talk to it.
 
-**Why it matters:** ask your Assist agent about the house while a show plays, get a text alert when the washing machine finishes, or see a Frigate driveway/doorbell snapshot when a person approaches. On-demand live video is available as an **experimental** option; moving video playback still needs on-device verification.
+**Why it matters:** ask your Assist agent about the house while a show plays, get a text alert when the washing machine finishes, or see a Frigate driveway/doorbell snapshot when a person approaches. On-demand live video is available as an **experimental** option; moving driveway video is now confirmed on the onn 4K Pro with Android v0.16.1, though other cameras/devices need verification.
 
 | User-facing feature | Home Assistant feature |
 | --- | --- |
