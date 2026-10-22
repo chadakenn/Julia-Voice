@@ -1,5 +1,7 @@
 # Voice timers: v0.16.4 and Assist setup
 
+**Natural speech with no wake word:** You should **never have to say “Julia”** before a timer command. For named and unnamed timers plus bare “stop” and “cancel,” use the [dedicated no-wake-word Home Assistant setup guide](VOICE_TIMERS_PLAIN_SPEECH.md). It supersedes earlier Julia-prefix examples, which were only a workaround for Home Assistant's native timer interception. The general Assist/Ollama scripted approaches below remain optional alternatives. Full room-aware isolation is still a work in progress (PR #50 / issue #57).
+
 Named TV timers show small countdown pills over the current app. At completion: one chime, a 180 ms gap, a second chime, the optional configured phrase, then a 500 ms pause before the next pair. **Alerts repeat until dismissed, with no automatic cutoff.** Multiple completed timers share one audio sequence; dismiss the current timer to hear the next. Back dismisses every ringing timer, leaving running timers alone. The completion window has D-pad buttons; countdowns do not take remote focus.
 
 The bundled chime plays locally. Optional speech uses the TV's Android text-to-speech engine, not the microphone or HA voice agent; it may sound different from Julia. If speech is unavailable, chimes continue. A stalled utterance is stopped after 15 seconds so the pair sequence can resume. The phrase is configured per timer and limited to 140 characters.
