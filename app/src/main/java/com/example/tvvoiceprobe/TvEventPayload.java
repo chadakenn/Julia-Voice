@@ -34,7 +34,7 @@ public final class TvEventPayload {
     public static boolean hlsPathAllowed(String path) {
         return path != null && path.startsWith("/api/hls/")
                 && path.endsWith(".m3u8") && !path.contains("..")
-                && !path.contains("\\\\") && !path.contains("//")
+                && !path.contains("\\") && !path.contains("//")
                 && !path.contains("?") && !path.contains("#")
                 && path.length() <= 600;
     }
