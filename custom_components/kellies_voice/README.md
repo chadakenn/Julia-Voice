@@ -140,3 +140,19 @@ actions:
 ```
 
 Replace both entity ids with yours. Add `device_id` only when you want one TV.
+
+## On-demand live camera viewing (experimental)
+
+The `kellies_voice.show_live_camera` action requests a **live HLS stream** from Home Assistant and displays a **muted, non-focusable overlay** on the TV. It does not cast away your movie or steal focus from YouTube. Default viewing time is 90 seconds (maximum 180). Person-detection alerts continue to use snapshots.
+
+```yaml
+action: kellies_voice.show_live_camera
+data:
+  entity_id: camera.driveway
+  title: Live driveway
+  duration_seconds: 90
+```
+
+For voice, expose an appropriately named script to your Assist/Ollama agent that calls the service with a fixed camera entity. Adding a new HA action alone does not guarantee your custom Julia agent recognizes "show driveway camera". A sentence-triggered HA automation may be used as a fallback.
+
+The TV receiver requests a temporary HLS URL through Home Assistant's authenticated WebSocket `camera/stream` command. Events never carry stream URLs, tokens, or RTSP credentials. Playback is muted and released on timeout, a new popup, or receiver shutdown. HLS has more delay than WebRTC. Both the updated HACS integration and an Android APK with Media3 HLS support are needed.

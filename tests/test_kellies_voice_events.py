@@ -41,6 +41,15 @@ class ValidationTests(unittest.TestCase):
         self.assertIn("user", messages["config"]["step"])
         self.assertIn("device_id", messages["config"]["step"]["user"]["data"])
 
+    def test_live_camera_service_schema_contract(self):
+        source = (_COMPONENT / "services.py").read_text(encoding="utf-8")
+        const = (_COMPONENT / "const.py").read_text(encoding="utf-8")
+        self.assertIn("SHOW_LIVE_SCHEMA", source)
+        self.assertIn("async_show_live_camera", source)
+        self.assertIn("kellies_voice_live_camera", const)
+        self.assertIn("MIN_LIVE_SECONDS = 15", const)
+        self.assertIn("MAX_LIVE_SECONDS = 180", const)
+
     def test_title_and_text_limits(self):
         self.assertEqual(validation.clean_title("  Washer   done "), "Washer done")
         with self.assertRaises(ValueError):

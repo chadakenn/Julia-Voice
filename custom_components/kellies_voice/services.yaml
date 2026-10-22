@@ -47,3 +47,27 @@ show_camera:
       example: ""
       selector:
         text:
+show_live_camera:
+  fields:
+    entity_id:
+      required: true
+      example: camera.driveway
+      selector:
+        entity:
+          filter:
+            domain: camera
+    title:
+      example: Live driveway
+      selector:
+        text:
+    duration_seconds:
+      example: 90
+      selector:
+        number:
+          min: 15
+          max: 180
+          mode: box
+    device_id:
+      example: ""
+      selector:
+        text:

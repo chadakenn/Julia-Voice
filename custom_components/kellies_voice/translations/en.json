@@ -69,6 +69,28 @@
           "description": "One configured TV. Leave empty to send to every configured Kellie's Voice TV."
         }
       }
+    },
+    "show_live_camera": {
+      "name": "Show live camera",
+      "description": "Show a temporary muted live HLS video overlay on a TV without interrupting audio or exposing camera URLs.",
+      "fields": {
+        "entity_id": {
+          "name": "Camera",
+          "description": "An HA camera with live streaming support."
+        },
+        "title": {
+          "name": "Title",
+          "description": "Optional heading displayed on TV."
+        },
+        "duration_seconds": {
+          "name": "Duration (seconds)",
+          "description": "Temporary live stream for 15 to 180 seconds, default 90."
+        },
+        "device_id": {
+          "name": "TV device id",
+          "description": "Optional specific TV; blank sends to all configured Kellie's Voice TVs."
+        }
+      }
     }
   }
 }

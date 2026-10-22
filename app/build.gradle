@@ -10,8 +10,8 @@ android {
         applicationId 'com.example.tvvoiceprobe'
         minSdk 26
         targetSdk 35
-        versionCode 16
-        versionName '0.15.1'
+        versionCode 17
+        versionName '0.16.0-dev'
     }
 
     // The keystore is private and supplied from GitHub Actions secrets.
@@ -40,5 +40,8 @@ android {
 dependencies {
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
     implementation 'androidx.core:core:1.13.1'
+    implementation 'androidx.media3:media3-exoplayer:1.8.0'
+    implementation 'androidx.media3:media3-exoplayer-hls:1.8.0'
+    implementation 'androidx.media3:media3-ui:1.8.0'
     testImplementation 'junit:junit:4.13.2'
 }
