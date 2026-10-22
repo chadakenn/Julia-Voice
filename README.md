@@ -81,7 +81,7 @@ The Android app and the HACS integration are **two different downloads**. You ne
 1. On a supported Android TV / Google TV device, install the **signed APK** from [the latest GitHub Release](https://github.com/chadakenn/Kellies-Voice/releases/latest).
 2. Open Kellie's Voice and configure its Home Assistant URL, access token, microphone and **Display over other apps** permissions.
 3. Test a question through your configured Home Assistant Assist pipeline. Use the on-screen controls or the TV shortcut supported by your device.
-4. In **Settings → Home Assistant layout**, turn remote layout management **ON**. To get announcements and camera popups, independently enable **Settings → TV announcements & cameras**.
+4. In **Settings → Home Assistant layout**, turn remote layout management **ON**. To get announcements and camera popups, independently enable **Settings → TV announcements & cameras**. After an app update or TV reboot, that receiver tries to resume by itself. If Android blocks the start, open Kellie's Voice once, or use **Settings → TV alert status → Resume TV alerts**. Android TV may not show a banner for that notice; the status screen is the reliable place to look.
 5. Later updates: use **Settings → Check for app updates** and confirm Android's installer. Never uninstall the app just to update, or you may lose your saved connection.
 
 ### 2. Install the Home Assistant integration via HACS
