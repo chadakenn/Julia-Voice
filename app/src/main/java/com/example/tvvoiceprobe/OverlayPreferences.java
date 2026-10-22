@@ -37,6 +37,8 @@ public final class OverlayPreferences {
     private static final String KEY_MAIN_SHORTCUT = "main_launcher_opens_overlay";
     private static final String KEY_POSITION = "overlay_position";
     private static final String KEY_SIZE = "overlay_size";
+    private static final String KEY_ALERT_POSITION = "tv_alert_position";
+    private static final String KEY_ALERT_SIZE = "tv_alert_size";
     private static final String KEY_HIDE_SECONDS = "overlay_hide_seconds";
     private static final String KEY_NOISE = "room_noise";
     private static final String KEY_DEVICE = "ha_device_id";
@@ -115,6 +117,26 @@ public final class OverlayPreferences {
             case SIZE_LARGE: return "Large";
             default: return "Medium (original)";
         }
+    }
+
+    public String alertPosition() {
+        return TvAlertLayout.position(preferences.getString(KEY_ALERT_POSITION, TvAlertLayout.TOP_RIGHT));
+    }
+
+    public void setAlertPosition(String value) {
+        String stored = TvAlertLayout.positionOrNull(value);
+        preferences.edit().putString(KEY_ALERT_POSITION,
+                stored == null ? TvAlertLayout.TOP_RIGHT : stored).apply();
+    }
+
+    public String alertSize() {
+        return TvAlertLayout.size(preferences.getString(KEY_ALERT_SIZE, TvAlertLayout.MEDIUM));
+    }
+
+    public void setAlertSize(String value) {
+        String stored = TvAlertLayout.sizeOrNull(value);
+        preferences.edit().putString(KEY_ALERT_SIZE,
+                stored == null ? TvAlertLayout.MEDIUM : stored).apply();
     }
 
     // 7 seconds preserves the original approximately 6.5-second delay.

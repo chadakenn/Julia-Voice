@@ -1,19 +1,26 @@
 # Real-device screenshot gallery 📸
 
-**This folder does not yet contain confirmed captures of Kellie's Voice v0.16.0 announcements, Frigate camera windows or live video.** The existing SVG previews and `night-signal.png` are **illustrative/design assets**, not unaltered captures of the currently shipped Android application. Please do not label them "actual screenshot" in README, HACS, release notes, or marketing.
+Phone photos from an onn 4K Pro are now in this folder and in the main README. The SVG previews and `night-signal.png` are still **design references**, not photos of the TV.
 
-We want people browsing HACS to understand what Kellie's Voice looks like on a **real Android TV**, not a concept rendering. As soon as real captures are supplied, the main README and HACS description can show them with accurate captions.
+| File | What it is |
+| --- | --- |
+| [onn-voice-time.jpg](onn-voice-time.jpg) | Voice overlay over Google TV. Question: "What time is it?" Answer: "4:23 AM". |
+| [onn-voice-doorbell.gif](onn-voice-doorbell.gif) | Voice overlay while Home Assistant answers "Show me the doorbell camera." |
+| [onn-snapshot-popup.jpg](onn-snapshot-popup.jpg) | Still snapshot popup, "Snapshot Test After Reopening App." Not live video. |
+| [onn-live-doorbell.jpg](onn-live-doorbell.jpg) | Live doorbell card starting, muted, with the voice card still visible. One photo, not a motion recording. |
+
+Still wanted: the settings screen, a text-only announcement with no camera picture, and the Home Assistant device page.
 
 ## Requested captures
 
 | Screenshot / photo | What it should show | Proposed file |
 | --- | --- | --- |
 | TV app home/settings | Real on-TV app showing name, connection status and settings, no secrets | `actual-tv-settings.png` |
-| Voice overlay | Kellie's Voice overlay on Google TV / YouTube with a harmless Assist request and reply | `actual-voice-overlay.png` |
-| Announcement popup | The opt-in on-screen text announcement above a TV app | `actual-announcement.png` |
-| Frigate popup | A real camera **still snapshot** overlay, preferably driveway or doorbell | `actual-frigate-snapshot.png` |
+| Voice overlay | Kellie's Voice overlay on Google TV with a harmless Assist request and reply | Have [onn-voice-time.jpg](onn-voice-time.jpg) and [onn-voice-doorbell.gif](onn-voice-doorbell.gif) |
+| Announcement popup | The opt-in on-screen text announcement above a TV app | Still wanted |
+| Frigate popup | A real camera **still snapshot** overlay | Have [onn-snapshot-popup.jpg](onn-snapshot-popup.jpg) |
 | HA device settings | HA device page with overlay position, size, style, auto-hide and auto-listen | `actual-ha-device-controls.png` |
-| Live camera, **moving playback verified with driveway and doorbell on onn 4K Pro v0.16.1** | Capture actual HLS video overlay (not a mockup); on-device screenshot has not yet been supplied | `actual-live-camera.png` |
+| Live camera | Live doorbell card on the onn. Moving playback was already verified; this file is one photo of the card opening | Have [onn-live-doorbell.jpg](onn-live-doorbell.jpg) |
 
 ## Easy way to capture and contribute
 

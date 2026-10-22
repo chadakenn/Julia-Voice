@@ -31,6 +31,7 @@ import androidx.media3.common.PlaybackException;
 import androidx.media3.common.Player;
 import androidx.media3.exoplayer.ExoPlayer;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
@@ -65,7 +66,8 @@ public final class TvEventsService extends Service {
     private static final int ANNOUNCE_ID = 1;
     private static final int CAMERA_ID = 2;
     private static final int LIVE_EVENT_ID = 3;
-    // Use 6 to avoid overlapping Grok's alert-layout sync (IDs 4 and 5).
+    private static final int LAYOUT_EVENT_ID = 4;
+    private static final int LAYOUT_STATES_ID = 5;
     private static final int HIDE_CAMERA_EVENT_ID = 6;
     private static final int MAX_SNAPSHOT_BYTES = 5 * 1024 * 1024;
 
@@ -87,6 +89,7 @@ public final class TvEventsService extends Service {
     private int requestCounter = 100;
     private int liveRequestId = -1;
     private int liveRequestGeneration = -1;
+    private int layoutStatesId = -1;
     private WebSocket socket;
     private CredentialStore.Connection credentials;
     private boolean stopping;
@@ -228,6 +231,7 @@ public final class TvEventsService extends Service {
     private void lostConnection(WebSocket ws) {
         if (ws != socket) return;
         socket = null;
+        layoutStatesId = -1;
         if (stopping) return;
         TvEventsRecovery.note(TvEventsRecovery.RECONNECTING);
         connectionNotice("Reconnecting to Home Assistant");
@@ -266,6 +270,14 @@ public final class TvEventsService extends Service {
                 ws.send(new JSONObject().put("id", HIDE_CAMERA_EVENT_ID)
                         .put("type", "subscribe_events")
                         .put("event_type", TvEventPayload.HIDE_CAMERA).toString());
+                if (new OverlayPreferences(this).haManage()) {
+                    layoutStatesId = LAYOUT_STATES_ID;
+                    ws.send(new JSONObject().put("id", LAYOUT_EVENT_ID)
+                            .put("type", "subscribe_events")
+                            .put("event_type", "state_changed").toString());
+                    ws.send(new JSONObject().put("id", LAYOUT_STATES_ID)
+                            .put("type", "get_states").toString());
+                }
                 connectionNotice("Connected, waiting for TV alerts");
                 TvEventsRecovery.note(TvEventsRecovery.CONNECTED);
                 TvEventsRestartReceiver.clearResume(this);
@@ -273,6 +285,18 @@ public final class TvEventsService extends Service {
             }
             if ("result".equals(type)) {
                 int resultId = message.optInt("id", -1);
+                if (resultId == layoutStatesId) {
+                    layoutStatesId = -1;
+                    if (message.optBoolean("success", false)) {
+                        JSONArray states = message.optJSONArray("result");
+                        if (states != null) {
+                            for (int i = 0; i < states.length(); i++) {
+                                applyAlertState(states.optJSONObject(i));
+                            }
+                        }
+                    }
+                    return;
+                }
                 if (resultId == liveRequestId && liveRequestGeneration == generation) {
                     liveRequestId = -1;
                     if (message.optBoolean("success", false)) {
@@ -302,6 +326,11 @@ public final class TvEventsService extends Service {
             JSONObject event = message.optJSONObject("event");
             if (event == null) return;
             String eventType = event.optString("event_type");
+            if (subscription == LAYOUT_EVENT_ID && "state_changed".equals(eventType)) {
+                JSONObject changed = event.optJSONObject("data");
+                if (changed != null) applyAlertState(changed.optJSONObject("new_state"));
+                return;
+            }
             JSONObject data = event.optJSONObject("data");
             if (data == null) return;
             if (!TvEventPayload.addressedTo(data.optString("device_id", ""),
@@ -379,6 +408,8 @@ public final class TvEventsService extends Service {
         TextView subtitle = label(text, 16, 0xffFAE8D5);
         panel.addView(subtitle);
         photo = null;
+        OverlayPreferences placement = new OverlayPreferences(this);
+        String alertSize = placement.alertSize();
         if (entity != null && live) {
             liveStatus = subtitle;
             // SurfaceView can show black in TYPE_APPLICATION_OVERLAY on some TVs.
@@ -397,17 +428,19 @@ public final class TvEventsService extends Service {
             preview.addView(surface, new FrameLayout.LayoutParams(-1, -1));
             liveSurface = surface;
             liveFirstFrame = false;
-            panel.addView(preview, new LinearLayout.LayoutParams(-1, dp(295)));
+            panel.addView(preview, new LinearLayout.LayoutParams(-1,
+                    dp(TvAlertLayout.mediaHeightDp(alertSize, true))));
         } else if (entity != null) {
             ImageView image = new ImageView(this);
             image.setScaleType(ImageView.ScaleType.CENTER_CROP);
             image.setBackgroundColor(0xff2D211C);
-            panel.addView(image, new LinearLayout.LayoutParams(-1, dp(220)));
+            panel.addView(image, new LinearLayout.LayoutParams(-1,
+                    dp(TvAlertLayout.mediaHeightDp(alertSize, false))));
             photo = image;
         }
 
         int screen = getResources().getDisplayMetrics().widthPixels;
-        int width = Math.min(dp(entity == null ? 430 : live ? 570 : 505), screen - dp(48));
+        int width = Math.min(dp(TvAlertLayout.widthDp(alertSize, entity != null, live)), screen - dp(48));
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(
                 width, WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
@@ -415,9 +448,10 @@ public final class TvEventsService extends Service {
                         | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
                         | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
                 PixelFormat.TRANSLUCENT);
-        params.gravity = Gravity.TOP | Gravity.END;
-        params.x = dp(28);
-        params.y = dp(40);
+        String alertPosition = placement.alertPosition();
+        params.gravity = alertGravity(alertPosition);
+        params.x = dp(TvAlertLayout.marginXDp(alertPosition));
+        params.y = dp(TvAlertLayout.marginYDp(alertPosition));
         params.setTitle("Kellie's Voice TV alert");
         try {
             windowManager.addView(panel, params);
@@ -443,6 +477,36 @@ public final class TvEventsService extends Service {
             card = null;
             photo = null;
         }
+    }
+
+    private static int alertGravity(String position) {
+        switch (TvAlertLayout.position(position)) {
+            case TvAlertLayout.TOP_LEFT:
+                return Gravity.TOP | Gravity.START;
+            case TvAlertLayout.BOTTOM_LEFT:
+                return Gravity.BOTTOM | Gravity.START;
+            case TvAlertLayout.BOTTOM_RIGHT:
+                return Gravity.BOTTOM | Gravity.END;
+            case TvAlertLayout.CENTER:
+                return Gravity.CENTER;
+            default:
+                return Gravity.TOP | Gravity.END;
+        }
+    }
+
+    /** Saves a Home Assistant alert placement. Ignores voice-overlay settings. */
+    private void applyAlertState(JSONObject state) {
+        if (state == null || !new OverlayPreferences(this).haManage()) return;
+        JSONObject attributes = state.optJSONObject("attributes");
+        if (attributes == null) return;
+        OverlayPreferences prefs = new OverlayPreferences(this);
+        if (!prefs.deviceId().equals(attributes.optString("kellie_device_id"))) return;
+        String setting = attributes.optString("kellie_setting");
+        if (!HaLayout.ALERT_POSITION.equals(setting) && !HaLayout.ALERT_SIZE.equals(setting)) return;
+        if (attributes.optInt("kellie_generation", 0) <= 0) return;
+        String raw = state.optString("state");
+        if ("unavailable".equals(raw) || "unknown".equals(raw) || raw.isEmpty()) return;
+        HaLayout.apply(prefs, setting, raw);
     }
 
     private void requestLiveStream(String entity, int current) {

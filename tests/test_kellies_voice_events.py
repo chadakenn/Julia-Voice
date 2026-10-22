@@ -14,9 +14,30 @@ _PATH = _COMPONENT / "validation.py"
 _SPEC = importlib.util.spec_from_file_location("kellies_voice_validation", _PATH)
 validation = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(validation)
+_CONST_SPEC = importlib.util.spec_from_file_location("kellies_voice_const", _COMPONENT / "const.py")
+const = importlib.util.module_from_spec(_CONST_SPEC)
+_CONST_SPEC.loader.exec_module(const)
 
 
 class ValidationTests(unittest.TestCase):
+    def test_alert_layout_is_separate_from_the_voice_overlay(self):
+        voice_settings = [item[0] for item in const.SELECTS]
+        self.assertEqual(voice_settings, ["position", "size", "style", "auto_hide"])
+        self.assertEqual(
+            [(item[0], item[1], item[4]) for item in const.ALERT_SELECTS],
+            [
+                ("alert_position", "TV alert position", "Top right"),
+                ("alert_size", "TV alert size", "Medium"),
+            ],
+        )
+        self.assertEqual(
+            const.ALERT_POSITIONS,
+            ["Top left", "Top right", "Bottom left", "Bottom right", "Center"],
+        )
+        self.assertEqual(const.ALERT_SIZES, ["Small", "Medium", "Large"])
+        self.assertNotIn("Original location", const.ALERT_POSITIONS)
+        self.assertNotIn("Bottom center", const.ALERT_POSITIONS)
+
     def test_custom_integration_english_translations(self):
         # Custom HA integrations load translations/en.json, not strings.json.
         source = json.loads((_COMPONENT / "strings.json").read_text(encoding="utf-8"))
