@@ -51,8 +51,9 @@ import okhttp3.WebSocketListener;
  * Assistant events. Popup windows are non-focusable and never intercept the
  * remote or take audio focus away from a video.
  *
- * Android can still stop this service, so it reconnects while permitted but
- * does not promise true 24/7 delivery or auto-start itself at boot.
+ * Android can still stop this service. If alerts were already enabled, a
+ * reboot or app-update broadcast may start it again. That is not guaranteed,
+ * and this service does not start the microphone or replay old events.
  */
 public final class TvEventsService extends Service {
     public static final String ACTION_START = "com.example.tvvoiceprobe.TV_EVENTS_START";
@@ -99,12 +100,19 @@ public final class TvEventsService extends Service {
         String action = intent == null ? ACTION_START : intent.getAction();
         if (ACTION_STOP.equals(action)) {
             new OverlayPreferences(this).setTvEvents(false);
+            TvEventsRecovery.note(TvEventsRecovery.OFF);
             stopSelf();
             return START_NOT_STICKY;
         }
         // A user must first enable this in the app, and Android requires the
         // system "Display over other apps" permission for passive popups.
-        if (!new OverlayPreferences(this).tvEvents() || !Settings.canDrawOverlays(this)) {
+        if (!new OverlayPreferences(this).tvEvents()) {
+            TvEventsRecovery.note(TvEventsRecovery.OFF);
+            stopSelf();
+            return START_NOT_STICKY;
+        }
+        if (!Settings.canDrawOverlays(this)) {
+            TvEventsRecovery.note(TvEventsRecovery.PERMISSION);
             stopSelf();
             return START_NOT_STICKY;
         }
@@ -115,6 +123,7 @@ public final class TvEventsService extends Service {
         catch (Exception ignored) { saved = null; }
         if (saved == null) {
             credentials = null;
+            TvEventsRecovery.note(TvEventsRecovery.SIGNED_OUT);
             stopSelf();
             return START_NOT_STICKY;
         }
@@ -138,10 +147,13 @@ public final class TvEventsService extends Service {
                 startForeground(NOTICE_ID, notification);
             }
         } catch (RuntimeException ignored) {
+            TvEventsRecovery.note(TvEventsRecovery.STOPPED);
             stopSelf();
             return START_NOT_STICKY;
         }
         stopping = false;
+        TvEventsRestartReceiver.clearResume(this);
+        TvEventsRecovery.note(TvEventsRecovery.RECONNECTING);
         if (ACTION_PREVIEW.equals(action)) {
             showCard("Kellie's Voice", "This is how announcements will appear over your TV.", null, 10);
         }
@@ -190,6 +202,7 @@ public final class TvEventsService extends Service {
         HttpUrl base = HttpUrl.parse(credentials.url);
         if (base == null || !(base.scheme().equals("http") || base.scheme().equals("https"))
                 || !base.username().isEmpty() || !base.password().isEmpty()) {
+            TvEventsRecovery.note(TvEventsRecovery.CHECK);
             connectionNotice("Check the Home Assistant connection in Settings");
             return;
         }
@@ -216,6 +229,7 @@ public final class TvEventsService extends Service {
         if (ws != socket) return;
         socket = null;
         if (stopping) return;
+        TvEventsRecovery.note(TvEventsRecovery.RECONNECTING);
         connectionNotice("Reconnecting to Home Assistant");
         long delay = Math.min(30000L, 2000L << Math.min(4, failedAttempts++));
         main.removeCallbacks(reconnect);
@@ -233,6 +247,7 @@ public final class TvEventsService extends Service {
                 return;
             }
             if ("auth_invalid".equals(type)) {
+                TvEventsRecovery.note(TvEventsRecovery.REJECTED);
                 connectionNotice("Home Assistant rejected the saved login");
                 ws.close(1000, "Authentication rejected");
                 return;
@@ -252,6 +267,8 @@ public final class TvEventsService extends Service {
                         .put("type", "subscribe_events")
                         .put("event_type", TvEventPayload.HIDE_CAMERA).toString());
                 connectionNotice("Connected, waiting for TV alerts");
+                TvEventsRecovery.note(TvEventsRecovery.CONNECTED);
+                TvEventsRestartReceiver.clearResume(this);
                 return;
             }
             if ("result".equals(type)) {
@@ -578,6 +595,11 @@ public final class TvEventsService extends Service {
         http.dispatcher().executorService().shutdown();
         http.connectionPool().evictAll();
         credentials = null;
+        if (new OverlayPreferences(this).tvEvents()) {
+            TvEventsRecovery.note(TvEventsRecovery.STOPPED);
+        } else {
+            TvEventsRecovery.note(TvEventsRecovery.OFF);
+        }
         stopForeground(STOP_FOREGROUND_REMOVE);
         super.onDestroy();
     }

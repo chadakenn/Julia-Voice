@@ -83,7 +83,10 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
             try {
                 startForegroundService(new Intent(this, TvEventsService.class)
                         .setAction(TvEventsService.ACTION_START));
-            } catch (RuntimeException ignored) { }
+                TvEventsRestartReceiver.clearResume(this);
+            } catch (RuntimeException ignored) {
+                TvEventsRecovery.note(TvEventsRecovery.STOPPED);
+            }
         }
         // Reuse saved credentials without asking for a manual Reconnect click.
         // No microphone is activated here, just the authenticated socket.
@@ -462,6 +465,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                 "Overlay appearance & position",
                 "Home Assistant layout: " + (new OverlayPreferences(this).haManage() ? "ON" : "OFF"),
                 "TV announcements & cameras: " + (new OverlayPreferences(this).tvEvents() ? "ON" : "OFF"),
+                "TV alert status",
                 "Check for app updates",
                 "Install downloaded update",
                 "Forget saved connection"
@@ -479,13 +483,14 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                         case 6: showOverlayPreferences(); break;
                         case 7: chooseHaLayout(); break;
                         case 8: chooseTvNotifications(); break;
-                        case 9:
+                        case 9: showTvAlertStatus(); break;
+                        case 10:
                             manualUpdateCheck = true;
                             status("Checking GitHub Releases...");
                             updater.check();
                             break;
-                        case 10: promptInstallUpdate(); break;
-                        case 11: confirmForget(); break;
+                        case 11: promptInstallUpdate(); break;
+                        case 12: confirmForget(); break;
                         default: break;
                     }
                 });
@@ -531,7 +536,8 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         boolean enabled = prefs.tvEvents();
         showCopperMenu("SETTINGS  ✦  TV ALERTS",
                 "Opt-in announcements and Frigate camera snapshots over TV. No microphone is used. "
-                        + "The receiver shows a persistent notification and may stop if Android suspends it.",
+                        + "If alerts were already on, the TV tries to resume them after an update or reboot. "
+                        + "That can still be blocked by Android.",
                 new String[] {
                         enabled ? "Turn TV notifications OFF" : "Turn TV notifications ON",
                         "Preview announcement",
@@ -585,6 +591,34 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                     }
                     showSettingsMenu();
                 });
+    }
+
+    private void showTvAlertStatus() {
+        OverlayPreferences prefs = new OverlayPreferences(this);
+        boolean signedIn = settings != null;
+        String message = TvEventsRecovery.describe(prefs.tvEvents(),
+                Settings.canDrawOverlays(this), signedIn, TvEventsRecovery.runtime());
+        AlertDialog.Builder dialog = new AlertDialog.Builder(this)
+                .setTitle("TV alert status")
+                .setMessage(message + "\n\nThis does not start the microphone. "
+                        + "A Home Assistant drop reconnects on its own while the receiver is running. "
+                        + "Events from the gap are not shown later.")
+                .setNegativeButton("Back", (d, w) -> showSettingsMenu());
+        if (prefs.tvEvents() && signedIn && Settings.canDrawOverlays(this)) {
+            dialog.setPositiveButton("Resume TV alerts", (d, w) -> {
+                try {
+                    startForegroundService(new Intent(this, TvEventsService.class)
+                            .setAction(TvEventsService.ACTION_START));
+                    TvEventsRestartReceiver.clearResume(this);
+                    status("Resuming TV alerts.");
+                } catch (RuntimeException ignored) {
+                    TvEventsRecovery.note(TvEventsRecovery.STOPPED);
+                    status("Android blocked the TV alert receiver. Try again from this screen.");
+                }
+                showSettingsMenu();
+            });
+        }
+        dialog.show();
     }
 
     private void pushLayout(String setting) {

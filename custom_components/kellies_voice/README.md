@@ -184,10 +184,21 @@ data:
 
 For Julia/Ollama, expose a Home Assistant script called **Close camera on TV** that calls the action. For “show doorbell for 30 seconds” either expose a parameterized camera script whose `duration_seconds` field is 30 or a specifically named 30-second script. The `kellies_voice.show_live_camera` action already supports integer durations between 15 and 180 seconds; voice model recognition of script arguments is not guaranteed until tested.
 
-**Update both components to v0.16.2** and restart Home Assistant for the new action, then open the Kellie's Voice TV app to restart its opt-in alert listener after APK installation.
+**Update both components to v0.16.2** and restart Home Assistant for the new action. The TV tries to resume an already enabled alert receiver after the APK update or a reboot. If the popups do not return, open Kellie's Voice once. No extra Home Assistant script is required for that resume.
 
 ### Set up the required Home Assistant scripts for voice requests
 
 For the specific spoken phrases **"show me the driveway"**, **"show doorbell for 30 seconds"**, and **"close the camera"**, create named HA scripts that call `kellies_voice.show_live_camera` or `kellies_voice.hide_camera`. Expose each intended script to Home Assistant **Assist** under Settings → Voice assistants → Expose, and ensure the conversation agent can execute scripts. **No script is automatically installed by HACS**, since each installation has its own camera IDs, TV pairing IDs, and voice agent permissions.
 
 The [complete step-by-step script guide with full YAML](../../docs/VOICE_CAMERA_SCRIPTS.md) shows camera parameters, fixed 30-second variants, close action, device targeting, and the included Frigate blueprint. Do not paste the demonstration camera IDs or TV pairing placeholder without adapting them to your own Home Assistant setup.
+
+## If TV popups stop after an update, reboot, or Wi-Fi drop
+
+This does not change the announcement, camera, or hide-camera actions. The TV app has to be the one that reconnects.
+
+- Alerts stay off unless **Settings → TV announcements & cameras** was already turned on. Resume never starts the microphone.
+- After an in-place APK update or a full reboot, Android may start the receiver again. That is allowed only while the system is delivering that boot or update broadcast, and some onn / Google TV builds still refuse it.
+- Standby that leaves the app process running reconnects the Home Assistant socket with the existing backoff. A standby that kills the process does not send a boot broadcast, so Android may not start the receiver until the next reboot or until you open the app.
+- Dropped Wi-Fi or a Home Assistant restart reconnects while the receiver is still running. Events from the gap are not replayed.
+- If automatic start is blocked, open Kellie's Voice. **Settings → TV alert status** explains whether it is connected, reconnecting, missing overlay permission, signed out, or stopped, and **Resume TV alerts** starts it again. A one-time "Resume TV alerts" notification may also appear in the Android TV notification list. It is not a repeating nag.
+- Revoking **Display over other apps** or signing out stops popups until those are restored. Disabling TV alerts keeps them off across reboots.
