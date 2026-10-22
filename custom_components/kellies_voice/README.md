@@ -1,5 +1,20 @@
 # Kellie's Voice for Home Assistant
 
+**Give your TV a voice, useful popups, and quick access to security-camera views without replacing your TV launcher.** Kellie's Voice consists of a native Android TV/Google TV app and this Home Assistant integration. The TV handles speech and on-screen overlays; the integration lets HA automations and controls talk to it.
+
+**Why it matters:** ask your Assist agent about the house while a show plays, get a text alert when the washing machine finishes, or see a Frigate driveway/doorbell snapshot when a person approaches. On-demand live video is available as an **experimental** option; moving video playback still needs on-device verification.
+
+| User-facing feature | Home Assistant feature |
+| --- | --- |
+| Move the floating voice overlay | Per-TV position, size, style, auto-hide and auto-listen entities |
+| Show a quiet on-TV notification | `kellies_voice.announce` |
+| See a Frigate camera still when someone appears | `kellies_voice.show_camera`, plus included person-detection blueprint |
+| Request a temporary live camera feed | `kellies_voice.show_live_camera` (experimental HLS, muted) |
+
+**You also need the [signed Android TV app](https://github.com/chadakenn/Kellies-Voice/releases/latest).** HACS installs only this integration. Enable **Home Assistant layout** in the TV settings and separately enable **TV announcements & cameras** for notifications and camera popups.
+
+**Actual screenshots:** we're collecting real onn 4K Pro captures of the current app and overlays. Promotional artwork and legacy previews are not actual captures. See the [screenshot checklist](../../docs/screenshots/README.md).
+
 This integration changes overlay layout and can send announcement and camera events to configured TVs. It does not start the microphone, replace the TV login, or install an APK.
 
 Home Assistant never connects directly to the TV for layout changes. The TV can advertise through mDNS or you can enter its stable pairing ID manually. Either way, the TV reads those controls using its existing Home Assistant login.
@@ -12,7 +27,7 @@ Announcement and camera actions stay inside Home Assistant too. They fire events
 
 1. Make sure HACS is installed in your Home Assistant instance.
 2. **First-time only:** in **HACS → ⋮ → Custom repositories**, add `https://github.com/chadakenn/Kellies-Voice` with category **Integration**. The shortcut badge does not register an unknown repository automatically.
-3. Click **[Open in HACS](https://my.home-assistant.io/redirect/hacs_repository/?owner=chadakenn&repository=Kellies-Voice&category=integration)**. Download **v0.15.0** (or a newer release), not the older `v0.6`.
+3. Click **[Open in HACS](https://my.home-assistant.io/redirect/hacs_repository/?owner=chadakenn&repository=Kellies-Voice&category=integration)**. Download **v0.16.0** (or a newer release), not the older `v0.6`.
 4. Restart Home Assistant, then turn **Home Assistant layout ON** inside the Kellie's Voice TV app. Either add the TV under **Settings → Devices & services → Discovered** or use **Add Integration → Kellie's Voice** for manual pairing with its device ID (shown on the TV under Settings → Home Assistant layout → Show this TV's pairing ID). This works if mDNS is blocked across VLANs.
 5. Optionally turn on **TV announcements & cameras** on the TV to receive HA announcements and Frigate camera snapshots.
 
@@ -35,7 +50,7 @@ The device id used by the services below is the id stored for that TV. It is the
 
 ## Announcements and camera popups
 
-These actions fire Home Assistant events. The current signed Android development build includes an opt-in TV event receiver. On the TV, enable **Settings → TV announcements & cameras** to display them. You can also test the Home Assistant events using Developer Tools before turning on the receiver.
+These actions fire Home Assistant events. The signed Android app includes an opt-in TV event receiver. On the TV, enable **Settings → TV announcements & cameras** to display them. You can also test the Home Assistant events using Developer Tools before turning on the receiver.
 
 Leaving **TV device id** empty sends one event to every TV you have added. Filling it in sends the event only to that TV. A TV that is not added here is not a target.
 
@@ -110,7 +125,7 @@ The event data is exactly:
 6. Run them again with a **TV device id** and confirm only that TV is in the event.
 7. Try a duration of `120`, an empty title, or `entity_id: light.kitchen`. Home Assistant should reject the call and fire no event.
 
-The TV displays the message or snapshot when its **TV announcements & cameras** receiver is enabled. This is a still-image popup, not live Frigate video. It does not start Kellie's microphone or speak the notification.
+The TV displays the message or snapshot when its **TV announcements & cameras** receiver is enabled. The `show_camera` action displays a **still-image snapshot**, not a live stream. The separate experimental `show_live_camera` action requests HLS video on demand. Neither action starts Kellie's microphone or speaks the notification.
 
 ### Frigate person detection
 
@@ -155,4 +170,4 @@ data:
 
 For voice, expose an appropriately named script to your Assist/Ollama agent that calls the service with a fixed camera entity. Adding a new HA action alone does not guarantee your custom Julia agent recognizes "show driveway camera". A sentence-triggered HA automation may be used as a fallback.
 
-The TV receiver requests a temporary HLS URL through Home Assistant's authenticated WebSocket `camera/stream` command. Events never carry stream URLs, tokens, or RTSP credentials. Playback is muted and released on timeout, a new popup, or receiver shutdown. HLS has more delay than WebRTC. Both the updated HACS integration and an Android APK with Media3 HLS support are needed.
+The TV receiver requests a temporary HLS URL through Home Assistant's authenticated WebSocket `camera/stream` command. Events never carry stream URLs, tokens, or RTSP credentials. Playback is muted and released on timeout, a new popup, or receiver shutdown. HLS has more delay than WebRTC. Both the v0.16.0 or newer HACS integration and the matching signed Android APK with Media3 HLS support are needed. Hardware compatibility and live-moving-video delivery are not yet confirmed.

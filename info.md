@@ -1,11 +1,25 @@
-# Kellie's Voice for Home Assistant
+# Kellie's Voice 🎙️📺
 
-Install and manage the **Kellie's Voice** custom integration with HACS.
+**Make your Android TV part of your Home Assistant experience without replacing what you're watching.**
 
-- Configure each TV's overlay position, size, style, auto-hide and auto-listen.
-- Send announcements through `kellies_voice.announce`.
-- Trigger Frigate camera snapshot popups through `kellies_voice.show_camera`.
+Kellie's Voice pairs a **native Android TV / Google TV voice app** with this **HACS custom integration**. Ask Home Assistant questions through the TV, show useful answers in a floating overlay, and let automations display unobtrusive text announcements or Frigate camera snapshots.
 
-**Choose `main` in the HACS Download version picker.** The `v0.6` GitHub Release was made for the Android TV application before this custom integration was added. After downloading, restart Home Assistant, enable **Home Assistant layout** on the TV, and add the discovered device.
+### What this HACS integration adds
+- **Per-TV controls:** move and resize the voice overlay, choose its look, auto-hide and auto-listen behavior.
+- **Text announcements:** use `kellies_voice.announce` for laundry reminders, home status and other automations.
+- **Camera popups:** use `kellies_voice.show_camera` to show an HA camera snapshot over the TV. Trigger from Frigate person detection for driveway and doorbell alerts.
+- **Experimental live view:** use `kellies_voice.show_live_camera` for a muted temporary HLS overlay on request. Live playback is not yet field-verified on the onn 4K Pro.
 
-HACS does not install the Android APK. [Integration setup and testing](https://github.com/chadakenn/Kellies-Voice/blob/main/custom_components/kellies_voice/README.md).
+**Important:** HACS installs only the Home Assistant integration. You must separately install the [signed Kellie's Voice Android TV APK](https://github.com/chadakenn/Kellies-Voice/releases/latest) and enable **Home Assistant layout** and, for alerts, **TV announcements & cameras** in its settings.
+
+### Quick setup
+1. Add `https://github.com/chadakenn/Kellies-Voice` as an **Integration** in **HACS → Custom repositories** if HACS doesn't already know this repo.
+2. Download **v0.16.0 or newer** and restart Home Assistant.
+3. In **Settings → Devices & services**, add the discovered Kellie's Voice TV, or choose manual pairing with the stable ID shown in the TV app.
+4. Open the TV's HA device page to configure the overlay and use the actions above.
+
+**Screenshots:** We're collecting verified real-device photos of the app, announcement cards and Frigate popups. The brand banner and older illustrated previews are **concept graphics**, not real captures. [Real screenshot gallery plan](https://github.com/chadakenn/Kellies-Voice/blob/main/docs/screenshots/README.md).
+
+[**Full overview and examples**](https://github.com/chadakenn/Kellies-Voice#readme) · [**Detailed integration guide**](https://github.com/chadakenn/Kellies-Voice/blob/main/custom_components/kellies_voice/README.md) · [**Releases**](https://github.com/chadakenn/Kellies-Voice/releases/latest)
+
+> Built and verified primarily on the onn 4K Pro. Other Android TV models and on-demand live video are not yet fully hardware-tested. This is a community project, not an official Home Assistant or HACS product.

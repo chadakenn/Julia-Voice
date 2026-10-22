@@ -1,4 +1,4 @@
-# Home Assistant TV announcements and camera snapshot popups (development)
+# Home Assistant TV announcements and camera popups
 
 This is an opt-in Android TV feature. It does **not** require installing the
 custom Home Assistant integration to show a **local announcement preview**.
@@ -6,7 +6,7 @@ Live Home Assistant events require HA configuration in a later step.
 
 ## TV configuration
 
-1. Install the signed development APK over the existing app (keep your saved login).
+1. Install the signed v0.16.0 or newer APK over the existing app (keep your saved login).
 2. In Kellie's Voice, open **Settings → TV announcements & cameras**.
 3. Turn it on. Android may require **Display over other apps** permission.
 4. Choose **Preview announcement** for a local Night Signal popup. The box does
@@ -16,7 +16,7 @@ Live Home Assistant events require HA configuration in a later step.
 
 The opt-in switch defaults to **OFF**. When enabled, the service connects
 to the same Home Assistant WebSocket URL and encrypted access token already
-configured for Assist, subscribes to **only two** HA event types, and
+configured for Assist, subscribes to **three** HA event types (announcement, snapshot, experimental on-demand live camera), and
 reconnects after an interruption. It can be stopped by Android TV and is **not**
 a guaranteed 24/7 listener; it does not auto-start on boot.
 
@@ -69,9 +69,7 @@ event_data:
 ```
 
 The TV fetches a **single still image** through the authenticated Home
-Assistant `/api/camera_proxy/camera.driveway` endpoint. Camera stream/video
-and spoken TTS announcements are planned separately, not implemented in this
-phase. Images only load from the configured Home Assistant host; event data
+Assistant `/api/camera_proxy/camera.driveway` endpoint. The separate experimental `show_live_camera` action can request a temporary HLS video stream; this snapshot event itself never streams video. Spoken TTS announcements are not implemented as part of these visual alerts. Images only load from the configured Home Assistant host; event data
 cannot provide a URL. The card is a touch- and focus-transparent Android
 overlay, so video apps and remote controls remain usable.
 
@@ -92,3 +90,7 @@ or the popup will show its text without an image.
 
 This feature is intentionally separate from Home Assistant layout control.
 The latter is still optional and keeps its own setting.
+
+## On-demand experimental live camera
+
+The matching v0.16.0 Android TV app and HACS integration also support a third, opt-in event `kellies_voice_live_camera` via action `kellies_voice.show_live_camera` with `entity_id`, optional `title`, `duration_seconds` (15–180, default 90), and optional `device_id`. Only Home Assistant camera entities supporting streaming are accepted. The TV requests a short-lived HLS URL from Home Assistant over its own authenticated WebSocket and plays the video muted. This is **not yet verified on the actual onn 4K Pro**, and live feed performance can be device/camera dependent. The event never contains untrusted stream URLs or secrets.
