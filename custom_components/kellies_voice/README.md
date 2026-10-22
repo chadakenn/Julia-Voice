@@ -185,3 +185,9 @@ data:
 For Julia/Ollama, expose a Home Assistant script called **Close camera on TV** that calls the action. For “show doorbell for 30 seconds” either expose a parameterized camera script whose `duration_seconds` field is 30 or a specifically named 30-second script. The `kellies_voice.show_live_camera` action already supports integer durations between 15 and 180 seconds; voice model recognition of script arguments is not guaranteed until tested.
 
 **Update both components to v0.16.2** and restart Home Assistant for the new action, then open the Kellie's Voice TV app to restart its opt-in alert listener after APK installation.
+
+### Set up the required Home Assistant scripts for voice requests
+
+For the specific spoken phrases **"show me the driveway"**, **"show doorbell for 30 seconds"**, and **"close the camera"**, create named HA scripts that call `kellies_voice.show_live_camera` or `kellies_voice.hide_camera`. Expose each intended script to Home Assistant **Assist** under Settings → Voice assistants → Expose, and ensure the conversation agent can execute scripts. **No script is automatically installed by HACS**, since each installation has its own camera IDs, TV pairing IDs, and voice agent permissions.
+
+The [complete step-by-step script guide with full YAML](../../docs/VOICE_CAMERA_SCRIPTS.md) shows camera parameters, fixed 30-second variants, close action, device targeting, and the included Frigate blueprint. Do not paste the demonstration camera IDs or TV pairing placeholder without adapting them to your own Home Assistant setup.
