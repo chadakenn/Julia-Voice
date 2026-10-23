@@ -47,11 +47,14 @@ public final class HaAssistClient {
         default void runEnded() { }
         /** Unexpected socket loss; in-progress Assist run has been reset. */
         default void connectionLost() { }
+        /** The answer had no spoken audio, so a text-only reply is complete. */
+        default void speechMissing() { }
     }
 
     private final Context context;
     private final Events events;
     private final SpeechFocus listeningFocus;
+    private final RunGate runs = new RunGate();
     private final OkHttpClient http = new OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
             .pingInterval(25, TimeUnit.SECONDS)
@@ -63,6 +66,7 @@ public final class HaAssistClient {
     private volatile boolean endRequested;
     private volatile boolean captureStarted;
     private volatile boolean autoEndSpeech;
+    private FollowUpEar pendingEar;
     private volatile String roomNoise = OverlayPreferences.NOISE_NORMAL;
     private final AtomicBoolean recording = new AtomicBoolean(false);
     private final AtomicBoolean ended = new AtomicBoolean(false);
@@ -251,7 +255,6 @@ public final class HaAssistClient {
                 authenticated = false;
                 connecting = false;
                 reconnectEnabled = false; // Invalid credentials cannot heal by retrying.
-                recording.set(false);
                 stopForRunEnd();
                 reconnectHandler.removeCallbacks(reconnectTask);
                 reconnectScheduled = false;
@@ -295,12 +298,11 @@ public final class HaAssistClient {
             case "run-start":
                 JSONObject runner = data.optJSONObject("runner_data");
                 int id = runner == null ? -1 : runner.optInt("stt_binary_handler_id", -1);
-                if (id < 0 || id > 255) {
+                if (id < 0 || id > 255 || !runs.assignHandler(currentRunId, id, () -> handlerId = id)) {
                     events.status("Assist did not provide a valid audio handler ID");
                     stopForRunEnd();
                     break;
                 }
-                handlerId = id;
                 events.status("Audio handler ready. Preparing microphone...");
                 break;
             case "stt-start":
@@ -309,13 +311,13 @@ public final class HaAssistClient {
                 break;
             case "stt-vad-end":
                 endRequested = true;
-                recording.set(false);
+                runs.stopAudio(currentRunId, () -> recording.set(false));
                 events.status("Speech detected. Processing...");
                 events.processing();
                 break;
             case "stt-end":
                 endRequested = true;
-                recording.set(false);
+                runs.stopAudio(currentRunId, () -> recording.set(false));
                 JSONObject stt = data.optJSONObject("stt_output");
                 if (stt != null) events.transcript(stt.optString("text", ""));
                 events.status("Thinking...");
@@ -347,7 +349,10 @@ public final class HaAssistClient {
                 String audio = tts == null ? data.optString("url", "")
                         : tts.optString("url", "");
                 if (!audio.isEmpty()) events.ttsUrl(audio);
-                else events.status("Home Assistant didn't return a TTS audio URL.");
+                else {
+                    events.status("Home Assistant didn't return a TTS audio URL.");
+                    events.speechMissing();
+                }
                 break;
             case "error":
                 events.status("Assist error: " + data.optString("code", "unknown") +
@@ -370,6 +375,10 @@ public final class HaAssistClient {
                 ? mode : OverlayPreferences.NOISE_NORMAL;
     }
 
+    public synchronized boolean pipelineIdle() {
+        return currentRunId < 0;
+    }
+
     public synchronized boolean talk() {
         return talk(false);
     }
@@ -380,22 +389,25 @@ public final class HaAssistClient {
      * available if TV playback sound confuses the detector.
      */
     public synchronized boolean talk(boolean autoStopOnSilence) {
-        if (!authenticated || socket == null) {
-            events.status("Connect to Home Assistant first.");
-            return false;
-        }
-        if (currentRunId != -1) {
-            events.status("Finish the current conversation first.");
-            return false;
-        }
-        if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO)
+        return talk(autoStopOnSilence, null);
+    }
+
+    public synchronized boolean talk(boolean autoStopOnSilence, FollowUpEar handoff) {
+        if (pendingEar != null && pendingEar != handoff) pendingEar.stop();
+        pendingEar = handoff;
+        if (!authenticated || socket == null || currentRunId != -1
+                || context.checkSelfPermission(Manifest.permission.RECORD_AUDIO)
                 != PackageManager.PERMISSION_GRANTED) {
-            events.status("Microphone permission is required.");
+            pendingEar = null;
+            if (handoff != null) handoff.stop();
+            if (!authenticated || socket == null) events.status("Connect to Home Assistant first.");
+            else if (currentRunId != -1) events.status("Finish the current conversation first.");
+            else events.status("Microphone permission is required.");
             return false;
         }
+        int id = commandId++;
         try {
             JSONObject request = new JSONObject();
-            int id = commandId++;
             request.put("id", id);
             request.put("type", "assist_pipeline/run");
             request.put("start_stage", "stt");
@@ -410,12 +422,18 @@ public final class HaAssistClient {
             autoEndSpeech = autoStopOnSilence;
             ended.set(false);
             currentRunId = id;
+            runs.open(id);
             // Duck YouTube before the Assist server replies and before opening
             // the microphone. The automatic fade needs a head start.
-            listeningFocus.acquire();
+            runs.acquire(id, listeningFocus::acquire);
             if (!socket.send(request.toString())) {
+                runs.cancel(id, () -> {
+                    recording.set(false);
+                    listeningFocus.release();
+                });
                 currentRunId = -1;
-                listeningFocus.release();
+                pendingEar = null;
+                if (handoff != null) handoff.stop();
                 events.status("Couldn't send Assist request.");
                 return false;
             }
@@ -423,7 +441,12 @@ public final class HaAssistClient {
             return true;
         } catch (Exception e) {
             currentRunId = -1;
-            listeningFocus.release();
+            pendingEar = null;
+            if (handoff != null) handoff.stop();
+            runs.cancel(id, () -> {
+                recording.set(false);
+                listeningFocus.release();
+            });
             events.status("Couldn't start Assist pipeline.");
             return false;
         }
@@ -435,32 +458,80 @@ public final class HaAssistClient {
             return;
         }
         endRequested = true;
-        if (!captureStarted && handlerId >= 0) {
-            sendEndOfAudio(currentRunId);
+        int run = currentRunId;
+        int handler = handlerId;
+        if (!captureStarted && handler >= 0) {
+            sendEndOfAudio(run, handler);
         }
-        recording.set(false);
-        events.status("Finishing audio. Waiting for Home Assistant...");
+        if (runs.stopAudio(run, () -> recording.set(false))) {
+            events.status("Finishing audio. Waiting for Home Assistant...");
+        }
     }
 
     private void beginCapture(int runId) {
+        final int handlerAtStart;
         synchronized (this) {
             if (captureStarted || runId != currentRunId || handlerId < 0 || disposed) return;
             captureStarted = true;
-            recording.set(true);
+            handlerAtStart = handlerId;
         }
         new Thread(() -> {
             AudioRecord recorder = null;
             AcousticEchoCanceler echo = null;
             NoiseSuppressor noise = null;
             try {
-                int minimum = AudioRecord.getMinBufferSize(16000,
-                        AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
-                if (minimum <= 0) throw new IllegalStateException("16kHz microphone audio is unsupported");
-                recorder = new AudioRecord(MediaRecorder.AudioSource.VOICE_RECOGNITION,
-                        16000, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT,
-                        Math.max(minimum * 2, 6400));
-                if (recorder.getState() != AudioRecord.STATE_INITIALIZED)
-                    throw new IllegalStateException("AudioRecord initialization failed");
+                FollowUpEar handoff;
+                synchronized (HaAssistClient.this) {
+                    handoff = pendingEar;
+                    pendingEar = null;
+                }
+                if (handoff != null && !runs.owns(runId, handlerAtStart)) {
+                    handoff.stop();
+                    return;
+                }
+                // claimOpen blocks. The run gate stays free so STOP can cancel.
+                OpenCapture open = handoff == null ? null : handoff.claimOpen();
+                if (!runs.arm(runId, handlerAtStart, () -> recording.set(true))) {
+                    recorder = open == null ? null : open.recorder;
+                    return;
+                }
+                byte[] lead = open == null ? null : open.lead16k;
+                int capturedRate;
+                PcmCapture samples;
+                boolean started;
+                if (open != null && open.sameRecorder()) {
+                    recorder = open.recorder;
+                    capturedRate = open.rate;
+                    samples = open.pcm;
+                    started = runs.start(runId, handlerAtStart, () -> { });
+                } else {
+                    // The preview recorder was not transferred. Audio that arrives
+                    // before this new recorder starts is a gap. Speech already
+                    // buffered is still sent below.
+                    capturedRate = 16000;
+                    recorder = AssistCapture.open(16000, 6400);
+                    if (recorder == null) {
+                        capturedRate = 48000;
+                        recorder = AssistCapture.open(48000, 19200);
+                    }
+                    if (recorder == null) {
+                        throw new IllegalStateException(
+                                "Neither 16kHz nor 48kHz microphone capture is supported");
+                    }
+                    AudioRecord opening = recorder;
+                    try {
+                        started = runs.start(runId, handlerAtStart, opening::startRecording);
+                    } catch (RuntimeException failed) {
+                        AssistCapture.release(recorder);
+                        recorder = null;
+                        throw failed;
+                    }
+                    samples = new PcmCapture(capturedRate);
+                }
+                if (!started) return;
+                if (recorder.getRecordingState() != AudioRecord.RECORDSTATE_RECORDING) {
+                    throw new IllegalStateException("Microphone recording was not started");
+                }
                 // Android TV firmware may or may not expose hardware echo
                 // cancellation / noise suppression. Never let optional
                 // effects break an otherwise working microphone.
@@ -481,23 +552,31 @@ public final class HaAssistClient {
                 } catch (RuntimeException ignored) {
                     if (noise != null) { noise.release(); noise = null; }
                 }
-                recorder.startRecording();
-                if (recorder.getRecordingState() != AudioRecord.RECORDSTATE_RECORDING)
-                    throw new IllegalStateException("Microphone recording was not started");
+                if (!runs.isRecording(runId, handlerAtStart)) return;
                 events.status("LISTENING. Speak toward the onn box; select STOP when done.");
                 events.listening();
                 final String noiseMode = roomNoise;
-                byte[] pcm = new byte[3200]; // 100 ms at 16kHz, mono, 16-bit
+                byte[] devicePcm = new byte[capturedRate == 16000 ? 3200 : 9600];
+                byte[] pcm = new byte[devicePcm.length + 4];
                 long observedMs = 0L;
                 long voiceMs = 0L;
                 long quietMs = 0L;
                 boolean heardUtterance = false;
                 double backgroundRms = 0.002;
-                while (recording.get() && runId == currentRunId) {
-                    int read = recorder.read(pcm, 0, pcm.length);
-                    if (!recording.get() || runId != currentRunId) break;
-                    if (read <= 0) throw new IllegalStateException("Microphone read failed (" + read + ")");
-                    if (read % 2 != 0) read--; // PCM16 samples must be complete
+                if (lead != null && SpeechBuffer.containsSpeech(lead, 16000)) {
+                    boolean sent = runs.send(runId, handlerAtStart,
+                            () -> writePcm(lead, handlerAtStart));
+                    if (sent) {
+                        heardUtterance = true;
+                        observedMs = 400L;
+                    }
+                }
+                while (runs.isRecording(runId, handlerAtStart)) {
+                    int deviceBytes = recorder.read(devicePcm, 0, devicePcm.length);
+                    if (!runs.isRecording(runId, handlerAtStart)) break;
+                    if (deviceBytes <= 0)
+                        throw new IllegalStateException("Microphone read failed (" + deviceBytes + ")");
+                    int read = samples.process(devicePcm, deviceBytes, pcm);
                     if (read == 0) continue;
 
                     if (autoEndSpeech) {
@@ -536,48 +615,82 @@ public final class HaAssistClient {
                                 events.status("Voice pause detected. Processing your question...");
                                 events.localSilence();
                                 endRequested = true;
-                                recording.set(false);
+                                runs.stopAudio(runId, () -> recording.set(false));
                             }
                         }
                     }
-                    WebSocket ws = socket;
-                    int handler = handlerId;
-                    if (ws == null || handler < 0) break;
-                    byte[] packet = new byte[read + 1];
-                    packet[0] = (byte) handler;
-                    System.arraycopy(pcm, 0, packet, 1, read);
-                    if (!ws.send(ByteString.of(packet))) throw new IllegalStateException("Audio socket closed");
+                    final int chunk = read;
+                    final byte[] audio = new byte[chunk + 1];
+                    boolean sent = runs.send(runId, handlerAtStart, () -> {
+                        WebSocket ws = socket;
+                        if (ws == null) throw new IllegalStateException("Audio socket closed");
+                        audio[0] = (byte) handlerAtStart;
+                        System.arraycopy(pcm, 0, audio, 1, chunk);
+                        if (!ws.send(ByteString.of(audio))) {
+                            throw new IllegalStateException("Audio socket closed");
+                        }
+                    });
+                    if (!sent) break;
                 }
             } catch (Exception e) {
-                events.status("Microphone streaming failed: " + e.getMessage());
+                if (runs.owns(runId, handlerAtStart)) {
+                    events.status("Microphone streaming failed: " + e.getMessage());
+                }
             } finally {
-                recording.set(false);
                 if (recorder != null) {
                     try { recorder.stop(); } catch (Exception ignored) { }
                 }
                 if (echo != null) echo.release();
                 if (noise != null) noise.release();
                 if (recorder != null) recorder.release();
-                // A stale capture thread must never release a newer run's focus.
-                if (runId == currentRunId) listeningFocus.release();
-                sendEndOfAudio(runId);
+                recorder = null;
+                runs.releaseFocusIfOwner(runId, handlerAtStart, () -> {
+                    recording.set(false);
+                    listeningFocus.release();
+                });
+                sendEndOfAudio(runId, handlerAtStart);
             }
         }, "ha-assist-audio").start();
     }
 
-    private void sendEndOfAudio(int runId) {
-        if (runId != currentRunId || handlerId < 0 || !ended.compareAndSet(false, true)) return;
+    private void writePcm(byte[] pcm, int handler) {
         WebSocket ws = socket;
-        if (ws != null) ws.send(ByteString.of(new byte[] { (byte)handlerId }));
+        if (ws == null || pcm == null || pcm.length == 0) return;
+        int offset = 0;
+        while (offset < pcm.length) {
+            int size = Math.min(3200, pcm.length - offset);
+            byte[] packet = new byte[size + 1];
+            packet[0] = (byte) handler;
+            System.arraycopy(pcm, offset, packet, 1, size);
+            if (!ws.send(ByteString.of(packet))) return;
+            offset += size;
+        }
+    }
+
+    private void sendEndOfAudio(int runId) {
+        sendEndOfAudio(runId, handlerId);
+    }
+
+    private void sendEndOfAudio(int runId, int handlerAtStart) {
+        runs.endAudio(runId, handlerAtStart, () -> {
+            if (!ended.compareAndSet(false, true)) return;
+            WebSocket ws = socket;
+            if (ws != null) ws.send(ByteString.of(new byte[] { (byte) handlerAtStart }));
+        });
     }
 
     private void stopForRunEnd() {
-        recording.set(false);
-        listeningFocus.release();
-        handlerId = -1;
-        currentRunId = -1;
-        captureStarted = false;
-        endRequested = false;
+        int run = currentRunId;
+        runs.cancel(run, () -> {
+            recording.set(false);
+            listeningFocus.release();
+        });
+        if (currentRunId == run) {
+            handlerId = -1;
+            currentRunId = -1;
+            captureStarted = false;
+            endRequested = false;
+        }
     }
 
     public synchronized void setLayoutSync(boolean enabled) {

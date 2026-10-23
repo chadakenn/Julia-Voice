@@ -70,6 +70,10 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
     private boolean firstAutoListenStarted = false;
     private long autoListenDeadlineMs;
     private boolean closing = false;
+    private final FollowUpSession followUps = new FollowUpSession();
+    private FollowUpEar followEar;
+    private int followToken;
+    private boolean followWindow;
 
     private final Runnable endListeningTimeout = () -> {
         if (listening && assist != null) {
@@ -123,6 +127,9 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         }
         closing = false;
         preferences = new OverlayPreferences(this);
+        followToken = followUps.open();
+        followWindow = false;
+        followEar = new FollowUpEar(this);
         firstAutoListenPending = preferences.autoListen();
         firstAutoListenStarted = false;
         autoListenDeadlineMs = SystemClock.elapsedRealtime() + 30000L;
@@ -411,9 +418,18 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
     }
 
     private void startListening() {
+        startListening(false);
+    }
+
+    private void startListening(boolean followUpTurn) {
         if (closing) return;
         if (assist == null) return;
+        FollowUpEar handoff = null;
+        if (followUpTurn) handoff = followEar;
+        else if (followEar != null) followEar.stop();
+        followWindow = false;
         if (!assist.isConnected()) {
+            if (handoff != null) handoff.stop();
             // TALK is a direct user request, so resume listening if the
             // reconnect succeeds soon; expire it to avoid surprise mic use.
             firstAutoListenPending = true;
@@ -423,7 +439,10 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
             status("Reconnecting to Home Assistant. I'll listen when connected.");
             return;
         }
-        if (listening) return;
+        if (listening) {
+            if (handoff != null) handoff.stop();
+            return;
+        }
         firstAutoListenPending = false;
         main.removeCallbacks(dismissAfterReply);
         main.removeCallbacks(endListeningTimeout);
@@ -437,13 +456,22 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         transcriptView.setText("Listening to your voice...");
         answerView.setText("...");
         if (wave != null) wave.setMode(VoiceWaveView.LISTENING);
-        status("LISTENING • Speak toward the onn box");
+        status(followUpTurn
+                ? "Listening for a follow-up"
+                : "LISTENING • Speak toward the onn box");
         assist.setRoomNoise(preferences.noise());
-        if (!assist.talk(preferences.autoListen())) {
+        if (!assist.pipelineIdle() || !assist.talk(followUpTurn || preferences.autoListen(), handoff)) {
+            if (handoff != null) handoff.stop();
             listening = false;
             main.removeCallbacks(endListeningTimeout);
             if (wave != null) wave.setMode(
                     assist.isConnected() ? VoiceWaveView.IDLE : VoiceWaveView.CONNECTING);
+            if (followUpTurn) {
+                status("Couldn't open a follow-up. Microphone capture stopped.");
+                scheduleIdleDismiss();
+            }
+        } else if (followUpTurn) {
+            followUps.markQuestion(followToken);
         }
     }
 
@@ -460,7 +488,15 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
     }
 
     private void stopListening() {
-        if (assist == null) return;
+        boolean pipeline = listening;
+        endFollowUps();
+        if (!pipeline || assist == null) {
+            listening = false;
+            if (wave != null) wave.setMode(VoiceWaveView.IDLE);
+            status("Stopped. Microphone capture stopped.");
+            scheduleIdleDismiss();
+            return;
+        }
         listening = false;
         main.removeCallbacks(endListeningTimeout);
         if (wave != null) wave.setMode(VoiceWaveView.THINKING);
@@ -555,6 +591,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
     @Override public void connectionLost() {
         main.post(() -> {
             if (closing) return;
+            endFollowUps();
             listening = false;
             main.removeCallbacks(endListeningTimeout);
             main.removeCallbacks(dismissAfterReply);
@@ -611,9 +648,24 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         main.post(() -> {
             if (closing) return;
             if (!speaking) {
+                int token = followUps.takeDeferred();
+                if (token != 0) {
+                    maybeFollowUp(token);
+                    return;
+                }
+            }
+            if (!speaking && !followWindow) {
                 if (wave != null) wave.setMode(VoiceWaveView.IDLE);
                 scheduleIdleDismiss();
             }
+        });
+    }
+
+    @Override public void speechMissing() {
+        final int token = followToken;
+        main.post(() -> {
+            if (closing || speaking || token != followToken) return;
+            maybeFollowUp(token);
         });
     }
 
@@ -662,6 +714,8 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
             if (speechFocus == null) speechFocus = new SpeechFocus(this);
             speechFocus.release(); // Release any previous TTS focus before replay.
             speechFocus.acquire();
+            final int spokenFor = followToken;
+            final int playbackId = followUps.bindPlayback();
             player = new MediaPlayer();
             player.setAudioAttributes(new AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_ASSISTANT)
@@ -677,12 +731,16 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
             player.setOnCompletionListener(p -> {
                 speaking = false;
                 if (speechFocus != null) speechFocus.release();
-                status("Done. Press ⭐ again or choose TALK.");
                 if (wave != null) wave.setMode(VoiceWaveView.IDLE);
-                scheduleIdleDismiss();
+                if (!followUps.playbackCurrent(playbackId, spokenFor)) {
+                    scheduleIdleDismiss();
+                    return;
+                }
+                maybeFollowUp(spokenFor);
             });
             player.setOnErrorListener((p, what, extra) -> {
                 speaking = false;
+                endFollowUps();
                 if (speechFocus != null) speechFocus.release();
                 status("Speech playback failed; answer is still shown.");
                 scheduleIdleDismiss();
@@ -691,14 +749,73 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
             player.prepareAsync();
         } catch (Exception ignored) {
             speaking = false;
+            endFollowUps();
             if (speechFocus != null) speechFocus.release();
             status("Could not play speech. The answer is still shown.");
             scheduleIdleDismiss();
         }
     }
 
+    private void endFollowUps() {
+        followWindow = false;
+        followUps.cancel();
+        if (followEar != null) followEar.stop();
+    }
+
+    private void maybeFollowUp(int token) {
+        if (closing || preferences == null || assist == null) return;
+        if (!FollowUpSession.captureAllowed(true,
+                checkSelfPermission(android.Manifest.permission.RECORD_AUDIO)
+                        == android.content.pm.PackageManager.PERMISSION_GRANTED,
+                closing)) {
+            followWindow = false;
+            status("Microphone permission is missing. Capture stayed off.");
+            scheduleIdleDismiss();
+            return;
+        }
+        if (!followUps.arm(preferences.followUp(), token)) {
+            followWindow = false;
+            status("Done. Press ⭐ again or choose TALK.");
+            scheduleIdleDismiss();
+            return;
+        }
+        if (!assist.pipelineIdle()) {
+            followUps.deferUntilIdle(token);
+            return;
+        }
+        followWindow = true;
+        status("Listening for a follow-up");
+        if (wave != null) wave.setMode(VoiceWaveView.LISTENING);
+        if (followEar == null) followEar = new FollowUpEar(this);
+        boolean opened = followEar.listen(preferences.followUpSeconds() * 1000,
+                preferences.noise(),
+                () -> main.post(() -> followUpHeard(token)),
+                () -> main.post(() -> followUpMissed(token)));
+        if (!opened) {
+            followWindow = false;
+            if (wave != null) wave.setMode(VoiceWaveView.IDLE);
+            status("Microphone didn't open. Capture stayed off.");
+            scheduleIdleDismiss();
+        }
+    }
+
+    private void followUpHeard(int token) {
+        if (closing || !followUps.same(token) || !followWindow) return;
+        startListening(true);
+    }
+
+    private void followUpMissed(int token) {
+        if (closing || !followUps.same(token)) return;
+        followWindow = false;
+        listening = false;
+        if (wave != null) wave.setMode(VoiceWaveView.IDLE);
+        status("No follow-up. Microphone capture stopped.");
+        scheduleIdleDismiss();
+    }
+
     @Override public void onDestroy() {
         closing = true;
+        endFollowUps();
         HaDiscovery.release(this);
         speaking = false;
         main.removeCallbacksAndMessages(null);
