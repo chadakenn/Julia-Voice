@@ -22,6 +22,17 @@ The old **Julia-Voice** URL is no longer a fallback. It did not help TVs still r
 
 The GitHub rename has **already occurred**. Do not create a new repository at the old `Julia-Voice` path. For local clones, use `git remote set-url origin https://github.com/chadakenn/Kellies-Voice.git`.
 
+## In review, not a release: microphone privacy indicator
+
+This is not in the published v0.16.4 APK until the owner approves a new build. After a signed update that includes it, check the onn 4K Pro privacy dot:
+
+1. Open the overlay and wait on Connected without speaking. On Android 14 or 15 the microphone indicator should not stay on just because the panel is open.
+2. Press TALK, or use auto-listen when you open the overlay. The indicator should appear while the question is captured, then clear when Home Assistant starts answering.
+3. STOP, a silence end, or the 23 second cap should clear it too.
+4. If the panel never appears, or the notification says the TV keeps the indicator on until you close the overlay, that firmware rejected the special-use type. The overlay should still work, and it must not claim the microphone is off.
+
+This does not start listening by itself and does not change the opt-in TV alert receiver.
+
 ## Public release, only with owner approval
 
 Normal pushes create a **signed development APK artifact**, not a public GitHub Release. After physical TV testing, the owner can run **Build Kellie's Voice Signed APK** manually with `publish_release` checked. That workflow builds the signed APK, verifies the signature, and publishes `app-release.apk` and checksum metadata `update.json`.

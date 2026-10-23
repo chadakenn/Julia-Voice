@@ -75,6 +75,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         if (listening && assist != null) {
             listening = false;
             assist.finishTalking();
+            showForeground(false);
             if (wave != null) wave.setMode(VoiceWaveView.THINKING);
             status("Listening time limit reached. Processing...");
         }
@@ -128,30 +129,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         autoListenDeadlineMs = SystemClock.elapsedRealtime() + 30000L;
         try {
             createNotificationChannel();
-            Intent openApp = new Intent(this, VoiceActivity.class);
-            openApp.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-            PendingIntent openPending = PendingIntent.getActivity(this, 0, openApp,
-                    PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
-            Intent close = new Intent(this, VoiceOverlayService.class);
-            close.setAction(ACTION_CLOSE);
-            PendingIntent closePending = PendingIntent.getService(this, 1, close,
-                    PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
-            Notification notification = new Notification.Builder(this, CHANNEL_ID)
-                    .setSmallIcon(android.R.drawable.ic_btn_speak_now)
-                    .setContentTitle("Kellie's Voice")
-                    .setContentText("Overlay open. Microphone is active only during a voice request.")
-                    .setContentIntent(openPending)
-                    .addAction(new Notification.Action.Builder(
-                            android.R.drawable.ic_menu_close_clear_cancel, "Close", closePending)
-                            .build())
-                    .setOngoing(true)
-                    .build();
-            if (Build.VERSION.SDK_INT >= 29) {
-                startForeground(NOTIFICATION_ID, notification,
-                        ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE);
-            } else {
-                startForeground(NOTIFICATION_ID, notification);
-            }
+            showForeground(false);
 
             connection = new CredentialStore(this).load();
             if (connection == null) {
@@ -172,6 +150,58 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
             stopSelf();
         }
         return START_NOT_STICKY;
+    }
+
+    private Notification buildNotification(String message) {
+        Intent openApp = new Intent(this, VoiceActivity.class);
+        openApp.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        PendingIntent openPending = PendingIntent.getActivity(this, 0, openApp,
+                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+        Intent close = new Intent(this, VoiceOverlayService.class);
+        close.setAction(ACTION_CLOSE);
+        PendingIntent closePending = PendingIntent.getService(this, 1, close,
+                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+        return new Notification.Builder(this, CHANNEL_ID)
+                .setSmallIcon(android.R.drawable.ic_btn_speak_now)
+                .setContentTitle("Kellie's Voice")
+                .setContentText(message)
+                .setContentIntent(openPending)
+                .addAction(new Notification.Action.Builder(
+                        android.R.drawable.ic_menu_close_clear_cancel, "Close", closePending)
+                        .build())
+                .setOngoing(true)
+                .build();
+    }
+
+    /**
+     * Switches the already-running overlay between special-use and microphone.
+     * This is not a background start. If special-use is rejected, the microphone
+     * type stays and the notification says so.
+     */
+    private void showForeground(boolean capturing) {
+        if (closing) return;
+        int attempted = MicrophonePrivacy.serviceType(Build.VERSION.SDK_INT, capturing);
+        boolean rejected = false;
+        if (attempted == MicrophonePrivacy.TYPE_SPECIAL_USE) {
+            try {
+                startForeground(NOTIFICATION_ID,
+                        buildNotification(MicrophonePrivacy.notificationText(false,
+                                MicrophonePrivacy.TYPE_SPECIAL_USE)),
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
+                return;
+            } catch (RuntimeException ignored) {
+                rejected = true;
+            }
+        }
+        int actual = MicrophonePrivacy.afterRejection(attempted, rejected);
+        Notification notification = buildNotification(
+                MicrophonePrivacy.notificationText(capturing, actual));
+        if (Build.VERSION.SDK_INT >= 29 && actual == MicrophonePrivacy.TYPE_MICROPHONE) {
+            startForeground(NOTIFICATION_ID, notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE);
+        } else {
+            startForeground(NOTIFICATION_ID, notification);
+        }
     }
 
     private void notifyLauncher(String action) {
@@ -438,9 +468,11 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         answerView.setText("...");
         if (wave != null) wave.setMode(VoiceWaveView.LISTENING);
         status("LISTENING • Speak toward the onn box");
+        showForeground(true);
         assist.setRoomNoise(preferences.noise());
         if (!assist.talk(preferences.autoListen())) {
             listening = false;
+            showForeground(false);
             main.removeCallbacks(endListeningTimeout);
             if (wave != null) wave.setMode(
                     assist.isConnected() ? VoiceWaveView.IDLE : VoiceWaveView.CONNECTING);
@@ -463,6 +495,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         if (assist == null) return;
         listening = false;
         main.removeCallbacks(endListeningTimeout);
+        showForeground(false);
         if (wave != null) wave.setMode(VoiceWaveView.THINKING);
         assist.finishTalking();
     }
@@ -556,6 +589,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         main.post(() -> {
             if (closing) return;
             listening = false;
+            showForeground(false);
             main.removeCallbacks(endListeningTimeout);
             main.removeCallbacks(dismissAfterReply);
             // Preserve only a recent, explicitly requested auto-listen.
@@ -585,6 +619,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         main.post(() -> {
             if (closing) return;
             listening = true;
+            showForeground(true);
             if (wave != null) wave.setMode(VoiceWaveView.LISTENING);
             main.removeCallbacks(endListeningTimeout);
             main.postDelayed(endListeningTimeout, 23000);
@@ -594,6 +629,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
     @Override public void processing() {
         main.post(() -> {
             listening = false;
+            showForeground(false);
             main.removeCallbacks(endListeningTimeout);
             if (wave != null) wave.setMode(VoiceWaveView.THINKING);
         });
@@ -602,6 +638,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
     @Override public void localSilence() {
         main.post(() -> {
             listening = false;
+            showForeground(false);
             main.removeCallbacks(endListeningTimeout);
             if (!closing && wave != null) wave.setMode(VoiceWaveView.THINKING);
         });
