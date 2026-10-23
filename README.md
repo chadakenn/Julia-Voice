@@ -81,6 +81,7 @@ The HACS integration and the Android APK are separate. Update HACS, restart Home
 | Overlay position, size, style, auto-hide, auto-listen | Home Assistant device page, when layout control is on |
 | TV alert position and size | Home Assistant device page. These do not move the voice overlay |
 | Microphone sensitivity: Quiet room, Normal, TV on | Home Assistant device page. It changes the pause detector on the **next** question. It does not turn the microphone on |
+| Media while talking: Lower volume, Pause playback | Home Assistant device page and the TV's Settings menu. Lower volume is the original behavior. Pause asks the playing app to pause through Android audio focus and resume afterward. Apps that ignore audio focus may keep playing. It applies to the **next** question |
 | Home Assistant URL, access token, pairing ID | TV only |
 | Microphone permission, display-over-apps permission, alert opt-in, alert resume | TV only |
 | Connect, new conversation, diagnostics, app update, forget login | TV only |
