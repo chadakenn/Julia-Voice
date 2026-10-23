@@ -10,8 +10,10 @@ android {
         applicationId 'com.example.tvvoiceprobe'
         minSdk 26
         targetSdk 35
+        // Same versionCode as v0.16.4 permits an in-place same-key test install
+        // and straightforward restoration of the public v0.16.4 APK.
         versionCode 21
-        versionName '0.16.4'
+        versionName '0.16.4-onn-test1'
     }
 
     // The keystore is private and supplied from GitHub Actions secrets.
