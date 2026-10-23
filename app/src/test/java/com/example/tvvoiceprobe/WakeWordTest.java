@@ -51,6 +51,26 @@ public class WakeWordTest {
         assertTrue(WakeWordSession.mayStart(true, WakeWordSession.ACTION_START, true, true));
     }
 
+    @Test public void wakeTriggerRequiresOptInAndIsNotAStartOrBootEvent() {
+        assertTrue(WakeWordSession.isDetectionRequest(
+                true, WakeWordSession.ACTION_DETECTED));
+        assertFalse(WakeWordSession.isDetectionRequest(
+                false, WakeWordSession.ACTION_DETECTED));
+        assertFalse(WakeWordSession.isDetectionRequest(
+                true, WakeWordSession.ACTION_START));
+        assertFalse(WakeWordSession.isDetectionRequest(true, null));
+        assertFalse(WakeWordSession.isDetectionRequest(
+                true, "android.intent.action.BOOT_COMPLETED"));
+        assertFalse(WakeWordSession.isDetectionRequest(
+                true, "android.intent.action.MY_PACKAGE_REPLACED"));
+    }
+
+    @Test public void wakeTriggeredListeningStopsOnSilenceEvenIfAutoListenIsOff() {
+        assertTrue(WakeWordSession.stopOnSilence(false, true));
+        assertTrue(WakeWordSession.stopOnSilence(true, false));
+        assertFalse(WakeWordSession.stopOnSilence(false, false));
+    }
+
     @Test public void overlayOwnsTheMicrophoneUntilItCloses() {
         assertFalse(WakeWordSession.shouldCapture(true, true));
         assertFalse(WakeWordSession.shouldCapture(false, false));
