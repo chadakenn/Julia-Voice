@@ -111,6 +111,8 @@ The full camera script examples, including close and a 30 second view, are in [d
 
 ## Get started: install both parts
 
+**New testers:** follow the complete [v0.16.4 setup and hardware-testing checklist](docs/INSTALL.md), including TV permissions, HA connection, HACS pairing, and known limitations. The quick steps below are a short reference.
+
 The Android app and the HACS integration are **two different downloads**. You need both for Home Assistant-controlled overlay settings and camera announcements.
 
 ### 1. Install the Android TV app
@@ -126,7 +128,7 @@ The Android app and the HACS integration are **two different downloads**. You ne
 [![Open Kellie's Voice in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=chadakenn&repository=Kellies-Voice&category=integration)
 
 1. If this is your first installation: **HACS → ⋮ → Custom repositories → Add**, paste `https://github.com/chadakenn/Kellies-Voice` and select **Integration**.
-2. Open Kellie's Voice in HACS and download **v0.16.0 or later**. Restart Home Assistant.
+2. Open Kellie's Voice in HACS and download the **matching v0.16.4 integration**. Restart Home Assistant.
 3. Go to **Settings → Devices & services**, choose the discovered Kellie's Voice TV and add it. If mDNS discovery doesn't work, select **Add Integration → Kellie's Voice** and enter the ID shown under the TV app's **Settings → Home Assistant layout → Show this TV's pairing ID**.
 4. Open the registered TV device in Home Assistant. Configure voice-overlay position, size, style, auto-hide and auto-listen. You can now call the actions below.
 
