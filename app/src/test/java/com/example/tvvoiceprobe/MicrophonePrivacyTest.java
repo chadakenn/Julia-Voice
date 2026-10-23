@@ -51,12 +51,53 @@ public class MicrophonePrivacyTest {
         assertTrue(owner.microphoneActive());
         assertEquals(MicrophonePrivacy.TYPE_MICROPHONE,
                 MicrophonePrivacy.serviceType(35, true));
-        assertEquals(MicOwnership.ASSIST, owner.assistOpened());
+        assertEquals(MicOwnership.ASSIST, owner.assistListening());
+        owner.bindRun(7);
         assertEquals(MicrophonePrivacy.TYPE_MICROPHONE,
                 MicrophonePrivacy.serviceType(35, owner.microphoneActive()));
-        assertEquals(MicOwnership.IDLE, owner.assistReleased());
+        assertEquals(MicOwnership.IDLE, owner.captureReleased(7));
         assertEquals(MicrophonePrivacy.TYPE_SPECIAL_USE,
                 MicrophonePrivacy.serviceType(35, owner.microphoneActive()));
+    }
+
+    @Test public void stopAndSilenceStayOnTheMicrophoneUntilThatRunReleases() {
+        MicOwnership owner = new MicOwnership();
+        owner.armAssist();
+        owner.bindRun(4);
+        assertEquals(MicOwnership.ASSIST, owner.stopRequested());
+        assertEquals(MicOwnership.ASSIST, owner.releaseAll());
+        assertEquals(MicrophonePrivacy.TYPE_MICROPHONE,
+                MicrophonePrivacy.serviceType(35, owner.microphoneActive()));
+        assertEquals(MicOwnership.ASSIST, owner.captureReleased(3));
+        assertEquals(MicOwnership.IDLE, owner.captureReleased(4));
+        assertEquals(MicrophonePrivacy.TYPE_SPECIAL_USE,
+                MicrophonePrivacy.serviceType(35, owner.microphoneActive()));
+    }
+
+    @Test public void aLateReleaseCannotClearTheNextRecording() {
+        MicOwnership owner = new MicOwnership();
+        owner.armAssist();
+        owner.bindRun(4);
+        owner.armAssist();
+        assertEquals(MicOwnership.ASSIST, owner.captureReleased(4));
+        assertTrue(owner.microphoneActive());
+        owner.bindRun(9);
+        assertEquals(MicOwnership.ASSIST, owner.captureReleased(4));
+        assertEquals(MicrophonePrivacy.TYPE_MICROPHONE,
+                MicrophonePrivacy.serviceType(35, owner.microphoneActive()));
+        assertEquals(MicOwnership.IDLE, owner.captureReleased(9));
+    }
+
+    @Test public void aCaptureThatNeverOpenedDoesNotWaitForAWorker() {
+        MicOwnership owner = new MicOwnership();
+        owner.beginHandoff();
+        assertEquals(MicOwnership.IDLE, owner.captureNeverStarted());
+        assertFalse(owner.microphoneActive());
+        owner.armAssist();
+        owner.bindRun(2);
+        owner.armAssist();
+        assertEquals(MicOwnership.ASSIST, owner.captureNeverStarted());
+        assertTrue(owner.microphoneActive());
     }
 
     @Test public void everyStopReleasesOnlyAfterTheRecorderIsGone() {
@@ -67,17 +108,22 @@ public class MicrophonePrivacyTest {
         assertEquals(MicOwnership.HANDOFF, handoff.previewReleased());
         for (int start : new int[] {MicOwnership.PREVIEW, MicOwnership.HANDOFF, MicOwnership.ASSIST}) {
             MicOwnership stop = phase(start);
-            assertEquals(MicOwnership.IDLE, stop.releaseAll());
-            assertFalse(stop.microphoneActive());
+            if (start == MicOwnership.PREVIEW) {
+                assertEquals(MicOwnership.IDLE, stop.releaseAll());
+            } else {
+                assertEquals(start == MicOwnership.HANDOFF
+                        ? MicOwnership.HANDOFF : MicOwnership.ASSIST, stop.releaseAll());
+                assertTrue(stop.microphoneActive());
+            }
         }
         MicOwnership failed = new MicOwnership();
         failed.armPreview();
         assertEquals(MicOwnership.IDLE, failed.previewDidNotOpen());
         MicOwnership assist = new MicOwnership();
-        assist.assistOpened();
+        assist.armAssist();
         assist.armPreview();
         assertEquals(MicOwnership.ASSIST, assist.phase());
-        assertEquals(MicOwnership.IDLE, assist.assistReleased());
+        assertEquals(MicOwnership.IDLE, assist.captureNeverStarted());
     }
 
     private static MicOwnership released(int phase) {
@@ -90,7 +136,7 @@ public class MicrophonePrivacyTest {
         else if (phase == MicOwnership.HANDOFF) {
             owner.armPreview();
             owner.beginHandoff();
-        } else if (phase == MicOwnership.ASSIST) owner.assistOpened();
+        } else if (phase == MicOwnership.ASSIST) owner.armAssist();
         return owner;
     }
 }

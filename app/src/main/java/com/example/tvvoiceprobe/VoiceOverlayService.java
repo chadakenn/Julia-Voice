@@ -80,8 +80,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         if (listening && assist != null) {
             listening = false;
             assist.finishTalking();
-            mics.assistReleased();
-            publishMicState();
+            mics.stopRequested();
             if (wave != null) wave.setMode(VoiceWaveView.THINKING);
             status("Listening time limit reached. Processing...");
         }
@@ -486,13 +485,10 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         }
         followWindow = false;
         if (followUpTurn) mics.beginHandoff();
-        else {
-            mics.releaseAll();
-            mics.assistOpened();
-        }
+        else mics.armAssist();
         if (!publishMicState()) {
             if (followEar != null) followEar.stop();
-            mics.releaseAll();
+            mics.captureNeverStarted();
             publishMicState();
             status("Android wouldn't allow the microphone. Capture stayed off.");
             scheduleIdleDismiss();
@@ -519,7 +515,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         if (!assist.pipelineIdle() || !assist.talk(followUpTurn || preferences.autoListen(), handoff)) {
             if (handoff != null) handoff.stop();
             listening = false;
-            mics.releaseAll();
+            mics.captureNeverStarted();
             publishMicState();
             main.removeCallbacks(endListeningTimeout);
             if (wave != null) wave.setMode(
@@ -529,7 +525,8 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
                 scheduleIdleDismiss();
             }
         } else {
-            mics.assistOpened();
+            mics.bindRun(assist.activeRunId());
+            mics.assistListening();
             if (followUpTurn) followUps.markQuestion(followToken);
         }
     }
@@ -562,6 +559,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         main.removeCallbacks(endListeningTimeout);
         if (wave != null) wave.setMode(VoiceWaveView.THINKING);
         assist.finishTalking();
+        mics.stopRequested();
         mics.releaseAll();
         publishMicState();
     }
@@ -656,6 +654,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
             if (closing) return;
             endFollowUps();
             listening = false;
+            mics.stopRequested();
             mics.releaseAll();
             publishMicState();
             main.removeCallbacks(endListeningTimeout);
@@ -689,7 +688,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
             // A late Assist callback must not steal the follow-up preview recorder.
             if (mics.phase() == MicOwnership.PREVIEW) return;
             listening = true;
-            mics.assistOpened();
+            mics.assistListening();
             publishMicState();
             if (wave != null) wave.setMode(VoiceWaveView.LISTENING);
             main.removeCallbacks(endListeningTimeout);
@@ -700,10 +699,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
     @Override public void processing() {
         main.post(() -> {
             listening = false;
-            if (mics.phase() == MicOwnership.ASSIST) {
-                mics.assistReleased();
-                publishMicState();
-            }
+            mics.stopRequested();
             main.removeCallbacks(endListeningTimeout);
             if (wave != null) wave.setMode(VoiceWaveView.THINKING);
         });
@@ -712,10 +708,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
     @Override public void localSilence() {
         main.post(() -> {
             listening = false;
-            if (mics.phase() == MicOwnership.ASSIST) {
-                mics.assistReleased();
-                publishMicState();
-            }
+            mics.stopRequested();
             main.removeCallbacks(endListeningTimeout);
             if (!closing && wave != null) wave.setMode(VoiceWaveView.THINKING);
         });
@@ -907,6 +900,14 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         if (wave != null) wave.setMode(VoiceWaveView.IDLE);
         status("No follow-up. Microphone capture stopped.");
         scheduleIdleDismiss();
+    }
+
+    @Override public void captureReleased(int runId) {
+        main.post(() -> {
+            boolean wasOn = mics.microphoneActive();
+            mics.captureReleased(runId);
+            if (!closing && wasOn != mics.microphoneActive()) publishMicState();
+        });
     }
 
     @Override public void onDestroy() {
