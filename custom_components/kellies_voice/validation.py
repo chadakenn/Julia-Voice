@@ -6,20 +6,27 @@ from uuid import UUID
 
 try:
     from .const import (
+        MAX_ACTION_LABEL,
+        MAX_ACTIONS,
         MAX_DURATION_SECONDS,
+        MAX_SPEAK_LENGTH,
         MAX_TEXT_LENGTH,
         MAX_TITLE_LENGTH,
         MIN_DURATION_SECONDS,
     )
 except ImportError:  # unit test loads this file without the Home Assistant package
     from const import (  # type: ignore
+        MAX_ACTION_LABEL,
+        MAX_ACTIONS,
         MAX_DURATION_SECONDS,
+        MAX_SPEAK_LENGTH,
         MAX_TEXT_LENGTH,
         MAX_TITLE_LENGTH,
         MIN_DURATION_SECONDS,
     )
 
 _CAMERA_ENTITY = re.compile(r"^camera\.[a-z0-9_]+$")
+_ACTION_ID = re.compile(r"^[a-z][a-z0-9_]{0,31}$")
 
 
 def clean_tv_device_id(value) -> str:
@@ -80,6 +87,47 @@ def clean_camera_entity(value) -> str:
     if not _CAMERA_ENTITY.fullmatch(entity_id):
         raise ValueError("Choose a camera entity, such as camera.front_door.")
     return entity_id
+
+
+def clean_speak(value) -> str:
+    """Optional spoken line. Empty means stay quiet. Never a web address."""
+    if value is None:
+        return ""
+    text = " ".join(str(value).split())
+    if not text:
+        return ""
+    if len(text) > MAX_SPEAK_LENGTH:
+        raise ValueError(f"Spoken text must be at most {MAX_SPEAK_LENGTH} characters.")
+    lowered = text.lower()
+    if "://" in text or lowered.startswith("http") or "www." in lowered:
+        raise ValueError("Spoken text cannot be a web address.")
+    return text
+
+
+def clean_actions(value) -> list:
+    """At most three buttons. Each id is a short word such as unlock or talk."""
+    if value is None or value == "":
+        return []
+    if not isinstance(value, list):
+        raise ValueError("Actions must be a list of id and label.")
+    if len(value) > MAX_ACTIONS:
+        raise ValueError(f"Use at most {MAX_ACTIONS} actions.")
+    cleaned = []
+    seen = set()
+    for item in value:
+        if not isinstance(item, dict):
+            raise ValueError("Each action needs an id and a label.")
+        action_id = str(item.get("id", "")).strip().lower()
+        label = _clean_line(item.get("label"))
+        if not _ACTION_ID.fullmatch(action_id):
+            raise ValueError("Action id must be a short lowercase word, such as unlock.")
+        if not label or len(label) > MAX_ACTION_LABEL:
+            raise ValueError(f"Action label must be 1 to {MAX_ACTION_LABEL} characters.")
+        if action_id in seen:
+            raise ValueError("Each action id can be used once.")
+        seen.add(action_id)
+        cleaned.append({"id": action_id, "label": label})
+    return cleaned
 
 
 def target_device_ids(requested, configured) -> list:

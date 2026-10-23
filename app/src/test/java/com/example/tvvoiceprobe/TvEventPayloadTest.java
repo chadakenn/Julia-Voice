@@ -31,6 +31,31 @@ public class TvEventPayloadTest {
         assertFalse(TvEventPayload.hlsPathAllowed("/api/hls/token/master_playlist.m3u8?leak=1"));
     }
 
+    @Test public void buttonsAreLimitedAndSpeechRejectsAddresses() {
+        assertEquals("Dismiss", TvEventPayload.action("dismiss", "Dismiss").label);
+        assertEquals("unlock", TvEventPayload.action("Unlock", "Unlock").id);
+        assertNull(TvEventPayload.action("open gate", "Open"));
+        assertNull(TvEventPayload.action("talk", "   "));
+        java.util.List<TvEventPayload.Action> actions = TvEventPayload.takeActions(new TvEventPayload.Action[] {
+                TvEventPayload.action("talk", "Talk"),
+                TvEventPayload.action("talk", "Again"),
+                TvEventPayload.action("unlock", "Unlock"),
+                TvEventPayload.action("open_gate", "Open gate"),
+                TvEventPayload.action("dismiss", "Dismiss"),
+        });
+        assertEquals(3, actions.size());
+        assertEquals("talk", actions.get(0).id);
+        assertEquals("unlock", actions.get(1).id);
+        assertEquals("open_gate", actions.get(2).id);
+        assertEquals("", TvEventPayload.speak("https://example.com/clip.mp3"));
+        assertEquals("", TvEventPayload.speak("x".repeat(181)));
+        assertEquals("Someone is at the front door.", TvEventPayload.speak("  Someone is at the front door.  "));
+        assertEquals("aabbccddeeff00112233445566778899",
+                TvEventPayload.announcementId("AABBCCDDEEFF00112233445566778899"));
+        assertEquals("", TvEventPayload.announcementId("6f9619ff-8b86-d011-b42d-00c04fc964ff"));
+        assertEquals("kellies_voice_announcement_action", TvEventPayload.ACTION);
+    }
+
     @Test public void durationAndTextAreBounded() {
         assertEquals(10, TvEventPayload.duration(0));
         assertEquals(4, TvEventPayload.duration(1));

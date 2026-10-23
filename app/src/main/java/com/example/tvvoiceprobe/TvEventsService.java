@@ -11,7 +11,12 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.PixelFormat;
 import android.graphics.drawable.GradientDrawable;
+import android.media.AudioAttributes;
+import android.media.AudioFocusRequest;
+import android.media.AudioManager;
 import android.os.Build;
+import android.speech.tts.TextToSpeech;
+import android.view.KeyEvent;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -20,6 +25,7 @@ import android.view.Gravity;
 import android.view.TextureView;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -36,6 +42,7 @@ import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.Call;
@@ -90,6 +97,9 @@ public final class TvEventsService extends Service {
     private TextView liveStatus;
     private ExoPlayer livePlayer;
     private int requestCounter = 100;
+    private TextToSpeech speaker;
+    private int speechGeneration = -1;
+    private AudioFocusRequest speechFocus;
     private int liveRequestId = -1;
     private int liveRequestGeneration = -1;
     private int layoutStatesId = -1;
@@ -362,20 +372,29 @@ public final class TvEventsService extends Service {
                 String body = TvEventPayload.cleanText(data.optString("text"), 500);
                 if (!body.isEmpty()) showCard(
                         TvEventPayload.cleanText(data.optString("title", "Kellie's Voice"), 65),
-                        body, null, duration);
+                        body, null, duration, false,
+                        alertActions(data.optJSONArray("actions")),
+                        TvEventPayload.speak(data.optString("speak", "")),
+                        TvEventPayload.announcementId(data.optString("announcement_id")));
             } else if (subscription == CAMERA_ID
                     && TvEventPayload.CAMERA_POPUP.equals(eventType)) {
                 String entity = TvEventPayload.cameraEntity(data.optString("entity_id"));
                 if (entity != null) showCard(
                         TvEventPayload.cleanText(data.optString("title", "Camera alert"), 65),
-                        "Home Assistant camera snapshot", entity, duration);
+                        "Home Assistant camera snapshot", entity, duration, false,
+                        alertActions(data.optJSONArray("actions")),
+                        TvEventPayload.speak(data.optString("speak", "")),
+                        TvEventPayload.announcementId(data.optString("announcement_id")));
             } else if (subscription == LIVE_EVENT_ID
                     && TvEventPayload.LIVE_CAMERA.equals(eventType)) {
                 String entity = TvEventPayload.cameraEntity(data.optString("entity_id"));
                 if (entity != null) showCard(
                         TvEventPayload.cleanText(data.optString("title", "Live camera"), 65),
                         "LIVE · Starting muted video…", entity,
-                        TvEventPayload.liveDuration(data.optInt("duration_seconds", 90)), true);
+                        TvEventPayload.liveDuration(data.optInt("duration_seconds", 90)), true,
+                        alertActions(data.optJSONArray("actions")),
+                        TvEventPayload.speak(data.optString("speak", "")),
+                        TvEventPayload.announcementId(data.optString("announcement_id")));
             } else if (subscription == FORECAST_EVENT_ID
                     && ForecastCard.EVENT.equals(eventType)) {
                 if (!cameraVisible) showForecast(data);
@@ -501,10 +520,11 @@ public final class TvEventsService extends Service {
     }
 
     private void showCard(String title, String text, String entity, int seconds) {
-        showCard(title, text, entity, seconds, false);
+        showCard(title, text, entity, seconds, false, null, "", "");
     }
 
-    private void showCard(String title, String text, String entity, int seconds, boolean live) {
+    private void showCard(String title, String text, String entity, int seconds, boolean live,
+                          List<TvEventPayload.Action> actions, String speak, String announcementId) {
         if (stopping || windowManager == null || !Settings.canDrawOverlays(this)) return;
         hideCard();
         int current = ++generation;
@@ -556,15 +576,53 @@ public final class TvEventsService extends Service {
                     dp(TvAlertLayout.mediaHeightDp(alertSize, false))));
             photo = image;
         }
+        Button firstButton = null;
+        // A remote click can perform a consequential HA action when an owner
+        // explicitly configures an automation. Dispatch at most once per card.
+        final TvPopupActionGate actionGate = new TvPopupActionGate();
+        if (actions != null && !actions.isEmpty()) {
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            for (TvEventPayload.Action action : actions) {
+                Button button = new Button(this);
+                button.setText(action.label);
+                button.setAllCaps(false);
+                button.setTextColor(0xffFAE8D5);
+                button.setOnClickListener(view -> {
+                    // No double-OK, repeated event, or stale-card dispatch.
+                    if (stopping || generation != current || card != panel || !actionGate.claim()) return;
+                    button.setEnabled(false);
+                    reportAction(announcementId, action.id);
+                    hideCard();
+                    if ("talk".equals(action.id)) openTalk();
+                });
+                row.addView(button, new LinearLayout.LayoutParams(0,
+                        LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+                if (firstButton == null) firstButton = button;
+            }
+            panel.addView(row);
+            panel.setFocusable(true);
+            panel.setOnKeyListener((view, keyCode, event) -> {
+                if (keyCode == KeyEvent.KEYCODE_BACK
+                        && event.getAction() == KeyEvent.ACTION_UP) {
+                    hideCard();
+                    return true;
+                }
+                return false;
+            });
+        }
 
         int screen = getResources().getDisplayMetrics().widthPixels;
         int width = Math.min(dp(TvAlertLayout.widthDp(alertSize, entity != null, live)), screen - dp(48));
+        int flags = WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN;
+        if (actions == null || actions.isEmpty()) {
+            flags |= WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                    | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
+        }
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(
                 width, WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-                        | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
-                        | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+                flags,
                 PixelFormat.TRANSLUCENT);
         String alertPosition = placement.alertPosition();
         params.gravity = alertGravity(alertPosition);
@@ -591,9 +649,88 @@ public final class TvEventsService extends Service {
             main.postDelayed(dismiss,
                     (live ? TvEventPayload.liveDuration(seconds)
                             : TvEventPayload.duration(seconds)) * 1000L);
+            if (firstButton != null) {
+                Button focus = firstButton;
+                panel.post(focus::requestFocus);
+            }
+            if (speak != null && !speak.isEmpty()) speakPhrase(speak, current);
         } catch (RuntimeException ignored) {
             card = null;
             photo = null;
+        }
+    }
+
+    private List<TvEventPayload.Action> alertActions(JSONArray raw) {
+        if (raw == null) return java.util.Collections.emptyList();
+        TvEventPayload.Action[] candidates = new TvEventPayload.Action[raw.length()];
+        for (int i = 0; i < raw.length(); i++) {
+            JSONObject item = raw.optJSONObject(i);
+            candidates[i] = item == null ? null
+                    : TvEventPayload.action(item.optString("id"), item.optString("label"));
+        }
+        return TvEventPayload.takeActions(candidates);
+    }
+
+    private void reportAction(String announcementId, String actionId) {
+        if (socket == null || actionId == null || actionId.isEmpty()) return;
+        try {
+            JSONObject data = new JSONObject()
+                    .put("action", actionId)
+                    .put("device_id", new OverlayPreferences(this).deviceId());
+            if (announcementId != null && !announcementId.isEmpty()) {
+                data.put("announcement_id", announcementId);
+            }
+            socket.send(new JSONObject()
+                    .put("id", ++requestCounter)
+                    .put("type", "fire_event")
+                    .put("event_type", TvEventPayload.ACTION)
+                    .put("event_data", data)
+                    .toString());
+        } catch (Exception ignored) {
+            // Never print the token, the URL, or the announcement text.
+        }
+    }
+
+    private void openTalk() {
+        try {
+            startForegroundService(new Intent(this, VoiceOverlayService.class));
+        } catch (RuntimeException ignored) {
+            // Android can refuse a second foreground service. The action event was already sent.
+        }
+    }
+
+    private void speakPhrase(String phrase, int cardGeneration) {
+        speechGeneration = cardGeneration;
+        AudioManager audio = (AudioManager) getSystemService(AUDIO_SERVICE);
+        if (audio != null) {
+            speechFocus = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+                    .setAudioAttributes(new AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_ASSISTANT)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                            .build())
+                    .build();
+            audio.requestAudioFocus(speechFocus);
+        }
+        if (speaker == null) {
+            speaker = new TextToSpeech(this, status -> {
+                if (status == TextToSpeech.SUCCESS && speechGeneration == cardGeneration && speaker != null) {
+                    speaker.speak(phrase, TextToSpeech.QUEUE_FLUSH, null, "kellie-announce");
+                }
+            });
+            return;
+        }
+        speaker.speak(phrase, TextToSpeech.QUEUE_FLUSH, null, "kellie-announce");
+    }
+
+    private void stopSpeech() {
+        speechGeneration = -1;
+        if (speaker != null) {
+            try { speaker.stop(); } catch (RuntimeException ignored) { }
+        }
+        if (speechFocus != null) {
+            AudioManager audio = (AudioManager) getSystemService(AUDIO_SERVICE);
+            if (audio != null) audio.abandonAudioFocusRequest(speechFocus);
+            speechFocus = null;
         }
     }
 
@@ -748,6 +885,7 @@ public final class TvEventsService extends Service {
 
     private void hideCard() {
         main.removeCallbacks(dismiss);
+        stopSpeech();
         ++generation;
         liveRequestId = -1;
         liveRequestGeneration = -1;
@@ -774,6 +912,10 @@ public final class TvEventsService extends Service {
         if (timerOverlay != null) { timerOverlay.close(!new OverlayPreferences(this).tvEvents()); timerOverlay = null; }
         main.removeCallbacksAndMessages(null);
         hideCard();
+        if (speaker != null) {
+            speaker.shutdown();
+            speaker = null;
+        }
         if (socket != null) {
             socket.close(1000, "Receiver stopped");
             socket = null;

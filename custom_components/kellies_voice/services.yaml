@@ -63,6 +63,14 @@ announce:
           min: 4
           max: 45
           mode: box
+    speak:
+      example: Someone is at the front door.
+      selector:
+        text:
+    actions:
+      example: '[{"id": "talk", "label": "Talk"}, {"id": "dismiss", "label": "Dismiss"}]'
+      selector:
+        object:
     device_id:
       example: ""
       selector:
@@ -88,6 +96,14 @@ show_camera:
           min: 4
           max: 45
           mode: box
+    speak:
+      example: Someone is at the front door.
+      selector:
+        text:
+    actions:
+      example: '[{"id": "talk", "label": "Talk"}, {"id": "dismiss", "label": "Dismiss"}]'
+      selector:
+        object:
     device_id:
       example: ""
       selector:
@@ -112,6 +128,14 @@ show_live_camera:
           min: 15
           max: 180
           mode: box
+    speak:
+      example: Someone is at the front door.
+      selector:
+        text:
+    actions:
+      example: '[{"id": "talk", "label": "Talk"}, {"id": "dismiss", "label": "Dismiss"}]'
+      selector:
+        object:
     device_id:
       example: ""
       selector:

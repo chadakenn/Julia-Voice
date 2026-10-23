@@ -81,14 +81,57 @@ data:
   duration_seconds: 10
 ```
 
-The event data is exactly:
+The event always includes `title`, `text`, `duration_seconds`, `device_id`, and `announcement_id`. Optional `speak` and `actions` are added only when you set them:
+
+```yaml
+action: kellies_voice.announce
+data:
+  title: Front door
+  text: Someone is at the door.
+  speak: Someone is at the front door.
+  duration_seconds: 30
+  actions:
+    - id: talk
+      label: Talk
+    - id: acknowledge
+      label: Acknowledge
+    - id: dismiss
+      label: Dismiss
+```
+
+`speak` is a sentence of at most 180 characters. The TV speaks it with its own voice and ducks other audio. Leave it out to stay quiet. A web address is rejected. Up to three buttons are allowed. Each `id` is a short lowercase word, such as `dismiss`, `unlock`, `open_gate`, or `talk`. The label is what the TV shows.
+
+Pressing a button fires `kellies_voice_announcement_action` and closes the card. A button can be used only **once** per visible card; timeout and Back dismiss the popup without sending any action. `talk` opens the existing voice overlay under its normal microphone permissions. The TV app itself does not call `lock.unlock` or any other device service: **the owner may deliberately configure Home Assistant to do that immediately when a trusted button event arrives**. There is no built-in requirement to press a second confirmation button or speak a phrase.
+
+```yaml
+trigger:
+  - platform: event
+    event_type: kellies_voice_announcement_action
+conditions:
+  - condition: template
+    value_template: "{{ trigger.event.data.action == 'acknowledge' }}"
+  - condition: template
+    value_template: "{{ trigger.event.data.device_id == 'REPLACE_WITH_PAIRED_TV_ID' }}"
+actions:
+  - action: persistent_notification.create
+    data:
+      title: Kellie's Voice
+      message: Acknowledge was pressed on the paired TV.
+```
+
+**Optional door unlocking is supported:** an owner may configure an `unlock_front_door` button whose event **directly triggers** `lock.unlock` through a Home Assistant automation, with **no extra confirmation**. The feature is **off by default**. For the recommended one-press example, match the authorized TV's pairing ID, use the fresh per-popup `announcement_id`, consume it once, and target only the chosen lock. [See the complete opt-in direct unlock recipe](../../docs/TV_BUTTON_LOCK_ACTIONS.md). These checks avoid stale/misdirected events but do not turn a Home Assistant event into cryptographic authentication: anyone with sufficiently privileged access to your HA event bus or TV credentials may still impersonate a click. Choose your security policy intentionally.
+
+The same optional `speak` and `actions` fields work on `show_camera` and `show_live_camera`, so a doorbell popup can offer Talk. The event data still has no snapshot URL, stream address, or token. `announcement_id` is 32 hex characters and is repeated on the button event with `action` and `device_id`.
+
+The event data for a plain announcement is:
 
 ```json
 {
   "title": "Washer",
   "text": "The washer is done.",
   "duration_seconds": 10,
-  "device_id": "the-configured-tv-id"
+  "device_id": "the-configured-tv-id",
+  "announcement_id": "aabbccddeeff00112233445566778899"
 }
 ```
 
@@ -129,7 +172,7 @@ The event data is exactly:
 6. Run them again with a **TV device id** and confirm only that TV is in the event.
 7. Try a duration of `120`, an empty title, or `entity_id: light.kitchen`. Home Assistant should reject the call and fire no event.
 
-The TV displays the message or snapshot when its **TV announcements & cameras** receiver is enabled. The `show_camera` action displays a **still-image snapshot**, not a live stream. The separate experimental `show_live_camera` action requests HLS video on demand. Neither action starts Kellie's microphone or speaks the notification.
+The TV displays the message or snapshot when its **TV announcements & cameras** receiver is enabled. The `show_camera` action displays a **still-image snapshot**, not a live stream. The separate experimental `show_live_camera` action requests HLS video on demand. None of these actions start the microphone. They speak only when `speak` is set, using the TV's own voice.
 
 ### Frigate person detection
 
