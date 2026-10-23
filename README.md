@@ -188,6 +188,16 @@ See [TV event setup](docs/TV_EVENTS.md), [HA service details](custom_components/
 
 Kellie's Voice uses a user-controlled microphone; it **does not intercept the Google Assistant voice button** or promise access to the remote's Bluetooth microphone. Some streaming apps or protected content may limit overlays. The TV event listener is opt-in and Android may stop it while suspended; delivery is not guaranteed 24/7. No external ports need to be opened on the TV for Home Assistant events.
 
+## Optional follow-up questions
+
+This is off until you turn it on at the TV. Home Assistant cannot turn the microphone on.
+
+1. On the TV, open **Settings → Follow-up listening** and choose **On** with 5, 8, 10, or 15 seconds. The usual wait is **8 seconds**. Off is the existing behavior.
+2. Ask a question the way you do now. After Julia **finishes speaking**, the panel says it is listening for a follow-up. The microphone indicator stays on for that wait, even before the next Assist turn starts. Ask the next question without pressing the remote. Silence, **STOP**, **Back**, or a dropped connection releases the microphone and the indicator can turn off. A rejected Android microphone switch does not start recording and does not claim the microphone is off while a recorder is still open.
+3. Optional: on the Kellie's Voice device page, **Follow-up silence** can change that wait only after the TV switch is on. It has no On option. No script is required. Update HACS, restart Home Assistant, then install the matching Android build over the current app. Do not uninstall it.
+
+The follow-up has not been photographed on a TV yet. A unit test is not a hardware test. The checklist is in [docs/TESTING.md](docs/TESTING.md).
+
 For problems, see [Troubleshooting](docs/TROUBLESHOOTING.md), [Update guide](docs/UPDATES.md), [Known testing procedures](docs/TESTING.md), [Privacy and security guidance](SECURITY.md) and [project vision](docs/PROJECT_VISION.md).
 
 ## Seven-day forecast
