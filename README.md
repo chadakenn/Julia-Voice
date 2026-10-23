@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="docs/branding/kellies-voice-approved-banner.webp" alt="Kellie's Voice logo and branding banner" width="100%" />
+  <img src="https://raw.githubusercontent.com/chadakenn/Kellies-Voice/main/docs/branding/kellies-voice-header.svg" alt="Kellie's Voice | Your home. Your voice. Your way." width="100%" />
 </div>
 
 # Kellie's Voice 🎙️📺
@@ -106,6 +106,8 @@ data:
 ```
 
 Turning **Home Assistant layout** off stops later remote changes. A TV that has never changed sensitivity stays on **Normal**. The on-TV menu still works and, while layout control is on, copies the choice back. These controls are not a plan to remove the TV setup screen. Login, permissions, alert opt-in, and updates stay on the TV.
+
+A room-specific command such as "turn off the lights" can use the TV's Home Assistant area only after Kellie's Voice has learned Home Assistant's **device-registry ID**. Set the area on the Kellie's Voice device in **Settings → Devices & services**, enable **Home Assistant layout** on the TV and allow one authenticated connection. The registry ID is kept separately from the Kellie's Voice pairing ID and sent on later Assist requests. Until it is learned, requests continue without an originating device ID. This enhancement is **in this unreleased preview only**; the public v0.16.4 release does not supply it. The matching HACS component must be updated and HA restarted before testing it.
 
 The full camera script examples, including close and a 30 second view, are in [docs/VOICE_CAMERA_SCRIPTS.md](docs/VOICE_CAMERA_SCRIPTS.md).
 
@@ -237,6 +239,12 @@ On the device page, **Forecast source** is the weather entity used when a script
 **Known limitations:** the v0.16.4 timer alert **OK/Dismiss** control needs a fix (Back works); app-wide theme synchronization and the HACS README banner are being improved; ordinary timer phrases may invoke Home Assistant's unsupported native timer intent until routed to Kellie's Voice. Follow-up listening, wake-word support, and actionable announcement buttons are **not** included in this public release, even though draft PRs and test builds exist.
 
 For a complete **first-time installation and testing checklist**, start with **[Install Kellie's Voice: new testers](docs/INSTALL.md)**. Other Android/Google/Fire TV models, audio behavior, camera compatibility, and longer-running reliability especially need real tester reports. [Open a GitHub issue](https://github.com/chadakenn/Kellies-Voice/issues) with device model, app/HACS version, reproducible steps and redacted screenshots.
+
+### Voice timers (v0.16.4)
+
+Named countdown pills and completion alerts are available on the TV in **v0.16.4**. At completion the alert repeats **two chimes → optional Android TV spoken phrase → short pause** until dismissed. An onn 4K Pro has been verified to show countdowns, ring and stop with **Back**; remote OK / Dismiss is a known v0.16.4 issue being fixed for the next release ([issue #54](https://github.com/chadakenn/Kellies-Voice/issues/54)).
+
+**Timers should work without saying the assistant's name.** Say **“Set a five-minute pizza timer,” “Set a timer for five minutes,” “Cancel the pizza timer,”** or just **“Stop” / “Cancel”** after starting a TV timer. The TV timer defaults to the name **Timer** if no name was supplied. The [natural no-wake-word setup guide](docs/VOICE_TIMERS_PLAIN_SPEECH.md) contains full copy/paste Home Assistant automations and the two small timer-context helpers needed for the plain stop/cancel commands. It also explains how to keep commands scoped to the TV, Home Assistant's **native timer not supported** limitation, and why [PR #50](https://github.com/chadakenn/Kellies-Voice/pull/50) is needed for proper device identity. Multi-satellite homes should **not** enable broad unprefixed overrides until they understand the caveat about voice devices lacking IDs. An [LLM-script alternative](docs/VOICE_TIMERS.md) remains available. None of these automations are installed automatically by HACS; their matching TV ID and permissions must be configured for each home. **The maintainer verified timer start/stop through the onn TV microphone after configuring Home Assistant sentence automations. Other names, unnamed timers and bare stop/cancel still need wider physical TV testing.**
 
 Kellie's Voice is a community-built Home Assistant companion, **not an official Home Assistant or HACS product**.
 

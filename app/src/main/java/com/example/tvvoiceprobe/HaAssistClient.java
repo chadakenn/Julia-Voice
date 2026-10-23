@@ -404,6 +404,8 @@ public final class HaAssistClient {
             input.put("sample_rate", 16000);
             request.put("input", input);
             if (conversationId != null) request.put("conversation_id", conversationId);
+            String registryDeviceId = new OverlayPreferences(context).registryDeviceId();
+            if (!registryDeviceId.isEmpty()) request.put("device_id", registryDeviceId);
             handlerId = -1;
             endRequested = false;
             captureStarted = false;
@@ -668,6 +670,7 @@ public final class HaAssistClient {
             if (attributes == null) return;
             OverlayPreferences prefs = new OverlayPreferences(context);
             if (!prefs.deviceId().equals(attributes.optString("kellie_device_id"))) return;
+            prefs.setRegistryDeviceId(attributes.optString("ha_registry_device_id", ""));
             String setting = attributes.optString("kellie_setting");
             if (!HaLayout.known(setting)) return;
             String entityId = state.optString("entity_id");

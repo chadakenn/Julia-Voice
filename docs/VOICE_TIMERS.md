@@ -1,6 +1,8 @@
 # Voice timers in public v0.16.4 (plus optional voice setup)
 
-**Name clarification:** Julia is the maintainer's nickname for their Home Assistant conversation assistant, **not** an included assistant or wake word. Other users can use any Assist conversation agent and do **not** need to say "Julia" to start timers once the voice input is active. Timer scripts and sentence routing must be configured for your own Home Assistant pipeline; see the [naming explanation](../README.md#kellies-voice-vs-julia-whats-the-difference).
+**Name clarification:** Julia is the maintainer's nickname for their Home Assistant conversation assistant, **not** an included assistant or wake word.
+
+**For named and unnamed timers with bare “stop” / “cancel”**, see the [dedicated no-wake-word Home Assistant automation guide](VOICE_TIMERS_PLAIN_SPEECH.md). It is optional, requires correctly scoped Assist routing, and is not automatically installed by HACS. Other users can use any Assist conversation agent and do **not** need to say "Julia" to start timers once the voice input is active. Timer scripts and sentence routing must be configured for your own Home Assistant pipeline; see the [naming explanation](../README.md#kellies-voice-vs-julia-whats-the-difference).
 
 Named TV timers show small countdown pills over the current app. At completion: one chime, a 180 ms gap, a second chime, the optional configured phrase, then a 500 ms pause before the next pair. **Alerts repeat until dismissed, with no automatic cutoff.** Multiple completed timers share one audio sequence; dismiss the current timer to hear the next. Back dismisses every ringing timer, leaving running timers alone. The completion window has D-pad buttons; countdowns do not take remote focus.
 
@@ -46,6 +48,107 @@ action: kellies_voice.dismiss_timers
 data:
   device_id: REPLACE_WITH_PAIRED_TV_ID
 ```
+
+## Voice control with an LLM agent (Ollama, etc.)
+
+For an LLM-backed conversation agent, **exposing parameterized Home Assistant scripts** is one way to support natural requests such as “set a pizza timer for five minutes” without a fixed-duration script for every timer. Create these on **Settings → Automations & scenes → Scripts → Create script → Edit in YAML**. These scripts are **not automatically installed by HACS**, because every installation uses a different paired TV ID and conversation agent. Replace `REPLACE_WITH_PAIRED_TV_ID` with the TV's pairing ID shown in **Kellie's Voice → Settings → Home Assistant layout → Show this TV's pairing ID** (the Home Assistant device's `kellie_device_id` attribute contains the same ID).
+
+### Script 1: start or replace a named timer
+
+Save this script as **Start TV timer**. Its fields and descriptions tell the LLM how to convert requested minutes/hours to integer seconds.
+
+```yaml
+alias: Start TV timer
+description: >-
+  Start or replace a named countdown timer on the Kellie's Voice TV only when
+  the user requests a TV timer. Supply duration_seconds as whole seconds:
+  five minutes is 300, one hour is 3600. Optionally name it Pizza or Laundry.
+  The TV repeats completion chimes until dismissed.
+mode: queued
+max: 8
+fields:
+  duration_seconds:
+    name: Timer duration, seconds
+    description: Required integer 1 to 86400. Convert minutes and hours into seconds; 5 minutes is 300.
+    required: true
+    selector:
+      number:
+        min: 1
+        max: 86400
+        step: 1
+        mode: box
+  name:
+    name: Timer name
+    description: Optional short timer name such as Pizza, Laundry or Timer (maximum 40 characters).
+    default: Timer
+    selector:
+      text: {}
+  speak_alert:
+    name: Speak on finish
+    description: True only if the user explicitly asks for spoken completion; false means repeating chimes only.
+    default: false
+    selector:
+      boolean: {}
+  alert_phrase:
+    name: Spoken completion phrase
+    description: Optional text up to 140 characters read by Android TV TTS after the chimes.
+    selector:
+      text: {}
+sequence:
+  - action: kellies_voice.start_timer
+    data:
+      device_id: REPLACE_WITH_PAIRED_TV_ID
+      name: "{{ name | default('Timer', true) }}"
+      duration_seconds: "{{ duration_seconds | int(0) }}"
+      speak_alert: "{{ speak_alert | default(false) | bool }}"
+      alert_phrase: "{{ alert_phrase | default('', true) }}"
+```
+
+### Script 2: cancel a named timer
+
+Create a second script named **Cancel TV timer**:
+
+```yaml
+alias: Cancel TV timer
+description: >-
+  Cancel the user's named Kellie's Voice TV timer or stop that timer's
+  repeating alarm. Use the requested timer name, or Timer for an unnamed one.
+mode: queued
+fields:
+  name:
+    name: Timer name
+    description: Existing timer name to cancel, such as Pizza, Laundry or Timer.
+    default: Timer
+    selector:
+      text: {}
+sequence:
+  - action: kellies_voice.cancel_timer
+    data:
+      device_id: REPLACE_WITH_PAIRED_TV_ID
+      name: "{{ name | default('Timer', true) }}"
+```
+
+### Script 3: silence currently ringing alerts
+
+Create a third script named **Dismiss TV timer alerts**:
+
+```yaml
+alias: Dismiss TV timer alerts
+description: >-
+  Stop all currently ringing Kellie's Voice timer alerts when the user says
+  dismiss or silence alarms. Leave unfinished countdown timers running.
+mode: single
+sequence:
+  - action: kellies_voice.dismiss_timers
+    data:
+      device_id: REPLACE_WITH_PAIRED_TV_ID
+```
+
+For **all three scripts**, enable **Assist exposure** in the script's Voice assistants settings (or **Settings → Voice assistants → Expose**). Your Ollama or other LLM conversation integration must have **Control Home Assistant** enabled; the script must be available to the same Assist agent the TV uses. Keep names and descriptions descriptive, as LLM agents choose tools based on them.
+
+Test spoken phrases on the TV after activating listening: **“Set a pizza timer for five minutes,” “Cancel the pizza timer,”** and **“Dismiss the timer alerts.”** Do not assume the command reached the TV just because the LLM says it ran. Check the visible pill or alarm. Some native Assist pipelines route generic timer phrases to their built-in satellite timer handling; named **TV** requests can resolve that ambiguity. The remote's **Back** key remains a known working dismiss fallback on v0.16.4.
+
+The documented YAML configuration below is an **alternative** for native Assist custom sentences and `intent_script` users who don't want the LLM to choose parameterized tools.
 
 ## Voice setup
 
