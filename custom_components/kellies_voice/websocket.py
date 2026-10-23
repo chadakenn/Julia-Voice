@@ -74,6 +74,11 @@ def websocket_subscribe_alerts(hass: HomeAssistant,
     def forward(event) -> None:
         # Check permissions for every event, including after an HA role change.
         if not _tv_can_read(hass, connection.user, device_id):
+            # Entity permission may have been revoked since subscription.
+            # Stop the delivery channel and clear the connected diagnostic.
+            # The TV must resubscribe after access is restored.
+            connection.subscriptions.pop(msg["id"], None)
+            unsubscribe()
             return
         payload = sanitize_event(event.event_type, event.data, device_id)
         if payload is None:
