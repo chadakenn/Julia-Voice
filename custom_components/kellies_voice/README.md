@@ -93,8 +93,8 @@ data:
   actions:
     - id: talk
       label: Talk
-    - id: unlock
-      label: Unlock
+    - id: acknowledge
+      label: Acknowledge
     - id: dismiss
       label: Dismiss
 ```
