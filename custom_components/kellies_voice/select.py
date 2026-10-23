@@ -7,7 +7,14 @@ from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from .const import ALERT_SELECTS, DOMAIN, NOISE_SELECTS, SELECTS, WEATHER_SELECTS
+from .const import (
+    ALERT_SELECTS,
+    DOMAIN,
+    MEDIA_SELECTS,
+    NOISE_SELECTS,
+    SELECTS,
+    WEATHER_SELECTS,
+)
 
 
 async def async_setup_entry(
@@ -32,6 +39,10 @@ async def async_setup_entry(
         for setting, name, options, icon, initial in WEATHER_SELECTS
     )
     entities.append(WeatherSourceSelect(entry))
+    entities.extend(
+        KellieSelect(entry, setting, name, options, icon, initial)
+        for setting, name, options, icon, initial in MEDIA_SELECTS
+    )
     async_add_entities(entities)
 
 

@@ -59,6 +59,12 @@ WEATHER_SELECTS = (
     ("weather_duration", "Forecast duration", WEATHER_DURATIONS, "mdi:timer-outline", "20 seconds"),
 )
 
+# What other apps do while Kellie listens or speaks. Lower volume is the original behavior.
+MEDIA_BEHAVIORS = ["Lower volume", "Pause playback"]
+MEDIA_SELECTS = (
+    ("media", "Media while talking", MEDIA_BEHAVIORS, "mdi:volume-medium", "Lower volume"),
+)
+
 EVENT_ANNOUNCEMENT = "kellies_voice_announcement"
 EVENT_CAMERA_POPUP = "kellies_voice_camera_popup"
 EVENT_LIVE_CAMERA = "kellies_voice_live_camera"

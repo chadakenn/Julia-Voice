@@ -42,6 +42,7 @@ public final class OverlayPreferences {
     private static final String KEY_ALERT_SIZE = "tv_alert_size";
     private static final String KEY_HIDE_SECONDS = "overlay_hide_seconds";
     private static final String KEY_NOISE = "room_noise";
+    private static final String KEY_MEDIA = "media_behavior";
     private static final String KEY_DEVICE = "ha_device_id";
     private static final String KEY_HA_MANAGE = "ha_manage_layout";
     private static final String KEY_TV_EVENTS = "tv_events_enabled";
@@ -216,6 +217,19 @@ public final class OverlayPreferences {
     public void setNoise(String value) {
         preferences.edit().putString(KEY_NOISE,
                 NOISE_QUIET.equals(value) || NOISE_TV.equals(value) ? value : NOISE_NORMAL).apply();
+    }
+
+    /** {@link MediaBehavior#DUCK} (original behavior) or {@link MediaBehavior#PAUSE}. */
+    public String mediaMode() {
+        return MediaBehavior.key(preferences.getString(KEY_MEDIA, MediaBehavior.DUCK));
+    }
+
+    public void setMediaMode(String value) {
+        preferences.edit().putString(KEY_MEDIA, MediaBehavior.key(value)).apply();
+    }
+
+    public boolean pauseMedia() {
+        return MediaBehavior.PAUSE.equals(mediaMode());
     }
 
     public boolean mainLauncherOpensOverlay() {

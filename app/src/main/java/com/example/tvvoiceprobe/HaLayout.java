@@ -17,6 +17,7 @@ public final class HaLayout {
     public static final String WEATHER_POSITION = "weather_position";
     public static final String WEATHER_SIZE = "weather_size";
     public static final String WEATHER_DURATION = "weather_duration";
+    public static final String MEDIA = "media";
 
     private HaLayout() {}
 
@@ -26,7 +27,7 @@ public final class HaLayout {
                 || ALERT_POSITION.equals(setting) || ALERT_SIZE.equals(setting)
                 || NOISE.equals(setting)
                 || WEATHER_POSITION.equals(setting) || WEATHER_SIZE.equals(setting)
-                || WEATHER_DURATION.equals(setting);
+                || WEATHER_DURATION.equals(setting) || MEDIA.equals(setting);
     }
 
     public static boolean changesPanel(String setting) {
@@ -60,6 +61,8 @@ public final class HaLayout {
                 return TvAlertLayout.sizeLabel(prefs.weatherSize());
             case WEATHER_DURATION:
                 return WeatherLayout.durationLabel(prefs.weatherSeconds());
+            case MEDIA:
+                return MediaBehavior.label(prefs.mediaMode());
             default:
                 return null;
         }
@@ -127,6 +130,11 @@ public final class HaLayout {
                 int weatherSeconds = WeatherLayout.durationSeconds(value);
                 if (weatherSeconds < 0 || weatherSeconds == prefs.weatherSeconds()) return false;
                 prefs.setWeatherSeconds(weatherSeconds);
+                return true;
+            case MEDIA:
+                String media = MediaBehavior.keyOrNull(value);
+                if (media == null || media.equals(prefs.mediaMode())) return false;
+                prefs.setMediaMode(media);
                 return true;
             default:
                 return false;
