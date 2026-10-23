@@ -2,6 +2,8 @@
 
 This is the **public, copy-and-paste setup** for opening, timing, and closing camera windows by voice. Nothing here is tied to the original developer's TV or Home Assistant installation.
 
+**About the name “Julia”:** Julia is the maintainer's **personal name for their Home Assistant assistant**, not a required name or wake word for Kellie's Voice. Use the conversation agent **you** configured in Assist and speak without a name prefix after activating listening. Some older examples include “Julia” because they were recorded during the maintainer's testing, not because the app requires it. [More about naming](../README.md#kellies-voice-vs-julia-whats-the-difference).
+
 ## What you need first
 
 1. **Android TV app v0.16.2 or newer**, installed in place from Kellie's Voice → Settings → Check for app updates. Do not uninstall the app.
@@ -16,7 +18,7 @@ Home Assistant → **Settings → Automations & scenes → Scripts → Create sc
 
 The snippets below use the **single-script UI editor** format (starting with `alias:`). If editing `scripts.yaml` manually instead, nest the same content under a unique script ID, for example `kellies_voice_close_camera:`, and indent the snippet beneath it. Reload scripts afterward.
 
-To make Julia/Assist call a script, open **Settings → Voice assistants → Expose**, and expose the newly created script to **Assist** (not Alexa/Google unless you want those assistants too). Enable tool/script access in the conversation agent if your particular agent requires it. **Exposing does not guarantee that every LLM recognizes every phrase**; test the request.
+To make your Home Assistant Assist agent call a script, open **Settings → Voice assistants → Expose**, and expose the newly created script to **Assist** (not Alexa/Google unless you want those assistants too). Enable tool/script access in the conversation agent if your particular agent requires it. **Exposing does not guarantee that every LLM recognizes every phrase**; test the request.
 
 ## 1. Show the live doorbell camera (duration can be spoken)
 
@@ -54,7 +56,7 @@ Try **"Show me the doorbell camera on the TV"** or **"Show the doorbell camera f
 
 ## 2. Show the live driveway camera
 
-Create a separate script called **Show driveway camera live on TV**. This follows the same timed-action pattern and keeps Julia from choosing an unexpected camera.
+Create a separate script called **Show driveway camera live on TV**. This follows the same timed-action pattern and helps your conversation agent select the intended camera.
 
 ```yaml
 alias: Show driveway camera live on TV
@@ -85,7 +87,7 @@ sequence:
 
 ## 3. Fixed 30-second camera script (most reliable with basic voice agents)
 
-If Julia opens a camera but ignores the spoken duration, create a *separate*, clearly named script so it does not need to infer or pass numerical parameters:
+If your conversation agent opens a camera but ignores the spoken duration, create a *separate*, clearly named script so it does not need to infer or pass numerical parameters:
 
 ```yaml
 alias: Show doorbell camera for 30 seconds on TV
@@ -122,7 +124,7 @@ sequence:
     data: {}
 ```
 
-Say **"Julia, close the camera on the TV."** The action dismisses a live or snapshot camera window right away and releases its player, but **does not dismiss an unrelated text announcement**, start a microphone, turn off the TV, or stop Frigate recording. Camera views still auto-close by timeout if no voice action is sent.
+After activating listening, say **"Close the camera on the TV."** The action dismisses a live or snapshot camera window right away and releases its player, but **does not dismiss an unrelated text announcement**, start a microphone, turn off the TV, or stop Frigate recording. Camera views still auto-close by timeout if no voice action is sent.
 
 ## Targeting one TV instead of every paired TV
 
@@ -162,7 +164,7 @@ Change both entity IDs to the actual Frigate entities in **your** Home Assistant
 - Start with Home Assistant **Developer tools → Actions**, running `kellies_voice.show_live_camera` for a known streaming camera, or run the new scripts from **Settings → Automations & scenes → Scripts**.
 - Next call `kellies_voice.hide_camera` during a visible camera popup. If the action does not exist, upgrade the **HACS integration to v0.16.2** and restart Home Assistant.
 - If the action succeeds but the TV ignores it, verify **the Android app is also v0.16.2**, that TV announcements & cameras are ON, the main app has been opened since upgrading, the TV is online, and any `device_id` matches its pairing ID.
-- If Julie/Julia fails to understand the phrase but tapping **Run** works, this is an **Assist tool exposure/intent** issue, not necessarily a TV-streaming error. Expose the script to Assist and use short, distinctive names; a 30-second fixed script avoids parameter-passing issues.
+- If your chosen Assist conversation agent fails to understand the phrase but tapping **Run** works, this is an **Assist tool exposure/intent** issue, not necessarily a TV-streaming error. Expose the script to Assist and use short, distinctive names; a 30-second fixed script avoids parameter-passing issues.
 - Don't confuse a camera **snapshot fallback** with successful moving live video. Both driveway and doorbell live video have been verified on the onn 4K Pro with Android v0.16.1; v0.16.2 close-command behavior still needs the next on-device test.
 - The floating popup is intentionally non-focusable and does not capture remote keys. Back-button dismissal is **not** part of this version. Use the voice/script close command or wait for the timeout.
 
