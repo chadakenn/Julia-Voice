@@ -196,7 +196,7 @@ See [TV event setup](docs/TV_EVENTS.md), [HA service details](custom_components/
 | Live HLS camera overlay | **Verified** moving driveway and doorbell video on onn 4K Pro with Android v0.16.1; other cameras and TV devices still need testing |
 | Other Google TV and Android TV brands | **Not comprehensively tested** |
 
-Kellie's Voice uses a user-controlled microphone; it **does not intercept the Google Assistant voice button** or promise access to the remote's Bluetooth microphone. Some streaming apps or protected content may limit overlays. The TV event listener is opt-in and Android may stop it while suspended; delivery is not guaranteed 24/7. No external ports need to be opened on the TV for Home Assistant events.
+Kellie's Voice uses a user-controlled microphone; it **does not intercept the Google Assistant voice button** or promise access to the remote's Bluetooth microphone. On Android 14 and newer, the overlay asks for the microphone service type only while a question is being captured. While it is waiting, it uses a special-use type so the privacy indicator can turn off. If a TV rejects that switch, the indicator stays on and the notification says so instead of claiming the microphone is off. Android 13 and older keep the microphone type for the whole overlay. Some streaming apps or protected content may limit overlays. The TV event listener is opt-in and Android may stop it while suspended; delivery is not guaranteed 24/7. No external ports need to be opened on the TV for Home Assistant events.
 
 For problems, see [Troubleshooting](docs/TROUBLESHOOTING.md), [Update guide](docs/UPDATES.md), [Known testing procedures](docs/TESTING.md), [Privacy and security guidance](SECURITY.md) and [project vision](docs/PROJECT_VISION.md).
 
