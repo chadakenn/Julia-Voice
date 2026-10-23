@@ -76,7 +76,9 @@ class PermissionsTests(unittest.TestCase):
         source = ast.parse((ROOT / "websocket.py").read_text(encoding="utf-8"))
         node = next(item for item in source.body
                     if isinstance(item, ast.FunctionDef) and item.name == "_tv_can_read")
-        self.funcs = {}
+        # Production annotations are evaluated at definition time; HA is intentionally
+        # not installed in this fast offline unit-test job.
+        self.funcs = {"HomeAssistant": object}
         exec(compile(ast.Module(body=[node], type_ignores=[]), "permissions", "exec"), self.funcs)
         self.check = self.funcs["_tv_can_read"]
         self.id = "tv-one"
