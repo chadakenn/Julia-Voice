@@ -25,7 +25,8 @@ The unit tests check the session rules only. They do not prove the onn microphon
 - [ ] With follow-up **Off**, one question still behaves as it does today. The microphone does not reopen after the answer.
 - [ ] Turn follow-up **On** at the TV, with 8 seconds. Ask a question. When speech finishes, the panel should say it is listening. Ask "What about tomorrow?" without pressing the remote. Julia should use the same conversation.
 - [ ] Stay quiet for the selected 5, 8, 10, or 15 seconds. Capture should stop. The panel should not say the system privacy dot is off unless that dot has actually cleared.
-- [ ] During the follow-up window, press **STOP**, **Back**, and close the overlay. None of those may start the microphone again a moment later.
+- [ ] During the follow-up wait, before the next question reaches Home Assistant, the system microphone indicator stays **on**. It must not stay off while the preview is recording.
+- [ ] When the wait ends, **STOP**, **Back**, close, a speech error, or a dropped connection, the indicator may turn off only after capture has stopped. It must not turn off and back on in the moment the same recorder is handed to Assist.
 - [ ] Pull the network during the answer. The follow-up must not start after reconnect.
 - [ ] While YouTube is playing, confirm the TV audio is ducked only while a question is being captured, then returns.
 - [ ] From Home Assistant, change **Follow-up silence** while the TV switch is Off. The TV must stay Off. Turn the TV switch On and confirm a later Home Assistant change can set 5, 8, 10, or 15 seconds.
