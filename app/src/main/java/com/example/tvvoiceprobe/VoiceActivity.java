@@ -461,11 +461,14 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                 "Hardware microphone diagnostics",
                 "Microphone sensitivity: " + OverlayPreferences.noiseLabel(
                         new OverlayPreferences(this).noise()),
+                "Mic input detection: " + (new OverlayPreferences(this).allowUnverifiedMic()
+                        ? "Override ON" : "Safe checks ON"),
                 "Open floating voice overlay",
                 "Overlay appearance & position",
                 "Home Assistant layout: " + (new OverlayPreferences(this).haManage() ? "ON" : "OFF"),
                 "TV announcements & cameras: " + (new OverlayPreferences(this).tvEvents() ? "ON" : "OFF"),
                 "TV alert status",
+                "Live camera: " + LiveCameraMode.label(new OverlayPreferences(this).cameraMode()),
                 "Check for app updates",
                 "Install downloaded update",
                 "Forget saved connection"
@@ -479,18 +482,20 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                         case 2: newConversation(); break;
                         case 3: startActivity(new Intent(this, MainActivity.class)); break;
                         case 4: chooseMicSensitivity(); break;
-                        case 5: launchOverlay(); break;
-                        case 6: showOverlayPreferences(); break;
-                        case 7: chooseHaLayout(); break;
-                        case 8: chooseTvNotifications(); break;
-                        case 9: showTvAlertStatus(); break;
-                        case 10:
+                        case 5: chooseMicrophoneDetection(); break;
+                        case 6: launchOverlay(); break;
+                        case 7: showOverlayPreferences(); break;
+                        case 8: chooseHaLayout(); break;
+                        case 9: chooseTvNotifications(); break;
+                        case 10: showTvAlertStatus(); break;
+                        case 11: chooseCameraMode(); break;
+                        case 12:
                             manualUpdateCheck = true;
                             status("Checking GitHub Releases...");
                             updater.check();
                             break;
-                        case 11: promptInstallUpdate(); break;
-                        case 12: confirmForget(); break;
+                        case 13: promptInstallUpdate(); break;
+                        case 14: confirmForget(); break;
                         default: break;
                     }
                 });
@@ -593,6 +598,41 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                 });
     }
 
+    private void chooseCameraMode() {
+        OverlayPreferences prefs = new OverlayPreferences(this);
+        String[] modes = {LiveCameraMode.SOFTWARE, LiveCameraMode.SNAPSHOT, LiveCameraMode.HARDWARE};
+        String[] choices = new String[modes.length];
+        for (int i = 0; i < modes.length; i++) {
+            choices[i] = (modes[i].equals(prefs.cameraMode()) ? "✓  " : "     ")
+                    + LiveCameraMode.label(modes[i]);
+        }
+        showCopperMenu("TV ALERTS  ✦  LIVE CAMERA",
+                "Safe software avoids taking the video decoder from HDMI or streaming apps. "
+                        + "A low-resolution H.264 camera stream works best. "
+                        + "Unsupported software decoding falls back to a still snapshot.",
+                choices, which -> {
+                    String selected = modes[which];
+                    if (LiveCameraMode.HARDWARE.equals(selected)) {
+                        new AlertDialog.Builder(this)
+                                .setTitle("Enable hardware camera decoder?")
+                                .setMessage("Only choose this on a TV box that you have tested. "
+                                        + "On integrated Android TVs, hardware decoding may blank "
+                                        + "HDMI or interrupt Netflix and other playback, even "
+                                        + "after the camera popup closes.")
+                                .setNegativeButton("Cancel", (dialog, w) -> showSettingsMenu())
+                                .setPositiveButton("Enable hardware", (dialog, w) -> {
+                                    prefs.setCameraMode(LiveCameraMode.HARDWARE);
+                                    status("Hardware camera decoding enabled on this TV.");
+                                    showSettingsMenu();
+                                }).show();
+                    } else {
+                        prefs.setCameraMode(selected);
+                        status("Live camera: " + LiveCameraMode.label(selected));
+                        showSettingsMenu();
+                    }
+                });
+    }
+
     private void showTvAlertStatus() {
         OverlayPreferences prefs = new OverlayPreferences(this);
         boolean signedIn = settings != null;
@@ -625,6 +665,45 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         if (assist != null && new OverlayPreferences(this).haManage()) {
             assist.publishLayout(setting);
         }
+    }
+
+    private void chooseMicrophoneDetection() {
+        OverlayPreferences prefs = new OverlayPreferences(this);
+        boolean bypass = prefs.allowUnverifiedMic();
+        showCopperMenu("SETTINGS  ✦  MICROPHONE ROUTING",
+                "Safe checks prevent TALK from recording TV audio instead of speech. "
+                        + "Some Android TVs expose only a remote submix, not a mic.",
+                new String[] {
+                        bypass ? "Turn compatibility override OFF (recommended)"
+                                : "Try unverified microphone (compatibility override)",
+                        "Open microphone diagnostics",
+                        "Back to Settings"
+                }, which -> {
+                    if (which == 0) {
+                        if (bypass) {
+                            prefs.setAllowUnverifiedMic(false);
+                            status("Microphone input checks enabled.");
+                            showSettingsMenu();
+                        } else {
+                            new AlertDialog.Builder(this)
+                                    .setTitle("Try microphone anyway?")
+                                    .setMessage("Only use this if your TV's audio-device list is wrong. "
+                                            + "It cannot unlock Google/Alexa remote microphones. "
+                                            + "An unusable input may still record silence; "
+                                            + "turn this off after testing.")
+                                    .setNegativeButton("Cancel", (dialog, w) -> showSettingsMenu())
+                                    .setPositiveButton("Try anyway", (dialog, w) -> {
+                                        prefs.setAllowUnverifiedMic(true);
+                                        status("Microphone route check overridden for diagnostics.");
+                                        showSettingsMenu();
+                                    }).show();
+                        }
+                    } else if (which == 1) {
+                        startActivity(new Intent(this, MainActivity.class));
+                    } else {
+                        showSettingsMenu();
+                    }
+                });
     }
 
     private void chooseMicSensitivity() {
@@ -970,7 +1049,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, MIC_PERMISSION_REQUEST);
         } else {
-            recognized.setText("Listening...");
+            recognized.setText("Checking microphone...");
             response.setText("Waiting for Home Assistant...");
             if (player != null) { player.release(); player = null; }
             if (speechFocus != null) speechFocus.release();
@@ -1025,6 +1104,12 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         runOnUiThread(() -> {
             if (status != null) status.setText(message);
             updateConnectionLabel();
+        });
+    }
+
+    @Override public void listening() {
+        runOnUiThread(() -> {
+            if (recognized != null) recognized.setText("Listening...");
         });
     }
 

@@ -16,7 +16,7 @@ from .const import (
 
 EVENT_FIELDS = {
     EVENT_ANNOUNCEMENT: ("device_id", "title", "text", "duration_seconds"),
-    EVENT_CAMERA_POPUP: ("device_id", "entity_id", "title", "duration_seconds"),
+    EVENT_CAMERA_POPUP: ("device_id", "entity_id", "title", "duration_seconds", "show_header", "image_fit", "refresh_seconds"),
     EVENT_LIVE_CAMERA: ("device_id", "entity_id", "title", "duration_seconds"),
     EVENT_HIDE_CAMERA: ("device_id",),
     EVENT_FORECAST: ("device_id", "location", "units", "issued", "duration_seconds", "days"),
@@ -29,9 +29,10 @@ MAX_BYTES = 8192
 STRING_LIMITS = {
     "title": 65, "text": 500, "location": 80, "units": 8,
     "entity_id": 88, "name": 40, "alert_phrase": 140,
-    "device_id": 64, "operation": 12,
+    "device_id": 64, "operation": 12, "image_fit": 8,
 }
-INT_FIELDS = {"issued", "duration_seconds", "ends_at_ms"}
+INT_FIELDS = {"issued", "duration_seconds", "ends_at_ms", "refresh_seconds"}
+BOOL_FIELDS = {"show_header"}
 DAY_FIELDS = {"label", "condition", "high", "low", "precipitation"}
 
 
@@ -59,7 +60,7 @@ def sanitize_event(event_type: str, payload: dict, this_tv: str) -> dict | None:
             if type(value) is not int or value < 0 or value > 10 ** 15:
                 return None
             safe[key] = value
-        elif key == "speak_alert":
+        elif key in BOOL_FIELDS or key == "speak_alert":
             if not isinstance(value, bool):
                 return None
             safe[key] = value

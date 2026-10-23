@@ -25,17 +25,23 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import androidx.media3.common.C;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.MimeTypes;
 import androidx.media3.common.PlaybackException;
 import androidx.media3.common.Player;
+import androidx.media3.exoplayer.DefaultRenderersFactory;
 import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.exoplayer.mediacodec.MediaCodecInfo;
+import androidx.media3.exoplayer.mediacodec.MediaCodecSelector;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.Call;
@@ -86,6 +92,13 @@ public final class TvEventsService extends Service {
     private WindowManager windowManager;
     private View card;
     private ImageView photo;
+    private Call snapshotCall;
+    private int snapshotSerial;
+    private Runnable snapshotRefreshTask;
+    private String snapshotEntity;
+    private String snapshotTitle;
+    private boolean snapshotHeader;
+    private boolean snapshotFit;
     private TextureView liveSurface;
     private boolean liveFirstFrame;
     private TextView liveStatus;
@@ -394,9 +407,15 @@ public final class TvEventsService extends Service {
             } else if ((subscription == SCOPED_ALERTS_ID || subscription == CAMERA_ID)
                     && TvEventPayload.CAMERA_POPUP.equals(eventType)) {
                 String entity = TvEventPayload.cameraEntity(data.optString("entity_id"));
-                if (entity != null) showCard(
-                        TvEventPayload.cleanText(data.optString("title", "Camera alert"), 65),
-                        "Home Assistant camera snapshot", entity, duration);
+                if (entity != null) {
+                    boolean header = data.optBoolean("show_header", true);
+                    String title = TvEventPayload.cleanText(
+                            data.optString("title", "Camera alert"), 65);
+                    boolean fit = TvEventPayload.fitWholeImage(data.optString("image_fit"));
+                    int refresh = TvEventPayload.snapshotRefresh(
+                            data.optInt("refresh_seconds", 0));
+                    showSnapshotCard(title, entity, duration, header, fit, refresh);
+                }
             } else if ((subscription == SCOPED_ALERTS_ID || subscription == LIVE_EVENT_ID)
                     && TvEventPayload.LIVE_CAMERA.equals(eventType)) {
                 String entity = TvEventPayload.cameraEntity(data.optString("entity_id"));
@@ -565,7 +584,30 @@ public final class TvEventsService extends Service {
         showCard(title, text, entity, seconds, false);
     }
 
+    /** Reuse the same snapshot ImageView and window for repeated calls. */
+    private void showSnapshotCard(String title, String entity, int seconds,
+                                  boolean header, boolean fit, int refreshSeconds) {
+        if (stopping || windowManager == null || !Settings.canDrawOverlays(this)) return;
+        if (cameraVisible && liveSurface == null && card != null && photo != null
+                && entity.equals(snapshotEntity) && title.equals(snapshotTitle)
+                && header == snapshotHeader && fit == snapshotFit) {
+            int current = generation;
+            main.removeCallbacks(dismiss);
+            fetchSnapshot(entity, photo, current); // replace image in-place
+            scheduleSnapshotRefresh(entity, current, refreshSeconds);
+            main.postDelayed(dismiss, TvEventPayload.duration(seconds) * 1000L);
+            return;
+        }
+        showCard(title, "Home Assistant camera snapshot", entity, seconds,
+                false, header, fit, refreshSeconds);
+    }
+
     private void showCard(String title, String text, String entity, int seconds, boolean live) {
+        showCard(title, text, entity, seconds, live, true, false, 0);
+    }
+
+    private void showCard(String title, String text, String entity, int seconds,
+                          boolean live, boolean showHeader, boolean fitWhole, int refreshSeconds) {
         if (stopping || windowManager == null || !Settings.canDrawOverlays(this)) return;
         hideCard();
         int current = ++generation;
@@ -580,15 +622,19 @@ public final class TvEventsService extends Service {
         panel.setBackground(background);
         panel.setElevation(dp(12));
 
-        View goldRule = new View(this);
-        goldRule.setBackgroundColor(0xffE1B27B);
-        panel.addView(goldRule, new LinearLayout.LayoutParams(-1, dp(3)));
-        panel.addView(label(title.isEmpty() ? "Kellie's Voice" : title, 19, 0xffEAC296));
-        TextView subtitle = label(text, 16, 0xffFAE8D5);
-        panel.addView(subtitle);
+        TextView subtitle = null;
+        if (entity == null || live || showHeader) {
+            View goldRule = new View(this);
+            goldRule.setBackgroundColor(0xffE1B27B);
+            panel.addView(goldRule, new LinearLayout.LayoutParams(-1, dp(3)));
+            panel.addView(label(title.isEmpty() ? "Kellie's Voice" : title, 19, 0xffEAC296));
+            subtitle = label(text, 16, 0xffFAE8D5);
+            panel.addView(subtitle);
+        }
         photo = null;
         OverlayPreferences placement = new OverlayPreferences(this);
         String alertSize = placement.alertSize();
+        String cameraMode = placement.cameraMode();
         if (entity != null && live) {
             liveStatus = subtitle;
             // SurfaceView can show black in TYPE_APPLICATION_OVERLAY on some TVs.
@@ -611,7 +657,8 @@ public final class TvEventsService extends Service {
                     dp(TvAlertLayout.mediaHeightDp(alertSize, true))));
         } else if (entity != null) {
             ImageView image = new ImageView(this);
-            image.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            image.setScaleType(fitWhole ? ImageView.ScaleType.FIT_CENTER
+                    : ImageView.ScaleType.CENTER_CROP);
             image.setBackgroundColor(0xff2D211C);
             panel.addView(image, new LinearLayout.LayoutParams(-1,
                     dp(TvAlertLayout.mediaHeightDp(alertSize, false))));
@@ -636,18 +683,33 @@ public final class TvEventsService extends Service {
             windowManager.addView(panel, params);
             card = panel;
             cameraVisible = entity != null;
+            if (entity != null && !live) {
+                snapshotEntity = entity;
+                snapshotTitle = title;
+                snapshotHeader = showHeader;
+                snapshotFit = fitWhole;
+            }
             if (entity != null) {
                 if (live) {
                     // This is explicitly a still-image fallback, never label it "LIVE".
                     fetchSnapshot(entity, photo, current);
-                    requestLiveStream(entity, current);
-                    main.postDelayed(() -> {
-                        if (generation == current && !liveFirstFrame && liveStatus != null) {
-                            liveStatus.setText("Live video taking longer than expected; "
-                                    + "showing camera snapshot.");
-                        }
-                    }, 18000L);
-                } else fetchSnapshot(entity, photo, current);
+                    if (LiveCameraMode.requestsStream(cameraMode)) {
+                        requestLiveStream(entity, current);
+                        main.postDelayed(() -> {
+                            if (generation == current && !liveFirstFrame) {
+                                // Abandon late HLS responses and release a stalled decoder.
+                                liveRequestId = -1;
+                                liveRequestGeneration = -1;
+                                releaseLivePlayer("Live video timed out; showing camera snapshot.");
+                            }
+                        }, 18000L);
+                    } else {
+                        liveStatus.setText("Camera snapshot · live video disabled on this TV.");
+                    }
+                } else {
+                    fetchSnapshot(entity, photo, current);
+                    scheduleSnapshotRefresh(entity, current, refreshSeconds);
+                }
             }
             main.postDelayed(dismiss,
                     (live ? TvEventPayload.liveDuration(seconds)
@@ -709,6 +771,40 @@ public final class TvEventsService extends Service {
         }
     }
 
+    /**
+     * #67: PREFER_SOFTWARE alone is not safe: Media3 may still fall through
+     * to a hardware decoder and blank the integrated TV's HDMI input.
+     * Only include codecs explicitly identified as software-only.
+     */
+    private DefaultRenderersFactory cameraRenderers(String mode) {
+        DefaultRenderersFactory factory = new DefaultRenderersFactory(this)
+                .setEnableDecoderFallback(true);
+        if (LiveCameraMode.softwareOnly(mode)) {
+            factory.setMediaCodecSelector((mime, secure, tunnel) -> {
+                List<MediaCodecInfo> codecs = MediaCodecSelector.DEFAULT
+                        .getDecoderInfos(mime, secure, tunnel);
+                if (!MimeTypes.isVideo(mime)) return codecs;
+                List<MediaCodecInfo> software = new ArrayList<>();
+                for (MediaCodecInfo codec : codecs) {
+                    if (codec.softwareOnly) software.add(codec);
+                }
+                return software; // Never fall through to a hardware video decoder.
+            });
+        }
+        return factory;
+    }
+
+    private void releaseLivePlayer(String status) {
+        if (liveStatus != null && status != null) liveStatus.setText(status);
+        if (liveSurface != null) liveSurface.setAlpha(0f);
+        if (livePlayer != null) {
+            ExoPlayer old = livePlayer;
+            livePlayer = null;
+            if (liveSurface != null) old.clearVideoTextureView(liveSurface);
+            old.release();
+        }
+    }
+
     private void playLiveStream(String path) {
         // The stream URL is generated by HA over our authenticated socket, never
         // supplied by a TV event. Reject other hosts or protocols completely.
@@ -726,8 +822,13 @@ public final class TvEventsService extends Service {
             return;
         }
         try {
-            ExoPlayer player = new ExoPlayer.Builder(this).build();
-            player.setVolume(0f); // Do not steal focus or sound from the TV program.
+            String mode = new OverlayPreferences(this).cameraMode();
+            if (!LiveCameraMode.requestsStream(mode)) return;
+            ExoPlayer player = new ExoPlayer.Builder(this, cameraRenderers(mode)).build();
+            player.setVolume(0f);
+            // Video-only selection avoids allocating audio output over existing TV playback.
+            player.setTrackSelectionParameters(player.getTrackSelectionParameters().buildUpon()
+                    .setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, true).build());
             player.addListener(new Player.Listener() {
                 @Override public void onRenderedFirstFrame() {
                     if (player != livePlayer || liveSurface == null || liveStatus == null) return;
@@ -736,14 +837,11 @@ public final class TvEventsService extends Service {
                     liveStatus.setText("LIVE · muted");
                 }
                 @Override public void onPlayerError(PlaybackException error) {
-                    if (player == livePlayer && liveStatus != null) {
-                        // The numeric Media3 code distinguishes HTTP errors,
-                        // missing media segments, and decoder incompatibility.
-                        // Never include exception details containing the signed URL.
-                        liveStatus.setText("Live playback error "
-                                + error.errorCode + "; showing camera snapshot.");
-                        if (liveSurface != null) liveSurface.setAlpha(0f);
-                    }
+                    if (player != livePlayer) return;
+                    // Keep the photo, never retry on the hardware codec in safe mode.
+                    String cause = error.errorCode == PlaybackException.ERROR_CODE_DECODER_INIT_FAILED
+                            ? "No available video decoder (4001)" : "Live error " + error.errorCode;
+                    releaseLivePlayer(cause + "; showing camera snapshot.");
                 }
             });
             livePlayer = player;
@@ -755,11 +853,27 @@ public final class TvEventsService extends Service {
         } catch (RuntimeException ignored) {
             if (liveStatus != null) liveStatus.setText(
                     "Cannot start video player; showing camera snapshot.");
-            if (livePlayer != null) {
-                livePlayer.release();
-                livePlayer = null;
-            }
+            releaseLivePlayer(null);
         }
+    }
+
+    /** Every timer is bounded by the card lifetime. Never request two periodic frames at once. */
+    private void scheduleSnapshotRefresh(String entity, int current, int seconds) {
+        if (snapshotRefreshTask != null) main.removeCallbacks(snapshotRefreshTask);
+        snapshotRefreshTask = null;
+        int refresh = TvEventPayload.snapshotRefresh(seconds);
+        if (refresh == 0) return;
+        snapshotRefreshTask = new Runnable() {
+            @Override public void run() {
+                if (stopping || generation != current || photo == null
+                        || !entity.equals(snapshotEntity)) return;
+                // While one image downloads, skip the period rather than building
+                // an unbounded queue of Frigate/camera proxy requests.
+                if (snapshotCall == null) fetchSnapshot(entity, photo, current);
+                main.postDelayed(this, refresh * 1000L);
+            }
+        };
+        main.postDelayed(snapshotRefreshTask, refresh * 1000L);
     }
 
     private void fetchSnapshot(String entity, ImageView target, int current) {
@@ -773,9 +887,15 @@ public final class TvEventsService extends Service {
         Request request = new Request.Builder().url(url)
                 .header("Authorization", "Bearer " + credentials.token)
                 .header("Cache-Control", "no-cache").build();
-        http.newCall(request).enqueue(new Callback() {
-            @Override public void onFailure(Call call, java.io.IOException e) { }
-            @Override public void onResponse(Call call, Response response) {
+        if (snapshotCall != null) snapshotCall.cancel();
+        final int serial = ++snapshotSerial;
+        Call call = http.newCall(request);
+        snapshotCall = call;
+        call.enqueue(new Callback() {
+            @Override public void onFailure(Call failed, java.io.IOException e) {
+                main.post(() -> { if (snapshotCall == failed) snapshotCall = null; });
+            }
+            @Override public void onResponse(Call completed, Response response) {
                 try (Response result = response) {
                     if (!result.isSuccessful() || result.body() == null) return;
                     long declared = result.body().contentLength();
@@ -798,28 +918,35 @@ public final class TvEventsService extends Service {
                     options.inJustDecodeBounds = false;
                     Bitmap bitmap = BitmapFactory.decodeByteArray(raw, 0, raw.length, options);
                     if (bitmap != null) main.post(() -> {
-                        if (!stopping && generation == current && photo == target) {
+                        if (!stopping && generation == current && photo == target
+                                && serial == snapshotSerial) {
                             target.setImageBitmap(bitmap);
                         } else bitmap.recycle();
                     });
                 } catch (Exception ignored) { }
+                finally {
+                    main.post(() -> {
+                        if (snapshotCall == completed) snapshotCall = null;
+                    });
+                }
             }
         });
     }
 
     private void hideCard() {
         main.removeCallbacks(dismiss);
+        if (snapshotRefreshTask != null) main.removeCallbacks(snapshotRefreshTask);
+        snapshotRefreshTask = null;
+        if (snapshotCall != null) snapshotCall.cancel();
+        snapshotCall = null;
+        ++snapshotSerial;
+        snapshotEntity = null;
+        snapshotTitle = null;
         ++generation;
         liveRequestId = -1;
         liveRequestGeneration = -1;
         liveFirstFrame = false;
-        if (livePlayer != null && liveSurface != null) {
-            livePlayer.clearVideoTextureView(liveSurface);
-        }
-        if (livePlayer != null) {
-            livePlayer.release();
-            livePlayer = null;
-        }
+        releaseLivePlayer(null);
         liveSurface = null;
         liveStatus = null;
         cameraVisible = false;

@@ -72,6 +72,19 @@ def clean_duration(value, default: int) -> int:
     return seconds
 
 
+def clean_snapshot_refresh(value) -> int:
+    """Off or a bounded update rate: no HA/Frigate request flooding."""
+    if type(value) is bool:
+        raise ValueError("Snapshot refresh must be off (0) or 2 to 30 seconds.")
+    try:
+        seconds = int(value)
+    except (TypeError, ValueError, OverflowError):
+        raise ValueError("Snapshot refresh must be off (0) or 2 to 30 seconds.") from None
+    if seconds != 0 and not 2 <= seconds <= 30:
+        raise ValueError("Snapshot refresh must be off (0) or 2 to 30 seconds.")
+    return seconds
+
+
 def clean_camera_entity(value) -> str:
     """Accept only a Home Assistant camera entity id. Never a URL or token."""
     if value is None:

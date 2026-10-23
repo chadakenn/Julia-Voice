@@ -48,6 +48,8 @@ public final class OverlayPreferences {
     private static final String KEY_WEATHER_POSITION = "weather_position";
     private static final String KEY_WEATHER_SIZE = "weather_size";
     private static final String KEY_WEATHER_SECONDS = "weather_seconds";
+    private static final String KEY_CAMERA_MODE = "live_camera_decoder_mode";
+    private static final String KEY_ALLOW_UNVERIFIED_MIC = "allow_unverified_mic";
     private final SharedPreferences preferences;
 
     public OverlayPreferences(Context context) {
@@ -183,6 +185,25 @@ public final class OverlayPreferences {
 
     public void setHaManage(boolean enabled) {
         preferences.edit().putBoolean(KEY_HA_MANAGE, enabled).apply();
+    }
+
+    /** Local per-TV setting: avoid consuming the HDMI hardware decoder by default. */
+    public String cameraMode() {
+        return LiveCameraMode.normalize(preferences.getString(KEY_CAMERA_MODE,
+                LiveCameraMode.SOFTWARE));
+    }
+
+    public void setCameraMode(String mode) {
+        preferences.edit().putString(KEY_CAMERA_MODE, LiveCameraMode.normalize(mode)).apply();
+    }
+
+    /** Explicit compatibility override for TVs with unreliable input reports. */
+    public boolean allowUnverifiedMic() {
+        return preferences.getBoolean(KEY_ALLOW_UNVERIFIED_MIC, false);
+    }
+
+    public void setAllowUnverifiedMic(boolean allowed) {
+        preferences.edit().putBoolean(KEY_ALLOW_UNVERIFIED_MIC, allowed).apply();
     }
 
     public boolean tvEvents() {

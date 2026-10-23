@@ -434,10 +434,10 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         if (speechFocus != null) speechFocus.release();
         listening = true;
         speaking = false;
-        transcriptView.setText("Listening to your voice...");
+        transcriptView.setText("Checking microphone...");
         answerView.setText("...");
-        if (wave != null) wave.setMode(VoiceWaveView.LISTENING);
-        status("LISTENING • Speak toward the onn box");
+        if (wave != null) wave.setMode(VoiceWaveView.CONNECTING);
+        status("Checking microphone route...");
         assist.setRoomNoise(preferences.noise());
         if (!assist.talk(preferences.autoListen())) {
             listening = false;
@@ -585,6 +585,7 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         main.post(() -> {
             if (closing) return;
             listening = true;
+            if (transcriptView != null) transcriptView.setText("Listening to your voice...");
             if (wave != null) wave.setMode(VoiceWaveView.LISTENING);
             main.removeCallbacks(endListeningTimeout);
             main.postDelayed(endListeningTimeout, 23000);

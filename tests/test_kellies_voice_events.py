@@ -97,6 +97,22 @@ class ForecastDeliveryTests(unittest.IsolatedAsyncioTestCase):
 
 
 class ValidationTests(unittest.TestCase):
+    def test_snapshot_refresh_validation(self):
+        for seconds in (0, 2, 5, 30):
+            self.assertEqual(seconds, validation.clean_snapshot_refresh(seconds))
+        for invalid in (-1, 1, 31, True, "bad", None):
+            with self.subTest(value=invalid), self.assertRaises(ValueError):
+                validation.clean_snapshot_refresh(invalid)
+
+    def test_camera_snapshot_options_are_forwarded(self):
+        source = (_COMPONENT / "services.py").read_text(encoding="utf-8")
+        self.assertIn('vol.Optional("show_header", default=True)', source)
+        self.assertIn('vol.Optional("image_fit", default="crop")', source)
+        self.assertIn('vol.Optional("refresh_seconds", default=0)', source)
+        self.assertIn('"show_header": show_header', source)
+        self.assertIn('"image_fit": fit', source)
+        self.assertIn('"refresh_seconds": refresh', source)
+
     def test_timer_names_durations_and_phrases_are_bounded(self):
         self.assertEqual("Pizza timer", validation.clean_timer_name(" Pizza  timer "))
         self.assertEqual(300, validation.clean_timer_seconds("300"))

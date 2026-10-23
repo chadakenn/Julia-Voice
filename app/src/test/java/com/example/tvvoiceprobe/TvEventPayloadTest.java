@@ -31,6 +31,17 @@ public class TvEventPayloadTest {
         assertFalse(TvEventPayload.hlsPathAllowed("/api/hls/token/master_playlist.m3u8?leak=1"));
     }
 
+    @Test public void snapshotRefreshAndFitAreBounded() {
+        assertEquals(0, TvEventPayload.snapshotRefresh(0));
+        assertEquals(0, TvEventPayload.snapshotRefresh(1));
+        assertEquals(2, TvEventPayload.snapshotRefresh(2));
+        assertEquals(30, TvEventPayload.snapshotRefresh(30));
+        assertEquals(0, TvEventPayload.snapshotRefresh(60));
+        assertTrue(TvEventPayload.fitWholeImage("fit"));
+        assertFalse(TvEventPayload.fitWholeImage("crop"));
+        assertFalse(TvEventPayload.fitWholeImage("unknown"));
+    }
+
     @Test public void durationAndTextAreBounded() {
         assertEquals(10, TvEventPayload.duration(0));
         assertEquals(4, TvEventPayload.duration(1));

@@ -15,7 +15,6 @@ Welcome! **Kellie's Voice** turns an Android TV / Google TV into a voice compani
 
 - **Home Assistant** running and reachable from the TV, with a working **Assist pipeline** containing speech-to-text (STT), a conversation agent, and text-to-speech (TTS) if you want spoken answers. Test that pipeline in Home Assistant first.
 - An **Android TV / Google TV** device where you can sideload an APK, use the remote's D-pad/OK, and grant microphone permission. **The onn 4K Pro with its built-in microphone is the principal field-tested device.** Other models, including Fire TV devices, are welcome for testing but are **not verified compatible**; some devices have no accessible microphone.
-- **Non-admin TV tokens (draft issue #68 fix only):** the new Android receiver and HACS integration must BOTH be updated. The HACS integration offers an authenticated, read-scoped WebSocket channel for TV alerts; the account must have **read access to its paired TV's "TV alert position" select** (or be an administrator). This avoids requiring an administrator token merely to receive alerts. Existing v0.16.4 still needs custom-event subscription privileges; updating just one side is insufficient. The draft is not released or verified on a real non-admin TV account yet.
 - The TV and Home Assistant must be able to reach one another on your network. A valid Home Assistant URL and a **long-lived access token**, created under your own Home Assistant user profile's **Security** settings.
 - [HACS](https://www.hacs.xyz/) installed in Home Assistant to use the recommended integration setup. Manual custom-component installation is also possible.
 
@@ -87,9 +86,15 @@ data:
   duration_seconds: 15
 ```
 
-This is a **still image**, not live video. For an on-demand **muted live HLS camera**, see [Voice camera scripts](VOICE_CAMERA_SCRIPTS.md) and [TV events](TV_EVENTS.md). The TV must receive events over its active HA connection, and a camera must support the relevant HA snapshot/stream functionality.
+This is a **still image**, not live video.
 
-**Pairing verification (#69 draft, not in public v0.16.4):** Manual pairing accepts correctly formatted IDs without proving that the TV is actually connected. Copy the **TV pairing ID** from the TV itself, not the separate Home Assistant device registry ID. After updating both Android and HACS to versions with scoped alerts, check the **TV alert receiver connected** diagnostic on the HA device page. It stays OFF/"never" until the authenticated TV alert receiver connects. "Action ran OK" still means **event published**, not confirmed display. The legacy app does not report scoped connectivity. This feature builds on draft #68 and needs real multi-TV testing before release.
+**Live-camera compatibility (#67, draft fix only, NOT in public v0.16.4):** In TV Settings, choose **Live camera**: *Safe software (default)*, *Snapshots only*, or *Hardware (advanced)*. Safe software only selects software video decoders so an integrated TV's hardware decoder stays free for HDMI, Netflix or TiviMate. Use a lower-resolution H.264 camera/substream for best results; if software decoding is unavailable the popup stays on the snapshot and does **not** claim moving video. Hardware is opt-in and potentially disrupts HDMI on integrated TVs. Test on real TV hardware before shipping this change.
+
+For an on-demand **muted live HLS camera**, see [Voice camera scripts](VOICE_CAMERA_SCRIPTS.md) and [TV events](TV_EVENTS.md). The TV must receive events over its active HA connection, and a camera must support the relevant HA snapshot/stream functionality.
+
+**Snapshot display improvements (#70 draft, not public v0.16.4):** `kellies_voice.show_camera` can optionally use `show_header: false` (hide title/caption), `image_fit: fit` (show full uncropped 4:3 frame), and `refresh_seconds: 2..30` (in-place periodic snapshots; `0` turns auto-refresh off). Repeated calls to the same camera with the same layout update the image without tearing down the window. No new camera URLs or background microphone permissions are required. This is a separate test PR based on #67 and still needs Philips hardware verification.
+
+**Community combined test (draft only):** This preview integrates Philips HDMI-safe live decoder, full-frame in-place snapshots, non-admin scoped TV alert WebSocket, per-TV alert receiver connectivity, and safe microphone route diagnostics. Matching **test APK and HACS files** are needed for end-to-end testing; see [the controlled QA guide](COMMUNITY_QA.md). v0.16.4 public release remains unchanged.
 
 **Multiple TVs:** leaving the optional `device_id` out of announcement/camera actions targets every configured Kellie's Voice TV. Add the **specific TV pairing ID** to target one. Timers require a targeted TV and are not broadcast by default.
 
