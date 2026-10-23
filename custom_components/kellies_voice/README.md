@@ -101,7 +101,7 @@ data:
 
 `speak` is a sentence of at most 180 characters. The TV speaks it with its own voice and ducks other audio. Leave it out to stay quiet. A web address is rejected. Up to three buttons are allowed. Each `id` is a short lowercase word, such as `dismiss`, `unlock`, `open_gate`, or `talk`. The label is what the TV shows.
 
-Pressing a button fires `kellies_voice_announcement_action`. The service does not unlock a lock, open a gate, or start the microphone by itself. A timeout or Back closes the card and does not fire that event. `dismiss` closes the card. `talk` closes the card and opens the existing voice overlay, which listens only under the same rules as opening it from the launcher.
+Pressing a button fires `kellies_voice_announcement_action` and closes the card. A button can be used only **once** per visible card; timeout and Back dismiss the popup without sending any action. `talk` opens the existing voice overlay under its normal microphone permissions. The TV app itself does not call `lock.unlock` or any other device service: **the owner may deliberately configure Home Assistant to do that immediately when a trusted button event arrives**. There is no built-in requirement to press a second confirmation button or speak a phrase.
 
 ```yaml
 trigger:
@@ -119,7 +119,7 @@ actions:
       message: Acknowledge was pressed on the paired TV.
 ```
 
-**Security:** This event is a user-interface signal, **not proof of authorization to unlock a door or open a garage**. Other Home Assistant integrations or clients with event-writing privileges may emit the same event. Always scope to the expected TV and require independent confirmation for locks, doors and other security-sensitive actions. Do not wire `lock.unlock` or `cover.open_cover` directly to the example event.
+**Optional door unlocking is supported:** an owner may configure an `unlock_front_door` button whose event **directly triggers** `lock.unlock` through a Home Assistant automation, with **no extra confirmation**. The feature is **off by default**. For the recommended one-press example, match the authorized TV's pairing ID, use the fresh per-popup `announcement_id`, consume it once, and target only the chosen lock. [See the complete opt-in direct unlock recipe](../../docs/TV_BUTTON_LOCK_ACTIONS.md). These checks avoid stale/misdirected events but do not turn a Home Assistant event into cryptographic authentication: anyone with sufficiently privileged access to your HA event bus or TV credentials may still impersonate a click. Choose your security policy intentionally.
 
 The same optional `speak` and `actions` fields work on `show_camera` and `show_live_camera`, so a doorbell popup can offer Talk. The event data still has no snapshot URL, stream address, or token. `announcement_id` is 32 hex characters and is repeated on the button event with `action` and `device_id`.
 
