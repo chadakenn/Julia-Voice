@@ -461,6 +461,8 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                 "Hardware microphone diagnostics",
                 "Microphone sensitivity: " + OverlayPreferences.noiseLabel(
                         new OverlayPreferences(this).noise()),
+                "Media while talking: " + MediaBehavior.label(
+                        new OverlayPreferences(this).mediaMode()),
                 "Open floating voice overlay",
                 "Overlay appearance & position",
                 "Home Assistant layout: " + (new OverlayPreferences(this).haManage() ? "ON" : "OFF"),
@@ -479,18 +481,19 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                         case 2: newConversation(); break;
                         case 3: startActivity(new Intent(this, MainActivity.class)); break;
                         case 4: chooseMicSensitivity(); break;
-                        case 5: launchOverlay(); break;
-                        case 6: showOverlayPreferences(); break;
-                        case 7: chooseHaLayout(); break;
-                        case 8: chooseTvNotifications(); break;
-                        case 9: showTvAlertStatus(); break;
-                        case 10:
+                        case 5: chooseMediaBehavior(); break;
+                        case 6: launchOverlay(); break;
+                        case 7: showOverlayPreferences(); break;
+                        case 8: chooseHaLayout(); break;
+                        case 9: chooseTvNotifications(); break;
+                        case 10: showTvAlertStatus(); break;
+                        case 11:
                             manualUpdateCheck = true;
                             status("Checking GitHub Releases...");
                             updater.check();
                             break;
-                        case 11: promptInstallUpdate(); break;
-                        case 12: confirmForget(); break;
+                        case 12: promptInstallUpdate(); break;
+                        case 13: confirmForget(); break;
                         default: break;
                     }
                 });
@@ -644,6 +647,24 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                     prefs.setNoise(values[which]);
                     pushLayout(HaLayout.NOISE);
                     status("Microphone sensitivity: " + OverlayPreferences.noiseLabel(prefs.noise()));
+                    showSettingsMenu();
+                });
+    }
+
+    private void chooseMediaBehavior() {
+        OverlayPreferences prefs = new OverlayPreferences(this);
+        final String[] values = { MediaBehavior.DUCK, MediaBehavior.PAUSE };
+        String[] options = new String[values.length];
+        for (int i = 0; i < values.length; i++) {
+            options[i] = (values[i].equals(prefs.mediaMode()) ? "✓  " : "     ")
+                    + MediaBehavior.label(values[i]);
+        }
+        showCopperMenu("SETTINGS  ✦  MEDIA",
+                "What a playing app does while Kellie listens and speaks. Pausing only works with apps that follow Android audio focus. Others may keep playing.",
+                options, which -> {
+                    prefs.setMediaMode(values[which]);
+                    pushLayout(HaLayout.MEDIA);
+                    status("Media while talking: " + MediaBehavior.label(prefs.mediaMode()));
                     showSettingsMenu();
                 });
     }
@@ -1036,6 +1057,14 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         runOnUiThread(() -> { if (response != null) response.setText(value); });
     }
 
+    @Override public void answerPartial(String value) {
+        runOnUiThread(() -> {
+            if (response != null && value != null && !value.trim().isEmpty()) {
+                response.setText(value);
+            }
+        });
+    }
+
     @Override public void ttsUrl(String url) { runOnUiThread(() -> playTts(url)); }
 
     private void playTts(String address) {
@@ -1045,7 +1074,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
             if (player != null) { player.release(); player = null; }
             if (speechFocus == null) speechFocus = new SpeechFocus(this);
             speechFocus.release();
-            speechFocus.acquire();
+            speechFocus.acquire(new OverlayPreferences(this).pauseMedia());
             player = new MediaPlayer();
             player.setAudioAttributes(new AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_ASSISTANT)
