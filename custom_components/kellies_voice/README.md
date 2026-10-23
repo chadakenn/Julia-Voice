@@ -81,14 +81,57 @@ data:
   duration_seconds: 10
 ```
 
-The event data is exactly:
+The event always includes `title`, `text`, `duration_seconds`, `device_id`, and `announcement_id`. Optional `speak` and `actions` are added only when you set them:
+
+```yaml
+action: kellies_voice.announce
+data:
+  title: Front door
+  text: Someone is at the door.
+  speak: Someone is at the front door.
+  duration_seconds: 30
+  actions:
+    - id: talk
+      label: Talk
+    - id: acknowledge
+      label: Acknowledge
+    - id: dismiss
+      label: Dismiss
+```
+
+`speak` is a sentence of at most 180 characters. The TV speaks it with its own voice and ducks other audio. Leave it out to stay quiet. A web address is rejected. Up to three buttons are allowed. Each `id` is a short lowercase word, such as `dismiss`, `unlock`, `open_gate`, or `talk`. The label is what the TV shows.
+
+Pressing a button fires `kellies_voice_announcement_action`. The service does not unlock a lock, open a gate, or start the microphone by itself. A timeout or Back closes the card and does not fire that event. `dismiss` closes the card. `talk` closes the card and opens the existing voice overlay, which listens only under the same rules as opening it from the launcher.
+
+```yaml
+trigger:
+  - platform: event
+    event_type: kellies_voice_announcement_action
+conditions:
+  - condition: template
+    value_template: "{{ trigger.event.data.action == 'acknowledge' }}"
+  - condition: template
+    value_template: "{{ trigger.event.data.device_id == 'REPLACE_WITH_PAIRED_TV_ID' }}"
+actions:
+  - action: persistent_notification.create
+    data:
+      title: Kellie's Voice
+      message: Acknowledge was pressed on the paired TV.
+```
+
+**Security:** This event is a user-interface signal, **not proof of authorization to unlock a door or open a garage**. Other Home Assistant integrations or clients with event-writing privileges may emit the same event. Always scope to the expected TV and require independent confirmation for locks, doors and other security-sensitive actions. Do not wire `lock.unlock` or `cover.open_cover` directly to the example event.
+
+The same optional `speak` and `actions` fields work on `show_camera` and `show_live_camera`, so a doorbell popup can offer Talk. The event data still has no snapshot URL, stream address, or token. `announcement_id` is 32 hex characters and is repeated on the button event with `action` and `device_id`.
+
+The event data for a plain announcement is:
 
 ```json
 {
   "title": "Washer",
   "text": "The washer is done.",
   "duration_seconds": 10,
-  "device_id": "the-configured-tv-id"
+  "device_id": "the-configured-tv-id",
+  "announcement_id": "aabbccddeeff00112233445566778899"
 }
 ```
 
@@ -129,7 +172,7 @@ The event data is exactly:
 6. Run them again with a **TV device id** and confirm only that TV is in the event.
 7. Try a duration of `120`, an empty title, or `entity_id: light.kitchen`. Home Assistant should reject the call and fire no event.
 
-The TV displays the message or snapshot when its **TV announcements & cameras** receiver is enabled. The `show_camera` action displays a **still-image snapshot**, not a live stream. The separate experimental `show_live_camera` action requests HLS video on demand. Neither action starts Kellie's microphone or speaks the notification.
+The TV displays the message or snapshot when its **TV announcements & cameras** receiver is enabled. The `show_camera` action displays a **still-image snapshot**, not a live stream. The separate experimental `show_live_camera` action requests HLS video on demand. None of these actions start the microphone. They speak only when `speak` is set, using the TV's own voice.
 
 ### Frigate person detection
 
