@@ -1,6 +1,8 @@
 # Natural TV timers without a wake word (Home Assistant)
 
-You **do not need to say "Julia"** to operate Kellie's Voice. Until a user enables a separate wake-word feature, ordinary mic-button speech can be:
+**Julia is the maintainer's personal name for their Home Assistant assistant.** Kellie's Voice is the TV app and HACS integration; you can use any Assist conversation agent and any name you prefer. The assistant's name is not a wake word. [Full naming explanation](../README.md#kellies-voice-vs-julia-whats-the-difference).
+
+You **do not need to say "Julia"**, or any assistant name, to operate Kellie's Voice. Until a user enables a separate wake-word feature, activate listening with the TV app's controls and speak naturally:
 
 - "Set a pizza timer for five minutes."
 - "Set a timer for five minutes." (no name: the TV timer is named `Timer`)
