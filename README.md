@@ -169,7 +169,7 @@ Requires a streaming-capable HA camera and matching v0.16.0 or newer Android/HA 
 
 Leaving **TV device ID** blank sends an announcement or camera action to all configured Kellie's Voice TVs. Set that field when you have multiple TVs and want just one.
 
-An announcement or camera popup can include up to three buttons and an optional spoken sentence. The TV speaks with its own voice. Pressing a button fires the Home Assistant event `kellies_voice_announcement_action` with `action`, `device_id`, and `announcement_id`. That event does not unlock a door by itself. Listen for it in an automation, for example action `unlock` calling `lock.unlock`. The button `talk` also opens the voice overlay. A timeout does not press a button. Copy-paste examples are in the [integration README](custom_components/kellies_voice/README.md).
+An announcement or camera popup can include up to three buttons and an optional spoken sentence. The TV speaks with its own voice. Pressing a button fires the Home Assistant event `kellies_voice_announcement_action` with `action`, `device_id`, and `announcement_id`. That event does not unlock a door by itself. Handle it with a user-configured automation, for example an `acknowledge` button creating a harmless persistent notification. Never unlock a door or open a gate from an unverified event alone. The button `talk` also opens the voice overlay. A timeout does not press a button. Copy-paste examples are in the [integration README](custom_components/kellies_voice/README.md).
 
 See [TV event setup](docs/TV_EVENTS.md), [HA service details](custom_components/kellies_voice/README.md), and [camera/announcement design notes](docs/ANNOUNCEMENTS_AND_PIP.md).
 
