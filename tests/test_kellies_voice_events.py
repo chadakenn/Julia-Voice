@@ -162,6 +162,15 @@ class ValidationTests(unittest.TestCase):
         self.assertNotIn("noise", [item[0] for item in const.SELECTS])
         self.assertNotIn("on", options)
 
+    def test_media_while_talking_defaults_to_lower_volume(self):
+        setting, name, options, icon, initial = const.MEDIA_SELECTS[0]
+        self.assertEqual(setting, "media")
+        self.assertEqual(name, "Media while talking")
+        self.assertEqual(options, ["Lower volume", "Pause playback"])
+        self.assertEqual(initial, "Lower volume")
+        self.assertNotIn("media", [item[0] for item in const.SELECTS])
+        self.assertNotIn("on", options)
+
     def test_custom_integration_english_translations(self):
         # Custom HA integrations load translations/en.json, not strings.json.
         source = json.loads((_COMPONENT / "strings.json").read_text(encoding="utf-8"))

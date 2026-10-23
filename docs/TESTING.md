@@ -4,6 +4,21 @@ Updated: **2026-10-20**. Device: user's **onn 4K Pro / Google TV**, with the And
 
 Distinguish what has actually worked on hardware from compiled features. A green build is **not** proof of behavior on a TV.
 
+## Streaming answer, stop speaking and media pause (pending TV test)
+
+Needs a conversation agent that streams its reply, such as a local Ollama model on a recent Home Assistant. Agents that do not stream behave exactly as before.
+
+- [ ] Ask a question that gets a long answer. The text on the overlay grows while the model is still writing, follows the newest words, and the finished answer does not jump back to the top
+- [ ] With a non-streaming agent, the answer still appears all at once as before
+- [ ] While Kellie is speaking, press **Back**. The speech stops at once, the overlay stays open, and a second **Back** closes it
+- [ ] While Kellie is speaking, select **STOP**. The speech stops and the overlay stays open
+- [ ] Press **Back** while the reply is still being prepared, before any sound. No speech starts afterward
+- [ ] While Kellie is speaking, select **TALK** or press ⭐. Speech stops and a new question starts listening without "Finish the current conversation first"
+- [ ] With **Media while talking** on **Lower volume**, YouTube ducks exactly as before
+- [ ] With it on **Pause playback**, YouTube pauses when listening starts, stays paused through the thinking time of a slow model and the spoken answer, and resumes afterward
+- [ ] Repeat the pause test with the other apps you use. An app that ignores audio focus will keep playing, and that is expected
+- [ ] Change **Media while talking** from Home Assistant and from the TV menu, and confirm both stay in sync
+
 ## v0.13 Home Assistant disconnection recovery (pending TV test)
 
 - [ ] With saved credentials, launch full-screen Kellie's Voice and verify Home Assistant changes to connected **without selecting Reconnect**
