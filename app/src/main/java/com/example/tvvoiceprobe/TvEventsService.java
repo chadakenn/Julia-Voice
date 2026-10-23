@@ -71,6 +71,7 @@ public final class TvEventsService extends Service {
     private static final int HIDE_CAMERA_EVENT_ID = 6;
     private static final int FORECAST_EVENT_ID = 7;
     private static final int TIMER_EVENT_ID = 8;
+    private static final int SCOPED_ALERTS_ID = 9;
     private TimerOverlayController timerOverlay;
     private static final int MAX_SNAPSHOT_BYTES = 5 * 1024 * 1024;
 
@@ -90,6 +91,9 @@ public final class TvEventsService extends Service {
     private TextView liveStatus;
     private ExoPlayer livePlayer;
     private int requestCounter = 100;
+    private int legacyPending;
+    private boolean legacyDenied;
+    private boolean legacyMode;
     private int liveRequestId = -1;
     private int liveRequestGeneration = -1;
     private int layoutStatesId = -1;
@@ -236,6 +240,9 @@ public final class TvEventsService extends Service {
         if (ws != socket) return;
         socket = null;
         layoutStatesId = -1;
+        legacyMode = false;
+        legacyPending = 0;
+        legacyDenied = false;
         if (stopping) return;
         TvEventsRecovery.note(TvEventsRecovery.RECONNECTING);
         connectionNotice("Reconnecting to Home Assistant");
@@ -262,23 +269,14 @@ public final class TvEventsService extends Service {
             }
             if ("auth_ok".equals(type)) {
                 failedAttempts = 0;
-                ws.send(new JSONObject().put("id", ANNOUNCE_ID)
-                        .put("type", "subscribe_events")
-                        .put("event_type", TvEventPayload.ANNOUNCEMENT).toString());
-                ws.send(new JSONObject().put("id", CAMERA_ID)
-                        .put("type", "subscribe_events")
-                        .put("event_type", TvEventPayload.CAMERA_POPUP).toString());
-                ws.send(new JSONObject().put("id", LIVE_EVENT_ID)
-                        .put("type", "subscribe_events")
-                        .put("event_type", TvEventPayload.LIVE_CAMERA).toString());
-                ws.send(new JSONObject().put("id", HIDE_CAMERA_EVENT_ID)
-                        .put("type", "subscribe_events")
-                        .put("event_type", TvEventPayload.HIDE_CAMERA).toString());
-                ws.send(new JSONObject().put("id", FORECAST_EVENT_ID)
-                        .put("type", "subscribe_events")
-                        .put("event_type", ForecastCard.EVENT).toString());
-                ws.send(new JSONObject().put("id", TIMER_EVENT_ID)
-                        .put("type", "subscribe_events").put("event_type", "kellies_voice_timer").toString());
+                // No admin-level custom event subscriptions. The newer HACS
+                // integration checks this user's read access to the paired TV.
+                legacyMode = false;
+                legacyPending = 0;
+                legacyDenied = false;
+                ws.send(new JSONObject().put("id", SCOPED_ALERTS_ID)
+                        .put("type", "kellies_voice/subscribe_alerts")
+                        .put("device_id", new OverlayPreferences(this).deviceId()).toString());
                 if (new OverlayPreferences(this).haManage()) {
                     layoutStatesId = LAYOUT_STATES_ID;
                     ws.send(new JSONObject().put("id", LAYOUT_EVENT_ID)
@@ -287,13 +285,49 @@ public final class TvEventsService extends Service {
                     ws.send(new JSONObject().put("id", LAYOUT_STATES_ID)
                             .put("type", "get_states").toString());
                 }
-                connectionNotice("Connected, waiting for TV alerts");
-                TvEventsRecovery.note(TvEventsRecovery.CONNECTED);
-                TvEventsRestartReceiver.clearResume(this);
+                connectionNotice("Authenticated, checking TV alert permissions");
+                TvEventsRecovery.note(TvEventsRecovery.RECONNECTING);
                 return;
             }
             if ("result".equals(type)) {
                 int resultId = message.optInt("id", -1);
+                if (resultId == SCOPED_ALERTS_ID) {
+                    if (message.optBoolean("success", false)) {
+                        TvEventsRecovery.note(TvEventsRecovery.CONNECTED);
+                        connectionNotice("Connected, waiting for TV alerts");
+                        TvEventsRestartReceiver.clearResume(this);
+                    } else {
+                        JSONObject error = message.optJSONObject("error");
+                        String code = error == null ? "" : error.optString("code");
+                        if ("unknown_command".equals(code)) {
+                            // Compatibility with old HACS + an admin TV account.
+                            // Non-admin users receive a clear denial instead.
+                            subscribeLegacy(ws);
+                        } else if ("unauthorized".equals(code) || "not_allowed".equals(code)) {
+                            TvEventsRecovery.note(TvEventsRecovery.DENIED);
+                            connectionNotice("TV alert permissions denied; check TV alert status");
+                        } else {
+                            TvEventsRecovery.note(TvEventsRecovery.UPDATE_HACS);
+                            connectionNotice("Update the Kellie's Voice HACS integration");
+                        }
+                    }
+                    return;
+                }
+                if (legacyMode && resultId >= ANNOUNCE_ID && resultId <= TIMER_EVENT_ID
+                        && resultId != LAYOUT_EVENT_ID && resultId != LAYOUT_STATES_ID) {
+                    if (!message.optBoolean("success", false)) legacyDenied = true;
+                    if (--legacyPending <= 0) {
+                        if (legacyDenied) {
+                            TvEventsRecovery.note(TvEventsRecovery.DENIED);
+                            connectionNotice("TV alert permissions denied; update HACS");
+                        } else {
+                            TvEventsRecovery.note(TvEventsRecovery.CONNECTED);
+                            connectionNotice("Connected (legacy event subscriptions)");
+                            TvEventsRestartReceiver.clearResume(this);
+                        }
+                    }
+                    return;
+                }
                 if (resultId == layoutStatesId) {
                     layoutStatesId = -1;
                     if (message.optBoolean("success", false)) {
@@ -322,13 +356,6 @@ public final class TvEventsService extends Service {
                     }
                     return;
                 }
-                if (!message.optBoolean("success", false)
-                        && (resultId == ANNOUNCE_ID || resultId == CAMERA_ID
-                                || resultId == LIVE_EVENT_ID
-                                || resultId == HIDE_CAMERA_EVENT_ID
-                                || resultId == FORECAST_EVENT_ID || resultId == TIMER_EVENT_ID)) {
-                    connectionNotice("Event subscriptions rejected; check HA permissions");
-                }
                 return;
             }
             if (!"event".equals(type)) return;
@@ -347,41 +374,75 @@ public final class TvEventsService extends Service {
                     new OverlayPreferences(this).deviceId())) return;
             // A close command never starts a new overlay or microphone.
             // Ignore it when a text announcement (or nothing) is visible.
-            if (subscription == HIDE_CAMERA_EVENT_ID
+            if ((subscription == SCOPED_ALERTS_ID || subscription == HIDE_CAMERA_EVENT_ID)
                     && TvEventPayload.HIDE_CAMERA.equals(eventType)) {
                 if (cameraVisible) hideCard();
                 return;
             }
-            if (subscription == TIMER_EVENT_ID && "kellies_voice_timer".equals(eventType)) {
+            if ((subscription == SCOPED_ALERTS_ID || subscription == TIMER_EVENT_ID)
+                    && "kellies_voice_timer".equals(eventType)) {
                 if (timerOverlay != null) timerOverlay.command(data);
                 return;
             }
             int duration = TvEventPayload.duration(data.optInt("duration_seconds", 10));
-            if (subscription == ANNOUNCE_ID
+            if ((subscription == SCOPED_ALERTS_ID || subscription == ANNOUNCE_ID)
                     && TvEventPayload.ANNOUNCEMENT.equals(eventType)) {
                 String body = TvEventPayload.cleanText(data.optString("text"), 500);
                 if (!body.isEmpty()) showCard(
                         TvEventPayload.cleanText(data.optString("title", "Kellie's Voice"), 65),
                         body, null, duration);
-            } else if (subscription == CAMERA_ID
+            } else if ((subscription == SCOPED_ALERTS_ID || subscription == CAMERA_ID)
                     && TvEventPayload.CAMERA_POPUP.equals(eventType)) {
                 String entity = TvEventPayload.cameraEntity(data.optString("entity_id"));
                 if (entity != null) showCard(
                         TvEventPayload.cleanText(data.optString("title", "Camera alert"), 65),
                         "Home Assistant camera snapshot", entity, duration);
-            } else if (subscription == LIVE_EVENT_ID
+            } else if ((subscription == SCOPED_ALERTS_ID || subscription == LIVE_EVENT_ID)
                     && TvEventPayload.LIVE_CAMERA.equals(eventType)) {
                 String entity = TvEventPayload.cameraEntity(data.optString("entity_id"));
                 if (entity != null) showCard(
                         TvEventPayload.cleanText(data.optString("title", "Live camera"), 65),
                         "LIVE · Starting muted video…", entity,
                         TvEventPayload.liveDuration(data.optInt("duration_seconds", 90)), true);
-            } else if (subscription == FORECAST_EVENT_ID
+            } else if ((subscription == SCOPED_ALERTS_ID || subscription == FORECAST_EVENT_ID)
                     && ForecastCard.EVENT.equals(eventType)) {
                 if (!cameraVisible) showForecast(data);
             }
         } catch (Exception ignored) {
             // Never print auth tokens, URLs, or untrusted event payloads.
+        }
+    }
+
+    /** Older HACS integration compatibility, only after scoped command is absent. */
+    private void subscribeLegacy(WebSocket ws) {
+        legacyMode = true;
+        legacyDenied = false;
+        legacyPending = 6;
+        String[] types = {
+                TvEventPayload.ANNOUNCEMENT, TvEventPayload.CAMERA_POPUP,
+                TvEventPayload.LIVE_CAMERA, TvEventPayload.HIDE_CAMERA,
+                ForecastCard.EVENT, "kellies_voice_timer"
+        };
+        int[] ids = {
+                ANNOUNCE_ID, CAMERA_ID, LIVE_EVENT_ID, HIDE_CAMERA_EVENT_ID,
+                FORECAST_EVENT_ID, TIMER_EVENT_ID
+        };
+        for (int i = 0; i < ids.length; i++) {
+            try {
+                if (!ws.send(new JSONObject().put("id", ids[i])
+                        .put("type", "subscribe_events")
+                        .put("event_type", types[i]).toString())) {
+                    legacyDenied = true;
+                    legacyPending--;
+                }
+            } catch (Exception ignored) {
+                legacyDenied = true;
+                legacyPending--;
+            }
+        }
+        if (legacyPending <= 0) {
+            TvEventsRecovery.note(TvEventsRecovery.UPDATE_HACS);
+            connectionNotice("Update Kellie's Voice HACS for TV alerts");
         }
     }
 

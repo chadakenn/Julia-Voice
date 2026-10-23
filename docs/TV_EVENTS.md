@@ -20,9 +20,26 @@ configured for Assist, subscribes to **three** HA event types (announcement, sna
 reconnects after an interruption. It can be stopped by Android TV and is **not**
 a guaranteed 24/7 listener; it does not auto-start on boot.
 
-The Home Assistant token needs enough permissions to subscribe to custom
-events (usually an administrator token). Never expose the token in
-GitHub files, screenshots, automation YAML, or logs.
+**Public v0.16.4:** the receiver uses HA custom-event subscriptions. Home
+Assistant restricts these to administrators. If using v0.16.4, the safe
+workaround is to use other notification methods or restrict its TV token
+carefully; do not deploy a full HA administrator token on an untrusted TV
+simply to work around missing permissions.
+
+**Draft issue #68 fix:** with matching new Android APK **and** HACS integration,
+the TV requests the new `kellies_voice/subscribe_alerts` command on its existing
+authenticated WebSocket. The HACS integration checks that the requesting account
+can read the **paired TV's "TV alert position" select entity**; a valid pairing ID
+alone is insufficient. It sends sanitized, per-device notifications only, and
+re-checks authorization before every event. No event payload is stored as a
+Home Assistant sensor state/history. A rejected request appears as a permissions
+error in TV alert status, not an endless "Connecting" message. Existing event
+bus automations and the administrator-only legacy subscription remain supported
+for older combinations of app and HACS. Always use the least-privileged token
+that works, keep it private and never upload it to GitHub.
+
+Do not label #68 resolved until both sides have passed testing with a non-admin
+account, including reconnects, targeted events, and HA permission changes.
 
 ## Event contract
 
