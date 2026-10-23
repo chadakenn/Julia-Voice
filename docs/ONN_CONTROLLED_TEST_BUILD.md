@@ -9,12 +9,13 @@
 
 ## Build a signed test APK on GitHub
 
-1. Open [Build Kellie's Voice Signed APK](https://github.com/chadakenn/Kellies-Voice/actions/workflows/build-apk.yml).
-2. Click **Run workflow** and select branch **`test/onn-v0164-followup-preview`**.
-3. Leave **publish_release = false / unchecked**. This branch also explicitly guards against release publishing when selected.
-4. Click **Run workflow**. It signs and verifies `app-release.apk`, then stores an artifact called **`kellies-voice-signed`**. A test APK is **not** published to the public release feed and does not show up in the app's built-in update checker.
-5. Open the completed *successful* run, download the **`kellies-voice-signed`** ZIP and extract **`app-release.apk`**. Do not use the separate **`Kellies-Voice-test-apk`** artifact from PR CI: that's a `com.example.tvvoiceprobe.debug` package and **will not** replace your installed app.
-6. Copy the signed APK to the onn device and install it **over v0.16.4**, without uninstalling or clearing data. The same signature and versionCode allow an in-place test. Android's unknown-apps prompt may need approval. If Android reports **signature mismatch**, stop; do not delete the original app. If the installer rejects the same versionCode on a particular TV, use an approved higher-code preview strategy rather than force-downgrading or uninstalling.
+The dedicated test branch is configured to run the existing **release-signing job automatically once**, on the deliberate workflow change that enables this specific branch. It first runs Android/HA tests, signs and verifies the release APK, and uploads an authenticated Actions artifact. The `publish-release` job explicitly requires **`main`**, so a test-branch run **cannot publish a public GitHub Release**.
+
+1. Open [Build Kellie's Voice Signed APK runs](https://github.com/chadakenn/Kellies-Voice/actions/workflows/build-apk.yml) and locate the successful run whose branch is **`test/onn-v0164-followup-preview`**. If no run is available, a repository maintainer may use **Run workflow**, select that same branch, and leave **publish_release = false / unchecked**.
+2. Verify that both **Test Android and Home Assistant before public release** and **Verify APK signature** succeeded.
+3. Under **Artifacts**, download **`kellies-voice-signed`**, extract the ZIP, and use **`app-release.apk`**. A test APK is **not** published to the public release feed and does not show up in the app's built-in update checker.
+4. Do not use the separate **`Kellies-Voice-test-apk`** artifact from PR CI: that's a `com.example.tvvoiceprobe.debug` package and **will not** replace your installed app.
+5. Copy the signed APK to the onn device and install it **over v0.16.4**, without uninstalling or clearing data. The same signature and versionCode allow an in-place test. Android's unknown-apps prompt may need approval. If Android reports **signature mismatch**, stop; do not delete the original app. If the installer rejects the same versionCode on a particular TV, use an approved higher-code preview strategy rather than force-downgrading or uninstalling.
 
 **Rollback:** Keep or download the **original signed v0.16.4 `app-release.apk`**. Reinstall that official signed APK over the test build if the device permits equal-versionCode replacement. If the installer doesn't allow it, stop rather than uninstalling, changing credentials, or clearing data.
 
