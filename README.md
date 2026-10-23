@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="docs/branding/kellies-voice-approved-banner.webp" alt="Kellie's Voice logo and branding banner" width="100%" />
+  <img src="https://raw.githubusercontent.com/chadakenn/Kellies-Voice/main/docs/branding/kellies-voice-header.svg" alt="Kellie's Voice | Your home. Your voice. Your way." width="100%" />
 </div>
 
 # Kellie's Voice 🎙️📺
@@ -220,11 +220,13 @@ On the device page, **Forecast source** is the weather entity used when a script
 
 ## Project status and contributing
 
-### Development draft: voice timers
+### Voice timers (v0.16.4)
 
-Named countdown pills and completion alerts are proposed in the timer feature branch. Alerts repeat **two chimes → optional configurable phrase → short pause** until dismissed. See [voice timer setup](docs/VOICE_TIMERS.md) for copy/paste Home Assistant actions, custom sentences, intent scripts, cancellation and unverified hardware limits. This is not part of the installed v0.16.3 release.
+Named countdown pills and completion alerts are available on the TV in **v0.16.4**. At completion the alert repeats **two chimes → optional Android TV spoken phrase → short pause** until dismissed. An onn 4K Pro has been verified to show countdowns, ring and stop with **Back**; remote OK / Dismiss is a known v0.16.4 issue being fixed for the next release ([issue #54](https://github.com/chadakenn/Kellies-Voice/issues/54)).
 
-**Current release: Android v0.16.3 + Home Assistant integration v0.16.3.** Voice, announcement cards, Frigate snapshots and moving live driveway and doorbell video have been confirmed on the onn 4K Pro. Other camera streams and wider TV compatibility remain under test. Issues and pull requests are welcome, especially **real, redacted screenshots**, hardware results and reproducible problems.
+**Timers should work without saying the assistant's name.** Say **“Set a five-minute pizza timer,” “Set a timer for five minutes,” “Cancel the pizza timer,”** or just **“Stop” / “Cancel”** after starting a TV timer. The TV timer defaults to the name **Timer** if no name was supplied. The [natural no-wake-word setup guide](docs/VOICE_TIMERS_PLAIN_SPEECH.md) contains full copy/paste Home Assistant automations and the two small timer-context helpers needed for the plain stop/cancel commands. It also explains how to keep commands scoped to the TV, Home Assistant's **native timer not supported** limitation, and why [PR #50](https://github.com/chadakenn/Kellies-Voice/pull/50) is needed for proper device identity. Multi-satellite homes should **not** enable broad unprefixed overrides until they understand the caveat about voice devices lacking IDs. An [LLM-script alternative](docs/VOICE_TIMERS.md) remains available. None of these automations are installed automatically by HACS; their matching TV ID and permissions must be configured for each home. **The owner has verified Coffee timer speech on the onn TV; other names and bare-stop speech are verified only through HA text tests so far.**
+
+**Current stable release: Android v0.16.4 + Home Assistant integration v0.16.4.** Voice, announcements, Frigate snapshots, moving live driveway and doorbell video, and the seven-day forecast popup have been confirmed on the owner's onn 4K Pro. Other TV brands and some new controls remain under test. Issues and pull requests are welcome, especially **real, redacted screenshots**, hardware results and reproducible problems.
 
 Kellie's Voice is a community-built Home Assistant companion, **not an official Home Assistant or HACS product**.
 

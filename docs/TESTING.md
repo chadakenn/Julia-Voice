@@ -4,6 +4,20 @@ Updated: **2026-10-20**. Device: user's **onn 4K Pro / Google TV**, with the And
 
 Distinguish what has actually worked on hardware from compiled features. A green build is **not** proof of behavior on a TV.
 
+## In review: full-screen theme synchronization (not yet installed)
+
+The floating Julia overlay already correctly reflects the Home Assistant style setting on the owner's onn 4K Pro. The v0.16.4 main TV screen and Settings menus still use copper color literals. A proposed fix adds a shared four-style palette for the full-screen UI, setup menus, diagnostics, and the Aurora welcome splash. This is a **draft change only**, not a published feature.
+
+- [ ] While the ordinary main app is visible, change the HA **Overlay style** selector from Night Signal to Aurora Glass. The main screen changes to blue/violet without a relaunch, losing the transcript, resetting login, or opening the microphone.
+- [ ] Open **Settings**, **Overlay appearance & position**, and submenus; confirm high-contrast theme colors, readable focus selection and D-pad BACK/OK navigation.
+- [ ] Switch style on the TV back to Night Signal, then Copper Glass and Compact Charcoal; main app and overlay follow. No accidental HA style feedback loops.
+- [ ] Exit to YouTube and return; selected theme persists. Confirm same behavior after app/HA restart or network reconnect.
+- [ ] Test the optional transparent overlay launcher: no forced full-screen app, theme change does not start mic, voice still works.
+- [ ] Diagnostics screen follows the saved theme when opened; welcome splash preserves approved brand portrait and changes to blue/violet for Aurora.
+- [ ] Run Android unit tests and compile the Android debug APK. Green CI alone is insufficient; this requires new physical onn QA before any release.
+
+
+
 ## v0.13 Home Assistant disconnection recovery (pending TV test)
 
 - [ ] With saved credentials, launch full-screen Kellie's Voice and verify Home Assistant changes to connected **without selecting Reconnect**

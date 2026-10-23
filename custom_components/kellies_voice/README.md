@@ -190,6 +190,14 @@ For Julia/Ollama, expose a Home Assistant script called **Close camera on TV** t
 
 **Update both components to v0.16.2** and restart Home Assistant for the new action. The TV tries to resume an already enabled alert receiver after the APK update or a reboot. If the popups do not return, open Kellie's Voice once. No extra Home Assistant script is required for that resume.
 
+### Voice timers (v0.16.4)
+
+Kellie's Voice supports named TV timers through `kellies_voice.start_timer`, `kellies_voice.cancel_timer`, and `kellies_voice.dismiss_timers`. Timers run on the paired Android TV after the initial action is received, with a visible countdown and repeating chimes until dismissed. Both the **v0.16.4 HACS integration** and matching Android APK are required, along with the TV's opt-in event receiver and overlay permission.
+
+**You do not need to say the assistant's name.** For simple voice phrases such as “set a timer for five minutes”, “set a pizza timer for five minutes”, “cancel pizza timer” and “stop”, use the [full no-wake-word timer automation guide](../../docs/VOICE_TIMERS_PLAIN_SPEECH.md). It explains Home Assistant's native `TimersNotSupportedError`, temporary device-scoping limitations on v0.16.4, two small last-timer context helpers and the TV-specific service actions. Until PR #50 gives Kellie's Voice a Home Assistant registry device ID on Assist calls, generic sentences could intercept voice timers on other no-device-ID Assist clients; opt in only if appropriate for your household. The [alternative parameterized LLM script / custom-sentence approach](../../docs/VOICE_TIMERS.md) remains available for advanced agents.
+
+An owner test on the onn 4K Pro verified a ten-second countdown, repeating chimes and **Back** dismissal. The remote OK / Dismiss button remains a [known v0.16.4 issue](https://github.com/chadakenn/Kellies-Voice/issues/54), pending another release and hardware retest. LLM voice command success depends on the user's selected HA agent and requires its own voice test. There is no timer acknowledgment, offline command queue, wake-lock or exact-alarm guarantee.
+
 ### Set up the required Home Assistant scripts for voice requests
 
 For the specific spoken phrases **"show me the driveway"**, **"show doorbell for 30 seconds"**, and **"close the camera"**, create named HA scripts that call `kellies_voice.show_live_camera` or `kellies_voice.hide_camera`. Expose each intended script to Home Assistant **Assist** under Settings → Voice assistants → Expose, and ensure the conversation agent can execute scripts. **No script is automatically installed by HACS**, since each installation has its own camera IDs, TV pairing IDs, and voice agent permissions.
