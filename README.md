@@ -238,7 +238,7 @@ Kellie's Voice is a community-built Home Assistant companion, **not an official 
 
 ## Close a camera by voice (v0.16.2)
 
-Kellie's Voice adds a dedicated `kellies_voice.hide_camera` action to **dismiss a live or snapshot camera popup immediately**. It does not turn off video playback from your other TV apps, dismiss text announcements, or operate the microphone. Configure an Assist-exposed script named **Close camera on TV**, then say **“Close the camera on the TV.”** after activating listening. You can also call the HA action directly:
+Kellie's Voice adds a dedicated `kellies_voice.hide_camera` action to **dismiss a live or snapshot camera popup immediately**. It does not turn off video playback from your other TV apps, dismiss text announcements, or operate the microphone. Configure an Assist-exposed script named **Close camera on TV**, then activate listening and say **“Close the camera on the TV.”** You can also call the HA action directly:
 
 ```yaml
 action: kellies_voice.hide_camera
