@@ -1,5 +1,7 @@
 # Field testing and verified milestones
 
+**Draft #67 compatibility test matrix:** Philips integrated Android TV HDMI1 and foreground Netflix/TiviMate; safe software live H.264 (prefer low-res substream), snapshot fallback when decoder unavailable, HDMI still present during and after popup, no TV audio change; repeat popup/close/timeout/error 4001 and verify cleanup. onn 4K Pro: test safe software live plus optional explicit hardware choice, verify original cameras remain moving and muted. Full device QA required; the code is not a public v0.16.4 fix.
+
 **Current public-release tester status (October 23, 2026):** Android/HACS **v0.16.4** is released. Verified on the maintainer's onn 4K Pro: voice/TTS, live driveway and doorbell video, weather popup, timer countdown/chimes and Back dismissal, plus named timer voice start/stop with custom HA automations. **Unverified or known issues:** timer Dismiss via OK, main-app-wide theme sync, native Assist generic timer routing, other TV hardware, follow-up/wake-word features and action buttons from draft PRs. For an accurate first-time setup, see **[Install and test Kellie's Voice v0.16.4](INSTALL.md)**. **The milestones below are historical and may refer to earlier versions; they are not the current release checklist.**
 
 Updated historical milestone: **2026-10-20**. Device: maintainer's **onn 4K Pro / Google TV**, with Android builds through GitHub Actions.

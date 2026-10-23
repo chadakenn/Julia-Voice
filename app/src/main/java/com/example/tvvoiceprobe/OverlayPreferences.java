@@ -48,6 +48,7 @@ public final class OverlayPreferences {
     private static final String KEY_WEATHER_POSITION = "weather_position";
     private static final String KEY_WEATHER_SIZE = "weather_size";
     private static final String KEY_WEATHER_SECONDS = "weather_seconds";
+    private static final String KEY_CAMERA_MODE = "live_camera_decoder_mode";
     private final SharedPreferences preferences;
 
     public OverlayPreferences(Context context) {
@@ -183,6 +184,16 @@ public final class OverlayPreferences {
 
     public void setHaManage(boolean enabled) {
         preferences.edit().putBoolean(KEY_HA_MANAGE, enabled).apply();
+    }
+
+    /** Local per-TV setting: avoid consuming the HDMI hardware decoder by default. */
+    public String cameraMode() {
+        return LiveCameraMode.normalize(preferences.getString(KEY_CAMERA_MODE,
+                LiveCameraMode.SOFTWARE));
+    }
+
+    public void setCameraMode(String mode) {
+        preferences.edit().putString(KEY_CAMERA_MODE, LiveCameraMode.normalize(mode)).apply();
     }
 
     public boolean tvEvents() {

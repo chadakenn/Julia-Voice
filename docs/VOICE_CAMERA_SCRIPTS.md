@@ -159,6 +159,14 @@ actions:
 
 Change both entity IDs to the actual Frigate entities in **your** Home Assistant instance. This is a **still snapshot** alert, not an automatic live video feed.
 
+## Integrated Android TV decoder safety (issue #67)
+
+Public v0.16.4 can interrupt Philips HDMI playback when its overlay reserves the hardware video decoder. For those TVs, use `show_camera` snapshots until a validated fix ships.
+
+A draft Android test change introduces per-TV **Settings → Live camera** choices: safe software decoder (default), snapshots only, or opt-in hardware decoder for known-good boxes. Safe mode **never tries a hardware video decoder**. Try a low-resolution H.264 substream exposed as a separate Home Assistant camera entity, since 1080p HLS may be too demanding for software decoders on older TVs. An honest still-image fallback is not a live-playback success.
+
+QA must verify HDMI stays visible **during and after** playback, Netflix/TiviMate stays intact, audio remains uninterrupted, and repeated popup/hide/timeout calls release resources. On onn 4K Pro, verify existing live performance (and opt-in hardware mode if needed). Do not merge on CI alone; physical Philips and onn testing is required.
+
 ## Test and troubleshoot
 
 - Start with Home Assistant **Developer tools → Actions**, running `kellies_voice.show_live_camera` for a known streaming camera, or run the new scripts from **Settings → Automations & scenes → Scripts**.

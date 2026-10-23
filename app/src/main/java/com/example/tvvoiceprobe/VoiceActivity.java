@@ -466,6 +466,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                 "Home Assistant layout: " + (new OverlayPreferences(this).haManage() ? "ON" : "OFF"),
                 "TV announcements & cameras: " + (new OverlayPreferences(this).tvEvents() ? "ON" : "OFF"),
                 "TV alert status",
+                "Live camera: " + LiveCameraMode.label(new OverlayPreferences(this).cameraMode()),
                 "Check for app updates",
                 "Install downloaded update",
                 "Forget saved connection"
@@ -484,13 +485,14 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                         case 7: chooseHaLayout(); break;
                         case 8: chooseTvNotifications(); break;
                         case 9: showTvAlertStatus(); break;
-                        case 10:
+                        case 10: chooseCameraMode(); break;
+                        case 11:
                             manualUpdateCheck = true;
                             status("Checking GitHub Releases...");
                             updater.check();
                             break;
-                        case 11: promptInstallUpdate(); break;
-                        case 12: confirmForget(); break;
+                        case 12: promptInstallUpdate(); break;
+                        case 13: confirmForget(); break;
                         default: break;
                     }
                 });
@@ -590,6 +592,41 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                         }
                     }
                     showSettingsMenu();
+                });
+    }
+
+    private void chooseCameraMode() {
+        OverlayPreferences prefs = new OverlayPreferences(this);
+        String[] modes = {LiveCameraMode.SOFTWARE, LiveCameraMode.SNAPSHOT, LiveCameraMode.HARDWARE};
+        String[] choices = new String[modes.length];
+        for (int i = 0; i < modes.length; i++) {
+            choices[i] = (modes[i].equals(prefs.cameraMode()) ? "✓  " : "     ")
+                    + LiveCameraMode.label(modes[i]);
+        }
+        showCopperMenu("TV ALERTS  ✦  LIVE CAMERA",
+                "Safe software avoids taking the video decoder from HDMI or streaming apps. "
+                        + "A low-resolution H.264 camera stream works best. "
+                        + "Unsupported software decoding falls back to a still snapshot.",
+                choices, which -> {
+                    String selected = modes[which];
+                    if (LiveCameraMode.HARDWARE.equals(selected)) {
+                        new AlertDialog.Builder(this)
+                                .setTitle("Enable hardware camera decoder?")
+                                .setMessage("Only choose this on a TV box that you have tested. "
+                                        + "On integrated Android TVs, hardware decoding may blank "
+                                        + "HDMI or interrupt Netflix and other playback, even "
+                                        + "after the camera popup closes.")
+                                .setNegativeButton("Cancel", (dialog, w) -> showSettingsMenu())
+                                .setPositiveButton("Enable hardware", (dialog, w) -> {
+                                    prefs.setCameraMode(LiveCameraMode.HARDWARE);
+                                    status("Hardware camera decoding enabled on this TV.");
+                                    showSettingsMenu();
+                                }).show();
+                    } else {
+                        prefs.setCameraMode(selected);
+                        status("Live camera: " + LiveCameraMode.label(selected));
+                        showSettingsMenu();
+                    }
                 });
     }
 
