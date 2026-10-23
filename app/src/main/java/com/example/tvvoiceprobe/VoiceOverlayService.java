@@ -70,6 +70,11 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
     private boolean firstAutoListenStarted = false;
     private long autoListenDeadlineMs;
     private boolean closing = false;
+    // Set when the person silences Kellie, so a reply that is still being
+    // prepared does not start talking a moment later.
+    private boolean ignoreTts = false;
+    // The last streamed text, so the finished answer does not jump the scroll.
+    private String streamedShown = "";
 
     private final Runnable endListeningTimeout = () -> {
         if (listening && assist != null) {
@@ -427,11 +432,22 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         firstAutoListenPending = false;
         main.removeCallbacks(dismissAfterReply);
         main.removeCallbacks(endListeningTimeout);
-        if (player != null) {
-            player.release();
-            player = null;
+        // TALK (or ⭐) while an answer is being spoken interrupts it. The old
+        // run is dropped so Home Assistant accepts the new question.
+        boolean interrupting = speaking;
+        releasePlayer();
+        if (speechFocus != null) {
+            // In pause mode keep the video paused until the new question holds
+            // focus itself, instead of letting it resume for a split second.
+            if (preferences != null && preferences.pauseMedia()) {
+                speechFocus.releaseSoon(SpeechFocus.HANDOFF_MS);
+            } else {
+                speechFocus.release();
+            }
         }
-        if (speechFocus != null) speechFocus.release();
+        if (interrupting) assist.abandonRun();
+        ignoreTts = false;
+        streamedShown = "";
         listening = true;
         speaking = false;
         transcriptView.setText("Listening to your voice...");
@@ -459,8 +475,37 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         stopSelf();
     }
 
+    /** Back or STOP while Kellie is talking: silence her but keep the overlay open. */
+    private void stopSpeaking() {
+        if (closing) return;
+        ignoreTts = true;
+        main.removeCallbacks(dismissAfterReply);
+        releasePlayer();
+        speaking = false;
+        if (speechFocus != null) speechFocus.release();
+        if (wave != null) wave.setMode(VoiceWaveView.IDLE);
+        status("Stopped. Select TALK to ask again.");
+        scheduleIdleDismiss();
+    }
+
+    /** Stops and frees the speech player. Safe to call at any point, even while preparing. */
+    private void releasePlayer() {
+        MediaPlayer old = player;
+        player = null;
+        if (old == null) return;
+        old.setOnPreparedListener(null);
+        old.setOnCompletionListener(null);
+        old.setOnErrorListener(null);
+        try { old.stop(); } catch (IllegalStateException ignored) { }
+        old.release();
+    }
+
     private void stopListening() {
         if (assist == null) return;
+        if (speaking) {
+            stopSpeaking();
+            return;
+        }
         listening = false;
         main.removeCallbacks(endListeningTimeout);
         if (wave != null) wave.setMode(VoiceWaveView.THINKING);
@@ -518,7 +563,11 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
                     return true;
                 case KeyEvent.KEYCODE_BACK:
                 case KeyEvent.KEYCODE_ESCAPE:
-                    if (down) stopSelf();
+                    if (down) {
+                        // First Back silences a spoken answer. Back again closes.
+                        if (speaking) stopSpeaking();
+                        else stopSelf();
+                    }
                     return true;
                 default:
                     return super.dispatchKeyEvent(event);
@@ -629,17 +678,41 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
         });
     }
 
+    @Override public void answerPartial(String value) {
+        main.post(() -> {
+            if (closing || answerView == null || value == null || value.trim().isEmpty()) return;
+            streamedShown = value;
+            answerView.setText(value);
+            // Follow the newest words as they arrive.
+            final ScrollView scroll = answerScroll;
+            if (scroll != null) {
+                scroll.post(() -> {
+                    View child = scroll.getChildAt(0);
+                    if (child != null) scroll.scrollTo(0, child.getHeight());
+                });
+            }
+        });
+    }
+
     @Override public void answer(String value) {
         main.post(() -> {
             if (!closing && answerView != null) {
+                // A streamed answer was already read from the bottom, so keep
+                // that position instead of jumping back to the top.
+                boolean alreadyShown = value != null
+                        && value.trim().equals(streamedShown.trim());
                 answerView.setText(value);
-                if (answerScroll != null) answerScroll.post(() -> answerScroll.scrollTo(0, 0));
+                if (answerScroll != null && !alreadyShown) {
+                    answerScroll.post(() -> answerScroll.scrollTo(0, 0));
+                }
+                streamedShown = "";
             }
         });
     }
 
     @Override public void ttsUrl(String url) {
         main.post(() -> {
+            if (ignoreTts) return;
             main.removeCallbacks(dismissAfterReply);
             playTts(url);
         });
@@ -658,10 +731,10 @@ public final class VoiceOverlayService extends Service implements HaAssistClient
             speaking = true;
             main.removeCallbacks(dismissAfterReply);
             HttpUrl playback = TtsUrls.allowedPlaybackUrl(connection.url, address);
-            if (player != null) player.release();
+            releasePlayer();
             if (speechFocus == null) speechFocus = new SpeechFocus(this);
             speechFocus.release(); // Release any previous TTS focus before replay.
-            speechFocus.acquire();
+            speechFocus.acquire(preferences != null && preferences.pauseMedia());
             player = new MediaPlayer();
             player.setAudioAttributes(new AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_ASSISTANT)
