@@ -130,7 +130,10 @@ public final class WakeWordService extends Service {
         if (!new OverlayPreferences(this).wakeWord()) return false;
         if (VoiceOverlayService.isOpen()) return true;
         try {
-            startForegroundService(new Intent(this, VoiceOverlayService.class));
+            // The wake recorder was released immediately before this call.
+            // Deliver a one-shot explicit detection, not a normal idle launch.
+            startForegroundService(new Intent(this, VoiceOverlayService.class)
+                    .setAction(WakeWordSession.ACTION_DETECTED));
             return true;
         } catch (RuntimeException ignored) {
             return false;
