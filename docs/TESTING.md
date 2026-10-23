@@ -1,5 +1,7 @@
 # Field testing and verified milestones
 
+**Draft issue #71 microphone check (not released):** Test Philips 55OLED856/12 with only REMOTE_SUBMIX: TALK refuses to start the Assist pipeline and shows actionable no-mic guidance (no bogus STT transcript). Attach compatible USB mic: verify detected input + actual routed mic + spoken STT/TTS. Test onn 4K Pro built-in mic and 48k-only hardware to avoid regressions. With firmware reporting an empty/incorrect input list, verify temporary manual override path and diagnostics. Confirm auto-listen and manual TALK share the same check; quiet room stays permitted; recorder/AudioFocus released on failure; no background capture. Actual device QA required.
+
 **Current public-release tester status (October 23, 2026):** Android/HACS **v0.16.4** is released. Verified on the maintainer's onn 4K Pro: voice/TTS, live driveway and doorbell video, weather popup, timer countdown/chimes and Back dismissal, plus named timer voice start/stop with custom HA automations. **Unverified or known issues:** timer Dismiss via OK, main-app-wide theme sync, native Assist generic timer routing, other TV hardware, follow-up/wake-word features and action buttons from draft PRs. For an accurate first-time setup, see **[Install and test Kellie's Voice v0.16.4](INSTALL.md)**. **The milestones below are historical and may refer to earlier versions; they are not the current release checklist.**
 
 Updated historical milestone: **2026-10-20**. Device: maintainer's **onn 4K Pro / Google TV**, with Android builds through GitHub Actions.

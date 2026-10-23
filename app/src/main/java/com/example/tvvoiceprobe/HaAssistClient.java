@@ -63,6 +63,7 @@ public final class HaAssistClient {
     private volatile boolean endRequested;
     private volatile boolean captureStarted;
     private volatile boolean autoEndSpeech;
+    private volatile boolean microphoneMissing;
     private volatile String roomNoise = OverlayPreferences.NOISE_NORMAL;
     private final AtomicBoolean recording = new AtomicBoolean(false);
     private final AtomicBoolean ended = new AtomicBoolean(false);
@@ -291,6 +292,10 @@ public final class HaAssistClient {
         JSONObject data = event.optJSONObject("data");
         if (data == null) data = new JSONObject();
         String eventType = event.optString("type");
+        // Once the recorder proves there is no usable route, do not replace
+        // the actionable microphone message with STT no-text errors.
+        if (microphoneMissing && !"error".equals(eventType)
+                && !"run-end".equals(eventType)) return;
         switch (eventType) {
             case "run-start":
                 JSONObject runner = data.optJSONObject("runner_data");
@@ -350,13 +355,22 @@ public final class HaAssistClient {
                 else events.status("Home Assistant didn't return a TTS audio URL.");
                 break;
             case "error":
+                if (microphoneMissing) {
+                    stopForRunEnd();
+                    events.processing();
+                    events.status(MicRoutePolicy.NO_MIC_MESSAGE);
+                    events.runEnded();
+                    break;
+                }
                 events.status("Assist error: " + data.optString("code", "unknown") +
                         " (" + data.optString("message", "no details") + ")");
                 stopForRunEnd();
                 break;
             case "run-end":
+                boolean routeMissing = microphoneMissing;
                 stopForRunEnd();
-                events.status("Ready for another question.");
+                events.status(routeMissing ? MicRoutePolicy.NO_MIC_MESSAGE
+                        : "Ready for another question.");
                 events.runEnded();
                 break;
             default:
@@ -393,6 +407,12 @@ public final class HaAssistClient {
             events.status("Microphone permission is required.");
             return false;
         }
+        String routeIssue = MicrophoneRouting.preflight(context,
+                new OverlayPreferences(context).allowUnverifiedMic());
+        if (routeIssue != null) {
+            events.status(routeIssue);
+            return false; // No Assist run or misleading LISTENING state.
+        }
         try {
             JSONObject request = new JSONObject();
             int id = commandId++;
@@ -409,6 +429,7 @@ public final class HaAssistClient {
             captureStarted = false;
             autoEndSpeech = autoStopOnSilence;
             ended.set(false);
+            microphoneMissing = false;
             currentRunId = id;
             // Duck YouTube before the Assist server replies and before opening
             // the microphone. The automatic fade needs a head start.
@@ -484,7 +505,14 @@ public final class HaAssistClient {
                 recorder.startRecording();
                 if (recorder.getRecordingState() != AudioRecord.RECORDSTATE_RECORDING)
                     throw new IllegalStateException("Microphone recording was not started");
-                events.status("LISTENING. Speak toward the onn box; select STOP when done.");
+                if (MicrophoneRouting.unusableActualRoute(recorder,
+                        new OverlayPreferences(context).allowUnverifiedMic())) {
+                    microphoneMissing = true;
+                    events.status(MicRoutePolicy.NO_MIC_MESSAGE);
+                    events.processing();
+                    return; // finally closes capture; no bogus PCM is sent.
+                }
+                events.status("LISTENING. Speak toward your microphone; select STOP when done.");
                 events.listening();
                 final String noiseMode = roomNoise;
                 byte[] pcm = new byte[3200]; // 100 ms at 16kHz, mono, 16-bit

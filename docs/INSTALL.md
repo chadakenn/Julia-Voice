@@ -18,6 +18,8 @@ Welcome! **Kellie's Voice** turns an Android TV / Google TV into a voice compani
 - The TV and Home Assistant must be able to reach one another on your network. A valid Home Assistant URL and a **long-lived access token**, created under your own Home Assistant user profile's **Security** settings.
 - [HACS](https://www.hacs.xyz/) installed in Home Assistant to use the recommended integration setup. Manual custom-component installation is also possible.
 
+**Microphone routing (#71, draft fix only):** TVs without an Android-accessible mic can still authenticate and display camera/notification popups. A proposed TV build checks available audio **input** devices before starting voice Assist and verifies the actual recording route, showing a clear "No accessible microphone" message if only audio loopback is available. A compatible USB microphone may help; a Google voice-remote microphone isn't necessarily shared with other apps. The optional per-TV "Try unverified microphone" setting is only for firmware compatibility diagnostics, not a way to unlock vendor-restricted remote microphones. Not yet in public v0.16.4.
+
 **Never post your HA token, authentication headers, camera URLs containing credentials, or signing keys** in GitHub issues, screenshots, or testing reports. Prefer a valid trusted HTTPS connection to Home Assistant; HTTP on a LAN does not encrypt the token or audio.
 
 ## Step 1: Install the signed Android TV APK

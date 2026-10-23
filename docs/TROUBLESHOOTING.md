@@ -46,6 +46,27 @@ Speech-to-text and TTS are separate stages. The current client **successfully pl
 
 The client reads the HA `tts_output.url` event field; earlier builds missed this URL. The working on-device example answered **“5:07 AM”** aloud. If a later test shows a transcript but no sound, capture the **exact status/error text**; don't post your HA token.
 
+## TALK says no accessible microphone
+
+The draft #71 microphone check (not in public v0.16.4) queries Android's
+**currently available INPUT devices**, not merely audio-policy capabilities.
+If the TV exposes only `REMOTE_SUBMIX` (an audio rerouting path), TALK will
+stop **before** starting the Home Assistant Assist pipeline and display an
+actionable message to connect a compatible USB microphone or use an accessible
+TV microphone. Actual `AudioRecord` routing is checked after capture starts.
+
+In **Settings → Hardware microphone diagnostics**, use **List audio inputs**
+and **test VOICE_RECOGNITION** to confirm available inputs and the recorder's
+actual route. A Google/Alexa voice remote's built-in mic may be reserved for
+its own assistant and therefore unavailable to third-party Android apps.
+
+If a TV's audio device report is demonstrably wrong, **Settings → Mic input
+detection → Try unverified microphone** temporarily bypasses the checks for
+diagnostics. Turn it back off after testing. It will *not* gain access to a
+protected Google/Alexa remote mic. Silence in a quiet room is not considered
+proof of missing hardware. The public v0.16.4 still reports
+`stt-no-text-recognised` on some microphone-less televisions.
+
 ## Remote's microphone button launches Google Assistant
 
 This is the observed behavior on this onn 4K Pro. It doesn't mean the Home Assistant app has lost its connection. Use **TALK / STOP** and speak toward the box's built-in microphone instead. Remapping ⭐ to launch the app is a planned experiment, **not implemented**. Remapping alone does not give third-party access to the Google voice remote mic.
