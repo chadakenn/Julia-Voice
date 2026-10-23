@@ -577,6 +577,9 @@ public final class TvEventsService extends Service {
             photo = image;
         }
         Button firstButton = null;
+        // A remote click can perform a consequential HA action when an owner
+        // explicitly configures an automation. Dispatch at most once per card.
+        final boolean[] actionHandled = {false};
         if (actions != null && !actions.isEmpty()) {
             LinearLayout row = new LinearLayout(this);
             row.setOrientation(LinearLayout.HORIZONTAL);
@@ -586,8 +589,12 @@ public final class TvEventsService extends Service {
                 button.setAllCaps(false);
                 button.setTextColor(0xffFAE8D5);
                 button.setOnClickListener(view -> {
+                    // No double-OK, repeated event, or stale-card dispatch.
+                    if (actionHandled[0] || stopping || generation != current || card != panel) return;
+                    actionHandled[0] = true;
+                    button.setEnabled(false);
                     reportAction(announcementId, action.id);
-                    if ("dismiss".equals(action.id) || "talk".equals(action.id)) hideCard();
+                    hideCard();
                     if ("talk".equals(action.id)) openTalk();
                 });
                 row.addView(button, new LinearLayout.LayoutParams(0,
