@@ -13,12 +13,15 @@ The switch is **off** by default.
 - A reboot, an app update, or the TV-alert receiver does **not** start it.
 - Android's microphone privacy indicator stays on the whole time the listener is armed.
 - The listener lets go of the microphone before the voice overlay records.
+- A recognized **Okay Nabu** is itself an explicit request to begin listening once. The normal voice overlay starts Assist capture **even when the separate Auto-listen setting is OFF**, and stops on detected speech silence. It does **not** toggle Auto-listen persistently.
+- The one-shot request expires if Home Assistant cannot reconnect promptly (about 10 seconds). STOP, CLOSE, permission loss or connection timeout must not unexpectedly start the microphone later.
 
 ## What it does not do
 
 - It does not use the low-power chip that hears "Hey Google". Detection runs on the TV's main processor.
 - It does not add "Hey Kellie", "Hey Jarvis", or "Hey Mycroft".
 - It does not change Home Assistant. There is no new service and no new entity.
+- It does not require saying the assistant's name in ordinary mic-button commands. The wake phrase is only needed when you **opt in to hands-free wake listening**.
 - It has not been tested on an onn 4K Pro or any other television. A quiet room is the first check. The same phrase with the TV playing is the second, because the microphone hears the speakers.
 
 The capture rate is 16 kHz. If this TV cannot open a 16 kHz microphone, the listener turns itself back off and leaves a notification. It does not guess another sample rate.
