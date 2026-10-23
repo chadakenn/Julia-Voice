@@ -18,6 +18,18 @@ Distinguish what has actually worked on hardware from compiled features. A green
 
 CI success confirms compilation/signing only. These checks require actual hardware to distinguish Android TV network sleep, multicast-DNS and HA restarts from app logic. A permanently running Home Assistant event receiver and 24/7 socket service are intentionally **not** part of v0.13.
 
+## Follow-up listening (not yet tested on a TV)
+
+The unit tests check the session rules only. They do not prove the onn microphone, the privacy dot, or TV audio.
+
+- [ ] With follow-up **Off**, one question still behaves as it does today. The microphone does not reopen after the answer.
+- [ ] Turn follow-up **On** at the TV, with 8 seconds. Ask a question. When speech finishes, the panel should say it is listening. Ask "What about tomorrow?" without pressing the remote. Julia should use the same conversation.
+- [ ] Stay quiet for the selected 5, 8, 10, or 15 seconds. Capture should stop. The panel should not say the system privacy dot is off unless that dot has actually cleared.
+- [ ] During the follow-up window, press **STOP**, **Back**, and close the overlay. None of those may start the microphone again a moment later.
+- [ ] Pull the network during the answer. The follow-up must not start after reconnect.
+- [ ] While YouTube is playing, confirm the TV audio is ducked only while a question is being captured, then returns.
+- [ ] From Home Assistant, change **Follow-up silence** while the TV switch is Off. The TV must stay Off. Turn the TV switch On and confirm a later Home Assistant change can set 5, 8, 10, or 15 seconds.
+
 ## v0.12 overlay layout / copper settings acceptance (pending hardware)
 
 Signed [build #108](https://github.com/chadakenn/Kellies-Voice/actions/runs/39598350715) passed compilation and APK signature verification. This **does not** yet establish TV compatibility.

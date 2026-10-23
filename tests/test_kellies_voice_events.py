@@ -162,6 +162,14 @@ class ValidationTests(unittest.TestCase):
         self.assertNotIn("noise", [item[0] for item in const.SELECTS])
         self.assertNotIn("on", options)
 
+    def test_follow_up_timeout_cannot_enable_the_microphone(self):
+        setting, name, options, icon, initial = const.FOLLOW_SELECTS[0]
+        self.assertEqual("follow_up_timeout", setting)
+        self.assertEqual(["5 seconds", "8 seconds", "10 seconds", "15 seconds"], options)
+        self.assertEqual("8 seconds", initial)
+        self.assertNotIn("On", options)
+        self.assertNotIn("Off", options)
+
     def test_custom_integration_english_translations(self):
         # Custom HA integrations load translations/en.json, not strings.json.
         source = json.loads((_COMPONENT / "strings.json").read_text(encoding="utf-8"))

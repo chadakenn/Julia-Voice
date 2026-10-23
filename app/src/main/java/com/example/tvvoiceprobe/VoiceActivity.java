@@ -461,6 +461,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                 "Hardware microphone diagnostics",
                 "Microphone sensitivity: " + OverlayPreferences.noiseLabel(
                         new OverlayPreferences(this).noise()),
+                "Follow-up listening: " + followUpLabel(),
                 "Open floating voice overlay",
                 "Overlay appearance & position",
                 "Home Assistant layout: " + (new OverlayPreferences(this).haManage() ? "ON" : "OFF"),
@@ -479,18 +480,19 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                         case 2: newConversation(); break;
                         case 3: startActivity(new Intent(this, MainActivity.class)); break;
                         case 4: chooseMicSensitivity(); break;
-                        case 5: launchOverlay(); break;
-                        case 6: showOverlayPreferences(); break;
-                        case 7: chooseHaLayout(); break;
-                        case 8: chooseTvNotifications(); break;
-                        case 9: showTvAlertStatus(); break;
-                        case 10:
+                        case 5: chooseFollowUp(); break;
+                        case 6: launchOverlay(); break;
+                        case 7: showOverlayPreferences(); break;
+                        case 8: chooseHaLayout(); break;
+                        case 9: chooseTvNotifications(); break;
+                        case 10: showTvAlertStatus(); break;
+                        case 11:
                             manualUpdateCheck = true;
                             status("Checking GitHub Releases...");
                             updater.check();
                             break;
-                        case 11: promptInstallUpdate(); break;
-                        case 12: confirmForget(); break;
+                        case 12: promptInstallUpdate(); break;
+                        case 13: confirmForget(); break;
                         default: break;
                     }
                 });
@@ -644,6 +646,34 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                     prefs.setNoise(values[which]);
                     pushLayout(HaLayout.NOISE);
                     status("Microphone sensitivity: " + OverlayPreferences.noiseLabel(prefs.noise()));
+                    showSettingsMenu();
+                });
+    }
+
+    private String followUpLabel() {
+        OverlayPreferences prefs = new OverlayPreferences(this);
+        if (!prefs.followUp()) return "OFF";
+        return "ON, " + prefs.followUpSeconds() + " seconds";
+    }
+
+    private void chooseFollowUp() {
+        OverlayPreferences prefs = new OverlayPreferences(this);
+        showCopperMenu("SETTINGS  ✦  FOLLOW-UP",
+                "After Julia finishes speaking, listen for another question. This stays off until you turn it on here.",
+                new String[] {
+                        "Off",
+                        "On, stop after 5 seconds of silence",
+                        "On, stop after 8 seconds of silence",
+                        "On, stop after 10 seconds of silence",
+                        "On, stop after 15 seconds of silence"
+                }, which -> {
+                    if (which == 0) prefs.setFollowUp(false);
+                    else {
+                        prefs.setFollowUp(true);
+                        prefs.setFollowUpSeconds(which == 1 ? 5 : which == 2 ? 8 : which == 3 ? 10 : 15);
+                    }
+                    pushLayout(HaLayout.FOLLOW_TIMEOUT);
+                    status("Follow-up listening: " + followUpLabel());
                     showSettingsMenu();
                 });
     }
