@@ -1,6 +1,8 @@
 # Field testing and verified milestones
 
-Updated: **2026-10-20**. Device: user's **onn 4K Pro / Google TV**, with the Android app built through GitHub Actions.
+**Current public-release tester status (October 23, 2026):** Android/HACS **v0.16.4** is released. Verified on the maintainer's onn 4K Pro: voice/TTS, live driveway and doorbell video, weather popup, timer countdown/chimes and Back dismissal, plus named timer voice start/stop with custom HA automations. **Unverified or known issues:** timer Dismiss via OK, main-app-wide theme sync, native Assist generic timer routing, other TV hardware, follow-up/wake-word features and action buttons from draft PRs. For an accurate first-time setup, see **[Install and test Kellie's Voice v0.16.4](INSTALL.md)**. **The milestones below are historical and may refer to earlier versions; they are not the current release checklist.**
+
+Updated historical milestone: **2026-10-20**. Device: maintainer's **onn 4K Pro / Google TV**, with Android builds through GitHub Actions.
 
 Distinguish what has actually worked on hardware from compiled features. A green build is **not** proof of behavior on a TV.
 
@@ -16,8 +18,6 @@ The floating Julia overlay already correctly reflects the Home Assistant style s
 - [ ] Diagnostics screen follows the saved theme when opened; welcome splash preserves approved brand portrait and changes to blue/violet for Aurora.
 - [ ] Run Android unit tests and compile the Android debug APK. Green CI alone is insufficient; this requires new physical onn QA before any release.
 
-
-
 ## Follow-up listening (not yet tested on a TV)
 
 The unit tests check the session rules only. They do not prove the onn microphone, the privacy dot, or TV audio.
@@ -30,6 +30,20 @@ The unit tests check the session rules only. They do not prove the onn microphon
 - [ ] Pull the network during the answer. The follow-up must not start after reconnect.
 - [ ] While YouTube is playing, confirm the TV audio is ducked only while a question is being captured, then returns.
 - [ ] From Home Assistant, change **Follow-up silence** while the TV switch is Off. The TV must stay Off. Turn the TV switch On and confirm a later Home Assistant change can set 5, 8, 10, or 15 seconds.
+
+## v0.13 Home Assistant disconnection recovery (pending TV test)
+
+- [ ] With saved credentials, launch full-screen Kellie's Voice and verify Home Assistant changes to connected **without selecting Reconnect**
+- [ ] Open ⭐ overlay and confirm auto-listen and speech playback still work
+- [ ] Temporarily disable the TV's network or restart HA; verify the overlay/full-screen screen reports **automatic reconnection** and recovers after network returns, without manual Reconnect
+- [ ] With a lost connection, press ⭐ or TALK once. If reconnection completes within 30 seconds, it may start listening; if it takes longer, the microphone must **not** turn on automatically later
+- [ ] Interrupt the network during listening: confirm microphone streaming stops and UI doesn't remain stuck in the listening state
+- [ ] Leave the app in the background, then reopen it; it should retry immediately instead of waiting for the existing retry countdown
+- [ ] With an intentionally invalid token **in a safe, test-only setup**, verify the authentication error is shown and retrying stops; restore the proper token afterward
+- [ ] Check that restarting HA, normal overlay CLOSE/BACK, and intentionally forgetting credentials never trigger zombie sockets or unexpected microphone use
+- [ ] Keep original `com.example.tvvoiceprobe` and signed release key; install over working APK without wiping HA configuration
+
+CI success confirms compilation/signing only. These checks require actual hardware to distinguish Android TV network sleep, multicast-DNS and HA restarts from app logic. A permanently running Home Assistant event receiver and 24/7 socket service are intentionally **not** part of v0.13.
 
 ## v0.13 Home Assistant disconnection recovery (pending TV test)
 
