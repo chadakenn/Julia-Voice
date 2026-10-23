@@ -17,6 +17,8 @@
 
 This integration changes overlay layout and can send announcement and camera events to configured TVs. It does not start the microphone, replace the TV login, or install an APK.
 
+**Pairing diagnostic (draft issue #69):** The Home Assistant TV device will expose a **TV alert receiver connected** diagnostic when its matching Android app opens the newer read-scoped notification channel. An ID that was manually mistyped will remain OFF/"never", rather than appearing verified. This is a socket-presence indicator, not a guarantee that a specific popup appeared. Older APKs on the legacy event subscription cannot report this new diagnostic. Keep this branch unmerged until paired-HACS/Android real-TV QA.
+
 Home Assistant never connects directly to the TV for layout changes. The TV can advertise through mDNS or you can enter its stable pairing ID manually. Either way, the TV reads those controls using its existing Home Assistant login.
 
 Announcement and camera actions stay inside Home Assistant too. They fire events. They do not open a port on the TV, and they do not put tokens or stream passwords in the event.

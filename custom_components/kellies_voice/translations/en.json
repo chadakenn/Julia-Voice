@@ -8,7 +8,7 @@
       },
       "user": {
         "title": "Pair your Kellie's Voice TV",
-        "description": "Automatic discovery not working? On your TV open Kellie's Voice → Settings → Home Assistant layout → Show TV pairing ID. Type the ID shown on your TV. Make sure Home Assistant layout is ON; no network discovery is needed.",
+        "description": "On your TV, open Kellie's Voice → Settings → Home Assistant layout → Show this TV's pairing ID. Enter that TV PAIRING ID, not the separate Home Assistant device-registry ID. Manual pairing validates the ID's format but cannot contact or verify the TV. After upgrading both components, check the new 'TV alert receiver connected' diagnostic. It remains OFF and shows 'never' until that TV establishes a scoped alert connection. Turn on Home Assistant layout and TV notifications on the TV.",
         "data": {
           "device_id": "TV pairing ID",
           "name": "TV name"
@@ -43,8 +43,8 @@
           "description": "How long the message stays up, from 4 to 45 seconds."
         },
         "device_id": {
-          "name": "TV device id",
-          "description": "One configured TV. Leave empty to send to every configured Kellie's Voice TV."
+          "name": "TV pairing ID",
+          "description": "The pairing ID shown inside Kellie's Voice TV Settings (not HA's device registry ID). An accepted action means HA published the event, not proof that TV displayed it. Leave blank to send to every configured TV."
         }
       }
     },
@@ -65,8 +65,8 @@
           "description": "How long the popup stays up, from 4 to 45 seconds."
         },
         "device_id": {
-          "name": "TV device id",
-          "description": "One configured TV. Leave empty to send to every configured Kellie's Voice TV."
+          "name": "TV pairing ID",
+          "description": "The pairing ID shown inside Kellie's Voice TV Settings (not HA's device registry ID). An accepted action means HA published the event, not proof that TV displayed it. Leave blank to send to every configured TV."
         }
       }
     },
@@ -87,8 +87,8 @@
           "description": "Temporary live stream for 15 to 180 seconds, default 90."
         },
         "device_id": {
-          "name": "TV device id",
-          "description": "Optional specific TV; blank sends to all configured Kellie's Voice TVs."
+          "name": "TV pairing ID",
+          "description": "The pairing ID shown inside Kellie's Voice TV Settings (not HA's device registry ID). An accepted action means HA published the event, not proof that TV displayed it. Leave blank to send to every configured TV."
         }
       }
     },
@@ -97,8 +97,8 @@
       "description": "Dismiss a currently visible Kellie's Voice camera snapshot or live stream on the selected TV. Does not dismiss announcements or start the microphone.",
       "fields": {
         "device_id": {
-          "name": "TV device id",
-          "description": "Specific paired TV. Leave blank to close camera popups on all paired Kellie's Voice TVs."
+          "name": "TV pairing ID",
+          "description": "The pairing ID shown inside Kellie's Voice TV Settings (not HA's device registry ID). An accepted action means HA published the event, not proof that TV displayed it. Leave blank to send to every configured TV."
         }
       }
     },
@@ -115,8 +115,8 @@
           "description": "How long the card stays up, from 8 to 45 seconds. The usual value is 20."
         },
         "device_id": {
-          "name": "TV device id",
-          "description": "One configured TV. Leave empty to send to every configured Kellie's Voice TV."
+          "name": "TV pairing ID",
+          "description": "The pairing ID shown inside Kellie's Voice TV Settings (not HA's device registry ID). An accepted action means HA published the event, not proof that TV displayed it. Leave blank to send to every configured TV."
         }
       }
     }

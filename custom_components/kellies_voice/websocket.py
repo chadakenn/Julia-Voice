@@ -12,6 +12,7 @@ from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
 
 from .alert_transport import EVENT_FIELDS, sanitize_event
+from .alert_presence import receiver_connected, receiver_disconnected
 from .const import DOMAIN
 from .validation import clean_tv_device_id
 
@@ -68,6 +69,7 @@ def websocket_subscribe_alerts(hass: HomeAssistant,
         return
 
     unsubscribers = []
+    connection_key = object()
     @callback
     def forward(event) -> None:
         # Check permissions for every event, including after an HA role change.
@@ -87,6 +89,9 @@ def websocket_subscribe_alerts(hass: HomeAssistant,
     def unsubscribe() -> None:
         for remove in unsubscribers:
             remove()
+        receiver_disconnected(hass, device_id, connection_key)
 
     connection.subscriptions[msg["id"]] = unsubscribe
     connection.send_result(msg["id"])
+    # Only mark connected after successfully registering and acknowledging.
+    receiver_connected(hass, device_id, connection_key)

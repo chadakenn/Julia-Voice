@@ -89,6 +89,8 @@ data:
 
 This is a **still image**, not live video. For an on-demand **muted live HLS camera**, see [Voice camera scripts](VOICE_CAMERA_SCRIPTS.md) and [TV events](TV_EVENTS.md). The TV must receive events over its active HA connection, and a camera must support the relevant HA snapshot/stream functionality.
 
+**Pairing verification (#69 draft, not in public v0.16.4):** Manual pairing accepts correctly formatted IDs without proving that the TV is actually connected. Copy the **TV pairing ID** from the TV itself, not the separate Home Assistant device registry ID. After updating both Android and HACS to versions with scoped alerts, check the **TV alert receiver connected** diagnostic on the HA device page. It stays OFF/"never" until the authenticated TV alert receiver connects. "Action ran OK" still means **event published**, not confirmed display. The legacy app does not report scoped connectivity. This feature builds on draft #68 and needs real multi-TV testing before release.
+
 **Multiple TVs:** leaving the optional `device_id` out of announcement/camera actions targets every configured Kellie's Voice TV. Add the **specific TV pairing ID** to target one. Timers require a targeted TV and are not broadcast by default.
 
 **After a reboot, standby or Wi-Fi drop:** the TV alert listener may not restart automatically because Android TV can block background starts. On the TV, check **Settings → TV alert status → Resume TV alerts** or open the main Kellie's Voice app. Missed events are not queued/replayed. The receiver is **not** guaranteed to operate 24/7.

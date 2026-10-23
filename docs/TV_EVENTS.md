@@ -41,6 +41,28 @@ that works, keep it private and never upload it to GitHub.
 Do not label #68 resolved until both sides have passed testing with a non-admin
 account, including reconnects, targeted events, and HA permission changes.
 
+## Did Home Assistant actually reach the TV? (draft issue #69)
+
+The matching new HACS integration adds a diagnostic binary sensor **TV alert
+receiver connected** under each paired TV. It only turns ON when the
+authenticated, read-authorized TV alert WebSocket subscription is active.
+`last_seen_since_ha_start` shows the latest successful connection during this
+Home Assistant run; `never` indicates that HA has not seen one since startup.
+This is *not* a popup-delivery acknowledgment, and it is not a status for the
+voice/Assist WebSocket. Older Android releases using the legacy event channel
+will correctly show OFF or `never`.
+
+An incorrect but valid-format pairing ID is accepted in manual setup to allow
+offline/VLAN-separated pairing; the new sensor exposes that it has never
+connected. Home Assistant's 'Action ran OK' means the event was **published**,
+not that a TV displayed it. We do not promise delivery while an alert receiver
+is disconnected or replay missed events. Avoid rejecting all offline TVs: this
+would break intentional offline automations and legacy recipients.
+
+This diagnostic is available on the **dependent draft** only. Both HACS and
+Android scoped-alert versions must be tested. Do not mistake a manually entered
+pairing ID for the HA device-registry ID.
+
 ## Event contract
 
 The companion Home Assistant integration can implement the
