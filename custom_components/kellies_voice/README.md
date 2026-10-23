@@ -21,6 +21,12 @@ Home Assistant never connects directly to the TV for layout changes. The TV can 
 
 Announcement and camera actions stay inside Home Assistant too. They fire events. They do not open a port on the TV, and they do not put tokens or stream passwords in the event.
 
+## What is “Julia”?
+
+In the maintainer's demonstrations, **Julia** is simply the name they gave their own **Home Assistant voice assistant**. **Kellie's Voice** is the TV app and HACS integration, not the assistant's name. You **do not** need to create, download, or rename an assistant “Julia.” Use your own Home Assistant Assist pipeline and conversation agent; the built-in agent or an Ollama/LLM agent may be used according to your setup.
+
+**No name or wake word is required for normal voice commands.** Activate the TV's listening overlay, then ask a question or give a command naturally. A wake word is an optional, separately configured feature, not synonymous with “Julia.” References to Julia in older developer test instructions are **examples only**. See the [main README explanation](../../README.md#kellies-voice-vs-julia-whats-the-difference).
+
 ## Install with HACS (recommended)
 
 [![Open Kellie's Voice in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=chadakenn&repository=Kellies-Voice&category=integration)
@@ -172,7 +178,7 @@ data:
   duration_seconds: 90
 ```
 
-For voice, expose an appropriately named script to your Assist/Ollama agent that calls the service with a fixed camera entity. Adding a new HA action alone does not guarantee your custom Julia agent recognizes "show driveway camera". A sentence-triggered HA automation may be used as a fallback.
+For voice, expose an appropriately named script to your Assist/Ollama agent that calls the service with a fixed camera entity. Adding a new HA action alone does not guarantee your selected Assist conversation agent recognizes "show driveway camera". A sentence-triggered HA automation may be used as a fallback.
 
 The TV receiver requests a temporary HLS URL through Home Assistant's authenticated WebSocket `camera/stream` command. Events never carry stream URLs, tokens, or RTSP credentials. Playback is muted and released on timeout, a new popup, or receiver shutdown. HLS has more delay than WebRTC. Both the v0.16.0 or newer HACS integration and the matching signed Android APK with Media3 HLS support are needed. Moving live video has been confirmed on the onn 4K Pro with `camera.driveway` and `camera.doorbell` using Android v0.16.1. Other TV models and cameras have not been field-tested.
 
@@ -186,7 +192,7 @@ data:
   device_id: "your-kellies-voice-tv-id"
 ```
 
-For Julia/Ollama, expose a Home Assistant script called **Close camera on TV** that calls the action. For “show doorbell for 30 seconds” either expose a parameterized camera script whose `duration_seconds` field is 30 or a specifically named 30-second script. The `kellies_voice.show_live_camera` action already supports integer durations between 15 and 180 seconds; voice model recognition of script arguments is not guaranteed until tested.
+For your Assist conversation agent (Ollama is optional), expose a Home Assistant script called **Close camera on TV** that calls the action. For “show doorbell for 30 seconds” either expose a parameterized camera script whose `duration_seconds` field is 30 or a specifically named 30-second script. The `kellies_voice.show_live_camera` action already supports integer durations between 15 and 180 seconds; voice model recognition of script arguments is not guaranteed until tested.
 
 **Update both components to v0.16.2** and restart Home Assistant for the new action. The TV tries to resume an already enabled alert receiver after the APK update or a reboot. If the popups do not return, open Kellie's Voice once. No extra Home Assistant script is required for that resume.
 
