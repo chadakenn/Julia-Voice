@@ -49,6 +49,11 @@ public final class HaAssistClient {
         default void connectionLost() { }
         /** The answer had no spoken audio, so a text-only reply is complete. */
         default void speechMissing() { }
+        /**
+         * AudioRecord.release has returned for this Assist run, or the run
+         * ended without ever opening a recorder. Must not call back into the client.
+         */
+        default void captureReleased(int runId) { }
     }
 
     private final Context context;
@@ -379,6 +384,10 @@ public final class HaAssistClient {
         return currentRunId < 0;
     }
 
+    public synchronized int activeRunId() {
+        return currentRunId;
+    }
+
     public synchronized boolean talk() {
         return talk(false);
     }
@@ -453,25 +462,32 @@ public final class HaAssistClient {
     }
 
     public void finishTalking() {
-        if (currentRunId < 0) {
-            events.status("Press TALK first.");
-            return;
+        int run;
+        int handler;
+        boolean started;
+        synchronized (this) {
+            if (currentRunId < 0) {
+                events.status("Press TALK first.");
+                return;
+            }
+            endRequested = true;
+            run = currentRunId;
+            handler = handlerId;
+            started = captureStarted;
         }
-        endRequested = true;
-        int run = currentRunId;
-        int handler = handlerId;
-        if (!captureStarted && handler >= 0) {
+        if (!started && handler >= 0) {
             sendEndOfAudio(run, handler);
         }
         if (runs.stopAudio(run, () -> recording.set(false))) {
             events.status("Finishing audio. Waiting for Home Assistant...");
         }
+        if (!started) events.captureReleased(run);
     }
 
     private void beginCapture(int runId) {
         final int handlerAtStart;
         synchronized (this) {
-            if (captureStarted || runId != currentRunId || handlerId < 0 || disposed) return;
+            if (captureStarted || endRequested || runId != currentRunId || handlerId < 0 || disposed) return;
             captureStarted = true;
             handlerAtStart = handlerId;
         }
@@ -637,18 +653,22 @@ public final class HaAssistClient {
                     events.status("Microphone streaming failed: " + e.getMessage());
                 }
             } finally {
-                if (recorder != null) {
-                    try { recorder.stop(); } catch (Exception ignored) { }
+                try {
+                    if (recorder != null) {
+                        try { recorder.stop(); } catch (Exception ignored) { }
+                    }
+                    if (echo != null) echo.release();
+                    if (noise != null) noise.release();
+                    if (recorder != null) recorder.release();
+                } finally {
+                    recorder = null;
+                    runs.releaseFocusIfOwner(runId, handlerAtStart, () -> {
+                        recording.set(false);
+                        listeningFocus.release();
+                    });
+                    sendEndOfAudio(runId, handlerAtStart);
+                    events.captureReleased(runId);
                 }
-                if (echo != null) echo.release();
-                if (noise != null) noise.release();
-                if (recorder != null) recorder.release();
-                recorder = null;
-                runs.releaseFocusIfOwner(runId, handlerAtStart, () -> {
-                    recording.set(false);
-                    listeningFocus.release();
-                });
-                sendEndOfAudio(runId, handlerAtStart);
             }
         }, "ha-assist-audio").start();
     }
@@ -680,17 +700,23 @@ public final class HaAssistClient {
     }
 
     private void stopForRunEnd() {
-        int run = currentRunId;
-        runs.cancel(run, () -> {
-            recording.set(false);
-            listeningFocus.release();
-        });
-        if (currentRunId == run) {
-            handlerId = -1;
-            currentRunId = -1;
-            captureStarted = false;
-            endRequested = false;
+        int notify = -1;
+        synchronized (this) {
+            int run = currentRunId;
+            boolean worker = captureStarted;
+            runs.cancel(run, () -> {
+                recording.set(false);
+                listeningFocus.release();
+            });
+            if (currentRunId == run) {
+                handlerId = -1;
+                currentRunId = -1;
+                captureStarted = false;
+                endRequested = false;
+            }
+            if (!worker && run >= 0) notify = run;
         }
+        if (notify >= 0) events.captureReleased(notify);
     }
 
     public synchronized void setLayoutSync(boolean enabled) {
