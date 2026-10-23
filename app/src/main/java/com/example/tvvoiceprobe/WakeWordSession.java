@@ -7,6 +7,8 @@ package com.example.tvvoiceprobe;
 public final class WakeWordSession {
     public static final String ACTION_START = "com.example.tvvoiceprobe.WAKE_WORD_START";
     public static final String ACTION_STOP = "com.example.tvvoiceprobe.WAKE_WORD_STOP";
+    /** Internal one-shot capture request, never sent on boot or app update. */
+    public static final String ACTION_DETECTED = "com.example.tvvoiceprobe.WAKE_WORD_DETECTED";
     /** Two seconds at 10 ms chunks, matching the Home Assistant companion cooldown. */
     public static final int COOLDOWN_CHUNKS = 200;
 
@@ -18,6 +20,16 @@ public final class WakeWordSession {
                 && ACTION_START.equals(action)
                 && micGranted
                 && overlayGranted;
+    }
+
+    /** A detection only starts the overlay mic when the wake listener is opted in. */
+    public static boolean isDetectionRequest(boolean enabled, String action) {
+        return enabled && ACTION_DETECTED.equals(action);
+    }
+
+    /** A wake-initiated question must finish on silence, even with Auto-listen disabled. */
+    public static boolean stopOnSilence(boolean autoListen, boolean fromWakeWord) {
+        return autoListen || fromWakeWord;
     }
 
     /** The wake listener must not hold the microphone while the voice overlay is up. */
