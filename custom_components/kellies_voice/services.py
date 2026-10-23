@@ -2,6 +2,7 @@
 
 import logging
 import time
+import uuid
 
 import voluptuous as vol
 from homeassistant.core import HomeAssistant, ServiceCall
@@ -29,6 +30,8 @@ from .const import (
     SERVICE_SHOW_FORECAST,
 )
 from .validation import (
+    clean_actions,
+    clean_speak,
     clean_camera_entity,
     clean_duration,
     clean_text,
@@ -56,6 +59,8 @@ ANNOUNCE_SCHEMA = vol.Schema(
             vol.Coerce(int),
             vol.Range(min=MIN_DURATION_SECONDS, max=MAX_DURATION_SECONDS),
         ),
+        vol.Optional("speak"): cv.string,
+        vol.Optional("actions"): list,
         vol.Optional("device_id"): cv.string,
     }
 )
@@ -68,6 +73,8 @@ SHOW_CAMERA_SCHEMA = vol.Schema(
             vol.Coerce(int),
             vol.Range(min=MIN_DURATION_SECONDS, max=MAX_DURATION_SECONDS),
         ),
+        vol.Optional("speak"): cv.string,
+        vol.Optional("actions"): list,
         vol.Optional("device_id"): cv.string,
     }
 )
@@ -80,6 +87,8 @@ SHOW_LIVE_SCHEMA = vol.Schema(
         vol.Optional("duration_seconds", default=DEFAULT_LIVE_SECONDS): vol.All(
             vol.Coerce(int), vol.Range(min=MIN_LIVE_SECONDS, max=MAX_LIVE_SECONDS)
         ),
+        vol.Optional("speak"): cv.string,
+        vol.Optional("actions"): list,
         vol.Optional("device_id"): cv.string,
     }
 )
@@ -139,6 +148,18 @@ def async_register_services(hass: HomeAssistant) -> None:
     hass.services.async_register(
         DOMAIN, SERVICE_SHOW_FORECAST, _async_show_forecast, schema=SHOW_FORECAST_SCHEMA
     )
+
+
+def _alert_extras(data) -> dict:
+    """Validated optional actions and speech, excluding URLs or auth tokens."""
+    extras = {"announcement_id": uuid.uuid4().hex}
+    actions = clean_actions(data.get("actions"))
+    speak = clean_speak(data.get("speak"))
+    if actions:
+        extras["actions"] = actions
+    if speak:
+        extras["speak"] = speak
+    return extras
 
 
 def configured_device_ids(hass: HomeAssistant) -> list:
@@ -203,6 +224,7 @@ async def _async_announce(call: ServiceCall) -> None:
             DEFAULT_ANNOUNCE_SECONDS,
         )
         targets = target_device_ids(call.data.get("device_id"), configured_device_ids(call.hass))
+        extras = _alert_extras(call.data)
     except ValueError as err:
         raise ServiceValidationError(str(err)) from None
     for device_id in targets:
@@ -213,6 +235,7 @@ async def _async_announce(call: ServiceCall) -> None:
                 "text": text,
                 "duration_seconds": duration,
                 "device_id": device_id,
+                **extras,
             },
         )
     _LOGGER.debug("Fired %s for %s configured TV(s)", EVENT_ANNOUNCEMENT, len(targets))
@@ -227,6 +250,7 @@ async def _async_show_camera(call: ServiceCall) -> None:
             DEFAULT_CAMERA_SECONDS,
         )
         targets = target_device_ids(call.data.get("device_id"), configured_device_ids(call.hass))
+        extras = _alert_extras(call.data)
     except ValueError as err:
         raise ServiceValidationError(str(err)) from None
     if call.hass.states.get(entity_id) is None:
@@ -239,6 +263,7 @@ async def _async_show_camera(call: ServiceCall) -> None:
                 "title": title,
                 "duration_seconds": duration,
                 "device_id": device_id,
+                **extras,
             },
         )
     _LOGGER.debug("Fired %s for %s configured TV(s)", EVENT_CAMERA_POPUP, len(targets))
@@ -254,6 +279,7 @@ async def _async_show_live_camera(call: ServiceCall) -> None:
         if not MIN_LIVE_SECONDS <= duration <= MAX_LIVE_SECONDS:
             raise ValueError("Live duration must be from 15 to 180 seconds.")
         targets = target_device_ids(call.data.get("device_id"), configured_device_ids(call.hass))
+        extras = _alert_extras(call.data)
     except (ValueError, TypeError) as err:
         raise ServiceValidationError(str(err)) from None
     camera = call.hass.states.get(entity_id)
@@ -270,6 +296,7 @@ async def _async_show_live_camera(call: ServiceCall) -> None:
                 "title": title,
                 "duration_seconds": duration,
                 "device_id": device_id,
+                **extras,
             },
         )
     _LOGGER.debug("Fired %s for %s configured TV(s)", EVENT_LIVE_CAMERA, len(targets))

@@ -45,6 +45,14 @@
         "device_id": {
           "name": "TV device id",
           "description": "One configured TV. Leave empty to send to every configured Kellie's Voice TV."
+        },
+        "speak": {
+          "name": "Speak",
+          "description": "Optional sentence the TV speaks with its own voice. Leave empty to stay quiet. Not a web address."
+        },
+        "actions": {
+          "name": "Buttons",
+          "description": "Up to three buttons, each with an id such as dismiss, unlock, open_gate, or talk, and a short label. Pressing one fires kellies_voice_announcement_action. It does not run the action by itself."
         }
       }
     },
@@ -67,6 +75,14 @@
         "device_id": {
           "name": "TV device id",
           "description": "One configured TV. Leave empty to send to every configured Kellie's Voice TV."
+        },
+        "speak": {
+          "name": "Speak",
+          "description": "Optional sentence the TV speaks with its own voice. Leave empty to stay quiet. Not a web address."
+        },
+        "actions": {
+          "name": "Buttons",
+          "description": "Up to three buttons, each with an id such as dismiss, unlock, open_gate, or talk, and a short label. Pressing one fires kellies_voice_announcement_action. It does not run the action by itself."
         }
       }
     },
@@ -89,6 +105,14 @@
         "device_id": {
           "name": "TV device id",
           "description": "Optional specific TV; blank sends to all configured Kellie's Voice TVs."
+        },
+        "speak": {
+          "name": "Speak",
+          "description": "Optional sentence the TV speaks with its own voice. Leave empty to stay quiet. Not a web address."
+        },
+        "actions": {
+          "name": "Buttons",
+          "description": "Up to three buttons, each with an id such as dismiss, unlock, open_gate, or talk, and a short label. Pressing one fires kellies_voice_announcement_action. It does not run the action by itself."
         }
       }
     },

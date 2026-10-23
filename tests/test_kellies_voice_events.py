@@ -244,6 +244,33 @@ class ValidationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             validation.clean_text("x" * 501)
 
+    def test_announcement_buttons_and_speech_are_limited(self):
+        actions = validation.clean_actions([
+            {"id": "Talk", "label": "  Talk "},
+            {"id": "unlock", "label": "Unlock"},
+            {"id": "open_gate", "label": "Open gate"},
+        ])
+        self.assertEqual(
+            [("talk", "Talk"), ("unlock", "Unlock"), ("open_gate", "Open gate")],
+            [(item["id"], item["label"]) for item in actions],
+        )
+        self.assertEqual("", validation.clean_speak(None))
+        self.assertEqual("", validation.clean_speak("   "))
+        self.assertEqual("Someone is at the door.", validation.clean_speak(" Someone   is at the door. "))
+        for invalid in (
+            [{"id": "talk", "label": "Talk"}] * 4,
+            [{"id": "Open Gate", "label": "Open"}],
+            [{"id": "talk", "label": "Talk"}, {"id": "talk", "label": "Again"}],
+            [{"id": "talk", "label": "x" * 25}],
+            "unlock",
+        ):
+            with self.assertRaises(ValueError):
+                validation.clean_actions(invalid)
+        with self.assertRaises(ValueError):
+            validation.clean_speak("https://example.com/clip.mp3")
+        with self.assertRaises(ValueError):
+            validation.clean_speak("x" * 181)
+
     def test_duration_cap(self):
         self.assertEqual(validation.clean_duration(None, 10), 10)
         self.assertEqual(validation.clean_duration("20", 10), 20)
