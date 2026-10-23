@@ -184,7 +184,7 @@ See [TV event setup](docs/TV_EVENTS.md), [HA service details](custom_components/
 | Live HLS camera overlay | **Verified** moving driveway and doorbell video on onn 4K Pro with Android v0.16.1; other cameras and TV devices still need testing |
 | Other Google TV and Android TV brands | **Not comprehensively tested** |
 
-Kellie's Voice uses a user-controlled microphone; it **does not intercept the Google Assistant voice button** or promise access to the remote's Bluetooth microphone. Some streaming apps or protected content may limit overlays. The TV event listener is opt-in and Android may stop it while suspended; delivery is not guaranteed 24/7. No external ports need to be opened on the TV for Home Assistant events.
+Kellie's Voice uses a user-controlled microphone; it **does not intercept the Google Assistant voice button** or promise access to the remote's Bluetooth microphone. Capture tries 16 kHz first, which is what the onn 4K Pro already uses. A TV that cannot open 16 kHz can fall back to 48 kHz, and that audio is filtered down to the 16 kHz stream Home Assistant expects. That fallback is not a promise that every TV microphone works. Some streaming apps or protected content may limit overlays. The TV event listener is opt-in and Android may stop it while suspended; delivery is not guaranteed 24/7. No external ports need to be opened on the TV for Home Assistant events.
 
 For problems, see [Troubleshooting](docs/TROUBLESHOOTING.md), [Update guide](docs/UPDATES.md), [Known testing procedures](docs/TESTING.md), [Privacy and security guidance](SECURITY.md) and [project vision](docs/PROJECT_VISION.md).
 

@@ -22,6 +22,12 @@ The old **Julia-Voice** URL is no longer a fallback. It did not help TVs still r
 
 The GitHub rename has **already occurred**. Do not create a new repository at the old `Julia-Voice` path. For local clones, use `git remote set-url origin https://github.com/chadakenn/Kellies-Voice.git`.
 
+## In review, not a release: 48 kHz microphone fallback
+
+This is not in the published v0.16.4 APK until the owner approves a new build. The onn 4K Pro path is unchanged: it still opens 16 kHz and sends that audio to Home Assistant. Another TV is eligible for 48 kHz only when 16 kHz will not open. The app then filters that audio to 16 kHz. It does not record while idle, and it does not log the audio.
+
+On a signed build, the onn should still answer a short question the same way. On another box, the listening line should say the microphone opened at 48 kHz. If both rates fail, the status says the microphone did not open. Do not treat that as support for an untested device.
+
 ## Public release, only with owner approval
 
 Normal pushes create a **signed development APK artifact**, not a public GitHub Release. After physical TV testing, the owner can run **Build Kellie's Voice Signed APK** manually with `publish_release` checked. That workflow builds the signed APK, verifies the signature, and publishes `app-release.apk` and checksum metadata `update.json`.

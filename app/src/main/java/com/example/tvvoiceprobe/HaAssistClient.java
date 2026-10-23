@@ -453,14 +453,17 @@ public final class HaAssistClient {
             AcousticEchoCanceler echo = null;
             NoiseSuppressor noise = null;
             try {
-                int minimum = AudioRecord.getMinBufferSize(16000,
-                        AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
-                if (minimum <= 0) throw new IllegalStateException("16kHz microphone audio is unsupported");
-                recorder = new AudioRecord(MediaRecorder.AudioSource.VOICE_RECOGNITION,
-                        16000, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT,
-                        Math.max(minimum * 2, 6400));
-                if (recorder.getState() != AudioRecord.STATE_INITIALIZED)
-                    throw new IllegalStateException("AudioRecord initialization failed");
+                int capturedRate = PcmCapture.RATE_16K;
+                recorder = openRecognizer(capturedRate, 6400);
+                if (recorder == null) {
+                    // The onn 4K Pro opens 16 kHz. 48 kHz is only the fallback.
+                    capturedRate = PcmCapture.RATE_48K;
+                    recorder = openRecognizer(capturedRate, 19200);
+                }
+                if (recorder == null) {
+                    throw new IllegalStateException(
+                            "This TV did not open a 16 kHz or 48 kHz microphone");
+                }
                 // Android TV firmware may or may not expose hardware echo
                 // cancellation / noise suppression. Never let optional
                 // effects break an otherwise working microphone.
@@ -484,20 +487,28 @@ public final class HaAssistClient {
                 recorder.startRecording();
                 if (recorder.getRecordingState() != AudioRecord.RECORDSTATE_RECORDING)
                     throw new IllegalStateException("Microphone recording was not started");
-                events.status("LISTENING. Speak toward the onn box; select STOP when done.");
                 events.listening();
                 final String noiseMode = roomNoise;
-                byte[] pcm = new byte[3200]; // 100 ms at 16kHz, mono, 16-bit
+                final PcmCapture samples = new PcmCapture(capturedRate);
+                byte[] devicePcm = new byte[capturedRate == PcmCapture.RATE_16K ? 3200 : 9600];
+                byte[] pcm = new byte[3202]; // 100 ms at 16 kHz, plus one carried sample
+                if (capturedRate == PcmCapture.RATE_16K) {
+                    events.status("LISTENING. Speak toward the onn box; select STOP when done.");
+                } else {
+                    events.status("LISTENING. This microphone opened at 48 kHz and is sent as 16 kHz.");
+                }
                 long observedMs = 0L;
                 long voiceMs = 0L;
                 long quietMs = 0L;
                 boolean heardUtterance = false;
                 double backgroundRms = 0.002;
                 while (recording.get() && runId == currentRunId) {
-                    int read = recorder.read(pcm, 0, pcm.length);
+                    int deviceBytes = recorder.read(devicePcm, 0, devicePcm.length);
                     if (!recording.get() || runId != currentRunId) break;
-                    if (read <= 0) throw new IllegalStateException("Microphone read failed (" + read + ")");
-                    if (read % 2 != 0) read--; // PCM16 samples must be complete
+                    if (deviceBytes <= 0) {
+                        throw new IllegalStateException("Microphone read failed (" + deviceBytes + ")");
+                    }
+                    int read = samples.process(devicePcm, deviceBytes, pcm);
                     if (read == 0) continue;
 
                     if (autoEndSpeech) {
@@ -563,6 +574,24 @@ public final class HaAssistClient {
                 sendEndOfAudio(runId);
             }
         }, "ha-assist-audio").start();
+    }
+
+    /** Opens one microphone rate. A failure here tries the other rate; it does not end the session. */
+    private static AudioRecord openRecognizer(int sampleRate, int minimumBytes) {
+        int minimum = AudioRecord.getMinBufferSize(sampleRate,
+                AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
+        if (minimum <= 0) return null;
+        AudioRecord recorder = null;
+        try {
+            recorder = new AudioRecord(MediaRecorder.AudioSource.VOICE_RECOGNITION,
+                    sampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT,
+                    Math.max(minimum * 2, minimumBytes));
+            if (recorder.getState() == AudioRecord.STATE_INITIALIZED) return recorder;
+        } catch (RuntimeException ignored) {
+            // The rate is unsupported. No audio samples are logged.
+        }
+        if (recorder != null) recorder.release();
+        return null;
     }
 
     private void sendEndOfAudio(int runId) {
