@@ -28,6 +28,15 @@ public final class TvEventPayload {
         return Math.min(45, Math.max(4, seconds <= 0 ? 10 : seconds));
     }
 
+    public static int snapshotRefresh(int seconds) {
+        // Fail closed for invalid or too-aggressive refresh requests.
+        return seconds >= 2 && seconds <= 30 ? seconds : 0;
+    }
+
+    public static boolean fitWholeImage(String mode) {
+        return "fit".equals(mode);
+    }
+
     public static int liveDuration(int seconds) {
         return Math.min(180, Math.max(15, seconds <= 0 ? 90 : seconds));
     }

@@ -30,6 +30,7 @@ from .const import (
 )
 from .validation import (
     clean_camera_entity,
+    clean_snapshot_refresh,
     clean_duration,
     clean_text,
     clean_title,
@@ -63,7 +64,12 @@ ANNOUNCE_SCHEMA = vol.Schema(
 SHOW_CAMERA_SCHEMA = vol.Schema(
     {
         vol.Required("entity_id"): cv.string,
-        vol.Required("title"): cv.string,
+        vol.Optional("title", default="Camera alert"): cv.string,
+        vol.Optional("show_header", default=True): cv.boolean,
+        vol.Optional("image_fit", default="crop"): vol.In(("crop", "fit")),
+        vol.Optional("refresh_seconds", default=0): vol.All(
+            vol.Coerce(int), vol.Any(0, vol.Range(min=2, max=30))
+        ),
         vol.Optional("duration_seconds", default=DEFAULT_CAMERA_SECONDS): vol.All(
             vol.Coerce(int),
             vol.Range(min=MIN_DURATION_SECONDS, max=MAX_DURATION_SECONDS),
@@ -221,7 +227,13 @@ async def _async_announce(call: ServiceCall) -> None:
 async def _async_show_camera(call: ServiceCall) -> None:
     try:
         entity_id = clean_camera_entity(call.data.get("entity_id"))
-        title = clean_title(call.data.get("title"))
+        show_header = call.data.get("show_header", True)
+        title = (clean_title(call.data.get("title", "Camera alert"))
+                 if show_header else "")
+        fit = call.data.get("image_fit", "crop")
+        if fit not in ("fit", "crop"):
+            raise ValueError("Choose image_fit 'fit' or 'crop'.")
+        refresh = clean_snapshot_refresh(call.data.get("refresh_seconds", 0))
         duration = clean_duration(
             call.data.get("duration_seconds", DEFAULT_CAMERA_SECONDS),
             DEFAULT_CAMERA_SECONDS,
@@ -237,6 +249,9 @@ async def _async_show_camera(call: ServiceCall) -> None:
             {
                 "entity_id": entity_id,
                 "title": title,
+                "show_header": show_header,
+                "image_fit": fit,
+                "refresh_seconds": refresh,
                 "duration_seconds": duration,
                 "device_id": device_id,
             },

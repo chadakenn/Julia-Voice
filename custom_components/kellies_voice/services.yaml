@@ -77,10 +77,28 @@ show_camera:
           filter:
             domain: camera
     title:
-      required: true
       example: Front door
       selector:
         text:
+    show_header:
+      default: true
+      selector:
+        boolean:
+    image_fit:
+      default: crop
+      selector:
+        select:
+          options:
+            - crop
+            - fit
+    refresh_seconds:
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 30
+          step: 1
+          mode: box
     duration_seconds:
       example: 20
       selector:

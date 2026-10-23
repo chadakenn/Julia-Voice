@@ -167,6 +167,31 @@ A draft Android test change introduces per-TV **Settings → Live camera** choic
 
 QA must verify HDMI stays visible **during and after** playback, Netflix/TiviMate stays intact, audio remains uninterrupted, and repeated popup/hide/timeout calls release resources. On onn 4K Pro, verify existing live performance (and opt-in hardware mode if needed). Do not merge on CI alone; physical Philips and onn testing is required.
 
+## Snapshot controls for older TVs (draft issue #70)
+
+On the separate draft branch based on #67, `kellies_voice.show_camera`
+accepts three **optional** settings without changing existing scripts:
+
+```yaml
+action: kellies_voice.show_camera
+data:
+  entity_id: camera.driveway
+  show_header: false
+  image_fit: fit
+  refresh_seconds: 3
+  duration_seconds: 30
+```
+
+- `show_header: false` removes both the heading and "Home Assistant camera snapshot" caption. Existing cards keep their current header by default.
+- `image_fit: fit` shows the whole 4:3 (or other) camera frame; black bars are preferable to cutting off part of the driveway. Default `crop` preserves existing appearance.
+- `refresh_seconds: 0` (default) disables automatic updates; 2–30 requests one still approximately every N seconds, within the popup lifetime. No streaming/video decoder is used.
+- Repeating the same camera call with unchanged header/fit/title reuses the visible window and refreshes the image without blinking or stealing D-pad focus. Requests for a different camera/layout replace the popup normally.
+- Network fetches use the existing authenticated same-HA-host `camera_proxy` URL; callbacks from stale cards are discarded, pending requests are canceled and refresh timers stop on close. This is pseudo-live, **not** HLS moving video, and may be slower than the chosen refresh interval.
+
+This is **not yet present in public v0.16.4** and requires matching HACS
+and Android test builds. Verify camera loading and repeated calls on physical
+Philips hardware before release.
+
 ## Test and troubleshoot
 
 - Start with Home Assistant **Developer tools → Actions**, running `kellies_voice.show_live_camera` for a known streaming camera, or run the new scripts from **Settings → Automations & scenes → Scripts**.

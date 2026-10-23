@@ -92,6 +92,8 @@ This is a **still image**, not live video.
 
 For an on-demand **muted live HLS camera**, see [Voice camera scripts](VOICE_CAMERA_SCRIPTS.md) and [TV events](TV_EVENTS.md). The TV must receive events over its active HA connection, and a camera must support the relevant HA snapshot/stream functionality.
 
+**Snapshot display improvements (#70 draft, not public v0.16.4):** `kellies_voice.show_camera` can optionally use `show_header: false` (hide title/caption), `image_fit: fit` (show full uncropped 4:3 frame), and `refresh_seconds: 2..30` (in-place periodic snapshots; `0` turns auto-refresh off). Repeated calls to the same camera with the same layout update the image without tearing down the window. No new camera URLs or background microphone permissions are required. This is a separate test PR based on #67 and still needs Philips hardware verification.
+
 **Multiple TVs:** leaving the optional `device_id` out of announcement/camera actions targets every configured Kellie's Voice TV. Add the **specific TV pairing ID** to target one. Timers require a targeted TV and are not broadcast by default.
 
 **After a reboot, standby or Wi-Fi drop:** the TV alert listener may not restart automatically because Android TV can block background starts. On the TV, check **Settings → TV alert status → Resume TV alerts** or open the main Kellie's Voice app. Missed events are not queued/replayed. The receiver is **not** guaranteed to operate 24/7.

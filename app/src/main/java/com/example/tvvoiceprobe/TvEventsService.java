@@ -91,6 +91,13 @@ public final class TvEventsService extends Service {
     private WindowManager windowManager;
     private View card;
     private ImageView photo;
+    private Call snapshotCall;
+    private int snapshotSerial;
+    private Runnable snapshotRefreshTask;
+    private String snapshotEntity;
+    private String snapshotTitle;
+    private boolean snapshotHeader;
+    private boolean snapshotFit;
     private TextureView liveSurface;
     private boolean liveFirstFrame;
     private TextView liveStatus;
@@ -372,9 +379,15 @@ public final class TvEventsService extends Service {
             } else if (subscription == CAMERA_ID
                     && TvEventPayload.CAMERA_POPUP.equals(eventType)) {
                 String entity = TvEventPayload.cameraEntity(data.optString("entity_id"));
-                if (entity != null) showCard(
-                        TvEventPayload.cleanText(data.optString("title", "Camera alert"), 65),
-                        "Home Assistant camera snapshot", entity, duration);
+                if (entity != null) {
+                    boolean header = data.optBoolean("show_header", true);
+                    String title = TvEventPayload.cleanText(
+                            data.optString("title", "Camera alert"), 65);
+                    boolean fit = TvEventPayload.fitWholeImage(data.optString("image_fit"));
+                    int refresh = TvEventPayload.snapshotRefresh(
+                            data.optInt("refresh_seconds", 0));
+                    showSnapshotCard(title, entity, duration, header, fit, refresh);
+                }
             } else if (subscription == LIVE_EVENT_ID
                     && TvEventPayload.LIVE_CAMERA.equals(eventType)) {
                 String entity = TvEventPayload.cameraEntity(data.optString("entity_id"));
@@ -510,7 +523,30 @@ public final class TvEventsService extends Service {
         showCard(title, text, entity, seconds, false);
     }
 
+    /** Reuse the same snapshot ImageView and window for repeated calls. */
+    private void showSnapshotCard(String title, String entity, int seconds,
+                                  boolean header, boolean fit, int refreshSeconds) {
+        if (stopping || windowManager == null || !Settings.canDrawOverlays(this)) return;
+        if (cameraVisible && liveSurface == null && card != null && photo != null
+                && entity.equals(snapshotEntity) && title.equals(snapshotTitle)
+                && header == snapshotHeader && fit == snapshotFit) {
+            int current = generation;
+            main.removeCallbacks(dismiss);
+            fetchSnapshot(entity, photo, current); // replace image in-place
+            scheduleSnapshotRefresh(entity, current, refreshSeconds);
+            main.postDelayed(dismiss, TvEventPayload.duration(seconds) * 1000L);
+            return;
+        }
+        showCard(title, "Home Assistant camera snapshot", entity, seconds,
+                false, header, fit, refreshSeconds);
+    }
+
     private void showCard(String title, String text, String entity, int seconds, boolean live) {
+        showCard(title, text, entity, seconds, live, true, false, 0);
+    }
+
+    private void showCard(String title, String text, String entity, int seconds,
+                          boolean live, boolean showHeader, boolean fitWhole, int refreshSeconds) {
         if (stopping || windowManager == null || !Settings.canDrawOverlays(this)) return;
         hideCard();
         int current = ++generation;
@@ -525,12 +561,15 @@ public final class TvEventsService extends Service {
         panel.setBackground(background);
         panel.setElevation(dp(12));
 
-        View goldRule = new View(this);
-        goldRule.setBackgroundColor(0xffE1B27B);
-        panel.addView(goldRule, new LinearLayout.LayoutParams(-1, dp(3)));
-        panel.addView(label(title.isEmpty() ? "Kellie's Voice" : title, 19, 0xffEAC296));
-        TextView subtitle = label(text, 16, 0xffFAE8D5);
-        panel.addView(subtitle);
+        TextView subtitle = null;
+        if (entity == null || live || showHeader) {
+            View goldRule = new View(this);
+            goldRule.setBackgroundColor(0xffE1B27B);
+            panel.addView(goldRule, new LinearLayout.LayoutParams(-1, dp(3)));
+            panel.addView(label(title.isEmpty() ? "Kellie's Voice" : title, 19, 0xffEAC296));
+            subtitle = label(text, 16, 0xffFAE8D5);
+            panel.addView(subtitle);
+        }
         photo = null;
         OverlayPreferences placement = new OverlayPreferences(this);
         String alertSize = placement.alertSize();
@@ -557,7 +596,8 @@ public final class TvEventsService extends Service {
                     dp(TvAlertLayout.mediaHeightDp(alertSize, true))));
         } else if (entity != null) {
             ImageView image = new ImageView(this);
-            image.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            image.setScaleType(fitWhole ? ImageView.ScaleType.FIT_CENTER
+                    : ImageView.ScaleType.CENTER_CROP);
             image.setBackgroundColor(0xff2D211C);
             panel.addView(image, new LinearLayout.LayoutParams(-1,
                     dp(TvAlertLayout.mediaHeightDp(alertSize, false))));
@@ -582,6 +622,12 @@ public final class TvEventsService extends Service {
             windowManager.addView(panel, params);
             card = panel;
             cameraVisible = entity != null;
+            if (entity != null && !live) {
+                snapshotEntity = entity;
+                snapshotTitle = title;
+                snapshotHeader = showHeader;
+                snapshotFit = fitWhole;
+            }
             if (entity != null) {
                 if (live) {
                     // This is explicitly a still-image fallback, never label it "LIVE".
@@ -599,7 +645,10 @@ public final class TvEventsService extends Service {
                     } else {
                         liveStatus.setText("Camera snapshot · live video disabled on this TV.");
                     }
-                } else fetchSnapshot(entity, photo, current);
+                } else {
+                    fetchSnapshot(entity, photo, current);
+                    scheduleSnapshotRefresh(entity, current, refreshSeconds);
+                }
             }
             main.postDelayed(dismiss,
                     (live ? TvEventPayload.liveDuration(seconds)
@@ -747,6 +796,25 @@ public final class TvEventsService extends Service {
         }
     }
 
+    /** Every timer is bounded by the card lifetime. Never request two periodic frames at once. */
+    private void scheduleSnapshotRefresh(String entity, int current, int seconds) {
+        if (snapshotRefreshTask != null) main.removeCallbacks(snapshotRefreshTask);
+        snapshotRefreshTask = null;
+        int refresh = TvEventPayload.snapshotRefresh(seconds);
+        if (refresh == 0) return;
+        snapshotRefreshTask = new Runnable() {
+            @Override public void run() {
+                if (stopping || generation != current || photo == null
+                        || !entity.equals(snapshotEntity)) return;
+                // While one image downloads, skip the period rather than building
+                // an unbounded queue of Frigate/camera proxy requests.
+                if (snapshotCall == null) fetchSnapshot(entity, photo, current);
+                main.postDelayed(this, refresh * 1000L);
+            }
+        };
+        main.postDelayed(snapshotRefreshTask, refresh * 1000L);
+    }
+
     private void fetchSnapshot(String entity, ImageView target, int current) {
         if (credentials == null) return;
         HttpUrl base = HttpUrl.parse(credentials.url);
@@ -758,9 +826,15 @@ public final class TvEventsService extends Service {
         Request request = new Request.Builder().url(url)
                 .header("Authorization", "Bearer " + credentials.token)
                 .header("Cache-Control", "no-cache").build();
-        http.newCall(request).enqueue(new Callback() {
-            @Override public void onFailure(Call call, java.io.IOException e) { }
-            @Override public void onResponse(Call call, Response response) {
+        if (snapshotCall != null) snapshotCall.cancel();
+        final int serial = ++snapshotSerial;
+        Call call = http.newCall(request);
+        snapshotCall = call;
+        call.enqueue(new Callback() {
+            @Override public void onFailure(Call failed, java.io.IOException e) {
+                main.post(() -> { if (snapshotCall == failed) snapshotCall = null; });
+            }
+            @Override public void onResponse(Call completed, Response response) {
                 try (Response result = response) {
                     if (!result.isSuccessful() || result.body() == null) return;
                     long declared = result.body().contentLength();
@@ -783,17 +857,30 @@ public final class TvEventsService extends Service {
                     options.inJustDecodeBounds = false;
                     Bitmap bitmap = BitmapFactory.decodeByteArray(raw, 0, raw.length, options);
                     if (bitmap != null) main.post(() -> {
-                        if (!stopping && generation == current && photo == target) {
+                        if (!stopping && generation == current && photo == target
+                                && serial == snapshotSerial) {
                             target.setImageBitmap(bitmap);
                         } else bitmap.recycle();
                     });
                 } catch (Exception ignored) { }
+                finally {
+                    main.post(() -> {
+                        if (snapshotCall == completed) snapshotCall = null;
+                    });
+                }
             }
         });
     }
 
     private void hideCard() {
         main.removeCallbacks(dismiss);
+        if (snapshotRefreshTask != null) main.removeCallbacks(snapshotRefreshTask);
+        snapshotRefreshTask = null;
+        if (snapshotCall != null) snapshotCall.cancel();
+        snapshotCall = null;
+        ++snapshotSerial;
+        snapshotEntity = null;
+        snapshotTitle = null;
         ++generation;
         liveRequestId = -1;
         liveRequestGeneration = -1;
