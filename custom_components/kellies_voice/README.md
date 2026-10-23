@@ -27,13 +27,15 @@ In the maintainer's demonstrations, **Julia** is simply the name they gave their
 
 **No name or wake word is required for normal voice commands.** Activate the TV's listening overlay, then ask a question or give a command naturally. A wake word is an optional, separately configured feature, not synonymous with “Julia.” References to Julia in older developer test instructions are **examples only**. See the [main README explanation](../../README.md#kellies-voice-vs-julia-whats-the-difference).
 
+For **first-time testers**, start with the [full v0.16.4 installation, setup and tester checklist](../../docs/INSTALL.md). This HACS page covers the Home Assistant half; the Android TV APK must be installed separately.
+
 ## Install with HACS (recommended)
 
 [![Open Kellie's Voice in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=chadakenn&repository=Kellies-Voice&category=integration)
 
 1. Make sure HACS is installed in your Home Assistant instance.
 2. **First-time only:** in **HACS → ⋮ → Custom repositories**, add `https://github.com/chadakenn/Kellies-Voice` with category **Integration**. The shortcut badge does not register an unknown repository automatically.
-3. Click **[Open in HACS](https://my.home-assistant.io/redirect/hacs_repository/?owner=chadakenn&repository=Kellies-Voice&category=integration)**. Download **v0.16.0** (or a newer release), not the older `v0.6`.
+3. Click **[Open in HACS](https://my.home-assistant.io/redirect/hacs_repository/?owner=chadakenn&repository=Kellies-Voice&category=integration)**. Download the **public v0.16.4** Home Assistant integration to match the [v0.16.4 Android app](https://github.com/chadakenn/Kellies-Voice/releases/tag/v0.16.4), not old `v0.6` / `v0.16.0` builds.
 4. Restart Home Assistant, then turn **Home Assistant layout ON** inside the Kellie's Voice TV app. Either add the TV under **Settings → Devices & services → Discovered** or use **Add Integration → Kellie's Voice** for manual pairing with its device ID (shown on the TV under Settings → Home Assistant layout → Show this TV's pairing ID). This works if mDNS is blocked across VLANs.
 5. Optionally turn on **TV announcements & cameras** on the TV to receive HA announcements and Frigate camera snapshots.
 
