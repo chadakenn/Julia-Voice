@@ -12,6 +12,16 @@ No replacement launcher, always-open browser tab, or separate AI server on the T
 
 [**Get the Android TV app**](https://github.com/chadakenn/Kellies-Voice/releases/latest) · [**Install the HACS integration**](https://my.home-assistant.io/redirect/hacs_repository/?owner=chadakenn&repository=Kellies-Voice&category=integration) · [**Setup guide**](docs/INSTALL.md) · [**Report a problem**](https://github.com/chadakenn/Kellies-Voice/issues)
 
+## Kellie's Voice vs. Julia: what's the difference?
+
+**Kellie's Voice** is the **Android TV app and Home Assistant integration** in this repository. It is named for Kellie.
+
+**Julia** (sometimes written “Julie” in earlier test discussions) is simply the **maintainer's personal name for their Home Assistant voice assistant**, powered by their chosen conversation agent. Julia is **not** another app you need to install, an included AI model, a required device name, or a mandatory phrase to say. **You can use your own Home Assistant Assist pipeline and conversation agent, whatever you call it.** Ollama is optional.
+
+**You do not need to say “Julia” to use Kellie's Voice.** Open the voice overlay and activate **TALK** or your configured shortcut, then speak naturally: “What's the weather this week?”, “Set a five-minute pizza timer,” or “Close the camera on the TV.” Specific actions still depend on your Home Assistant scripts, exposed entities, and voice pipeline configuration.
+
+A **wake word** is a separate, *optional* way to start listening hands-free. It isn't automatically set to “Julia,” and the installed app does not require one. Optional wake-word support is under development and must be enabled deliberately when available. In these guides, references to *Julia* describe the maintainer's own test setup, not a setup step for everyone.
+
 ## Why would I use this?
 
 Imagine you're watching YouTube and want to turn on the garage lights. Instead of finding your phone or opening a dashboard, launch the Kellie's Voice overlay, ask Home Assistant, and keep watching. A few other examples:
@@ -101,6 +111,8 @@ The full camera script examples, including close and a 30 second view, are in [d
 
 ## Get started: install both parts
 
+**New testers:** follow the complete [v0.16.4 setup and hardware-testing checklist](docs/INSTALL.md), including TV permissions, HA connection, HACS pairing, and known limitations. The quick steps below are a short reference.
+
 The Android app and the HACS integration are **two different downloads**. You need both for Home Assistant-controlled overlay settings and camera announcements.
 
 ### 1. Install the Android TV app
@@ -116,7 +128,7 @@ The Android app and the HACS integration are **two different downloads**. You ne
 [![Open Kellie's Voice in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=chadakenn&repository=Kellies-Voice&category=integration)
 
 1. If this is your first installation: **HACS → ⋮ → Custom repositories → Add**, paste `https://github.com/chadakenn/Kellies-Voice` and select **Integration**.
-2. Open Kellie's Voice in HACS and download **v0.16.0 or later**. Restart Home Assistant.
+2. Open Kellie's Voice in HACS and download the **matching v0.16.4 integration**. Restart Home Assistant.
 3. Go to **Settings → Devices & services**, choose the discovered Kellie's Voice TV and add it. If mDNS discovery doesn't work, select **Add Integration → Kellie's Voice** and enter the ID shown under the TV app's **Settings → Home Assistant layout → Show this TV's pairing ID**.
 4. Open the registered TV device in Home Assistant. Configure voice-overlay position, size, style, auto-hide and auto-listen. You can now call the actions below.
 
@@ -190,7 +202,7 @@ For problems, see [Troubleshooting](docs/TROUBLESHOOTING.md), [Update guide](doc
 
 ## Seven-day forecast
 
-Ask Julia for the week and a card can appear over the current app. It uses your Home Assistant weather entity. It is not automatic, and it is not a camera.
+Ask your configured Home Assistant voice assistant for the week and a card can appear over the current app. It uses your Home Assistant weather entity. It is not automatic, and it is not a camera.
 
 Create this script, replace the weather entity, and expose it to Assist. The full steps are in [docs/WEATHER_FORECAST.md](docs/WEATHER_FORECAST.md).
 
@@ -218,17 +230,19 @@ On the device page, **Forecast source** is the weather entity used when a script
 
 ## Project status and contributing
 
-### Development draft: voice timers
+### Current release: v0.16.4 (October 22, 2026)
 
-Named countdown pills and completion alerts are proposed in the timer feature branch. Alerts repeat **two chimes → optional configurable phrase → short pause** until dismissed. See [voice timer setup](docs/VOICE_TIMERS.md) for copy/paste Home Assistant actions, custom sentences, intent scripts, cancellation and unverified hardware limits. This is not part of the installed v0.16.3 release.
+**Android TV APK v0.16.4 + matching Home Assistant integration v0.16.4 are publicly available.** This release includes named countdown pills and repeating timer completion alerts, seven-day weather popups, optional Aurora Glass overlay styling, camera overlays and Home Assistant announcements. On the maintainer's onn 4K Pro, the countdown and chimes, Back-to-dismiss, forecast card, voice questions, and moving driveway/doorbell live camera popups have been tested. Named timer **voice** start/stop worked after the maintainer added Home Assistant automations, not with zero additional setup.
 
-**Current release: Android v0.16.3 + Home Assistant integration v0.16.3.** Voice, announcement cards, Frigate snapshots and moving live driveway and doorbell video have been confirmed on the onn 4K Pro. Other camera streams and wider TV compatibility remain under test. Issues and pull requests are welcome, especially **real, redacted screenshots**, hardware results and reproducible problems.
+**Known limitations:** the v0.16.4 timer alert **OK/Dismiss** control needs a fix (Back works); app-wide theme synchronization and the HACS README banner are being improved; ordinary timer phrases may invoke Home Assistant's unsupported native timer intent until routed to Kellie's Voice. Follow-up listening, wake-word support, and actionable announcement buttons are **not** included in this public release, even though draft PRs and test builds exist.
+
+For a complete **first-time installation and testing checklist**, start with **[Install Kellie's Voice: new testers](docs/INSTALL.md)**. Other Android/Google/Fire TV models, audio behavior, camera compatibility, and longer-running reliability especially need real tester reports. [Open a GitHub issue](https://github.com/chadakenn/Kellies-Voice/issues) with device model, app/HACS version, reproducible steps and redacted screenshots.
 
 Kellie's Voice is a community-built Home Assistant companion, **not an official Home Assistant or HACS product**.
 
 ## Close a camera by voice (v0.16.2)
 
-Kellie's Voice adds a dedicated `kellies_voice.hide_camera` action to **dismiss a live or snapshot camera popup immediately**. It does not turn off video playback from your other TV apps, dismiss text announcements, or operate the microphone. Configure an Assist-exposed script named **Close camera on TV**, then say **“Julia, close the camera on the TV.”** You can also call the HA action directly:
+Kellie's Voice adds a dedicated `kellies_voice.hide_camera` action to **dismiss a live or snapshot camera popup immediately**. It does not turn off video playback from your other TV apps, dismiss text announcements, or operate the microphone. Configure an Assist-exposed script named **Close camera on TV**, then activate listening and say **“Close the camera on the TV.”** You can also call the HA action directly:
 
 ```yaml
 action: kellies_voice.hide_camera
@@ -241,7 +255,7 @@ data:
 
 ### Copy-and-paste Home Assistant script setup
 
-The Android app alone cannot make Julia understand new camera phrases. **Create and expose the corresponding Home Assistant scripts**. Detailed full YAML for driveway, doorbell, 30-second requests, instant close, multi-TV targeting, and Frigate automations is in the **[Home Assistant voice-camera script setup guide](docs/VOICE_CAMERA_SCRIPTS.md)**.
+The Android app alone cannot make your selected Home Assistant conversation agent understand new camera phrases. **Create and expose the corresponding Home Assistant scripts**. Detailed full YAML for driveway, doorbell, 30-second requests, instant close, multi-TV targeting, and Frigate automations is in the **[Home Assistant voice-camera script setup guide](docs/VOICE_CAMERA_SCRIPTS.md)**.
 
 **Example: Close camera on TV** (Home Assistant → Settings → Automations & scenes → Scripts → Create script → Edit in YAML):
 
