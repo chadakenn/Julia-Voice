@@ -46,6 +46,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
     private static final int MIC_PERMISSION_REQUEST = 17;
     private static final int OVERLAY_MIC_PERMISSION_REQUEST = 18;
     private static final int OVERLAY_SETTINGS_REQUEST = 19;
+    private static final int WAKE_WORD_MIC_REQUEST = 20;
     private final List<Button> buttons = new ArrayList<>();
     private int selected = 0;
     private TextView status;
@@ -465,6 +466,7 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                 "Overlay appearance & position",
                 "Home Assistant layout: " + (new OverlayPreferences(this).haManage() ? "ON" : "OFF"),
                 "TV announcements & cameras: " + (new OverlayPreferences(this).tvEvents() ? "ON" : "OFF"),
+                "Wake word: " + (new OverlayPreferences(this).wakeWord() ? "ON" : "OFF"),
                 "TV alert status",
                 "Check for app updates",
                 "Install downloaded update",
@@ -483,14 +485,15 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                         case 6: showOverlayPreferences(); break;
                         case 7: chooseHaLayout(); break;
                         case 8: chooseTvNotifications(); break;
-                        case 9: showTvAlertStatus(); break;
-                        case 10:
+                        case 9: chooseWakeWord(); break;
+                        case 10: showTvAlertStatus(); break;
+                        case 11:
                             manualUpdateCheck = true;
                             status("Checking GitHub Releases...");
                             updater.check();
                             break;
-                        case 11: promptInstallUpdate(); break;
-                        case 12: confirmForget(); break;
+                        case 12: promptInstallUpdate(); break;
+                        case 13: confirmForget(); break;
                         default: break;
                     }
                 });
@@ -591,6 +594,58 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
                     }
                     showSettingsMenu();
                 });
+    }
+
+    private void chooseWakeWord() {
+        OverlayPreferences prefs = new OverlayPreferences(this);
+        boolean enabled = prefs.wakeWord();
+        showCopperMenu("SETTINGS  ✦  WAKE WORD",
+                "Listens on this TV for Okay Nabu, then opens the voice overlay. "
+                        + "Off until you turn it on. A reboot or app update does not start it. "
+                        + "While it is on, the microphone stays in use and Android's privacy indicator stays on. "
+                        + "Nothing is sent to Home Assistant until the overlay opens. "
+                        + "Not tested on this TV yet, and the TV speakers can confuse it.",
+                new String[] {
+                        enabled ? "Turn wake word OFF" : "Turn wake word ON",
+                        "Back to Settings"
+                }, which -> {
+                    if (which == 0) {
+                        if (enabled) {
+                            prefs.setWakeWord(false);
+                            stopService(new Intent(this, WakeWordService.class));
+                            status("Wake word off. The microphone is not listening.");
+                        } else {
+                            enableWakeWord();
+                        }
+                    }
+                    showSettingsMenu();
+                });
+    }
+
+    private void enableWakeWord() {
+        if (settings == null) {
+            status("Configure Home Assistant before enabling the wake word.");
+            return;
+        }
+        if (!Settings.canDrawOverlays(this)) {
+            status("Grant 'Display over other apps' before enabling the wake word.");
+            return;
+        }
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO)
+                != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, WAKE_WORD_MIC_REQUEST);
+            return;
+        }
+        OverlayPreferences prefs = new OverlayPreferences(this);
+        prefs.setWakeWord(true);
+        try {
+            startForegroundService(new Intent(this, WakeWordService.class)
+                    .setAction(WakeWordService.ACTION_START));
+            status("Wake word on. Say Okay Nabu. Turn it off in Settings to release the microphone.");
+        } catch (RuntimeException ignored) {
+            prefs.setWakeWord(false);
+            status("Android couldn't start the wake word listener.");
+        }
     }
 
     private void showTvAlertStatus() {
@@ -987,6 +1042,9 @@ public class VoiceActivity extends Activity implements HaAssistClient.Events {
         } else if (requestCode == OVERLAY_MIC_PERMISSION_REQUEST) {
             if (grants.length > 0 && grants[0] == PackageManager.PERMISSION_GRANTED) launchOverlay();
             else status("Microphone permission denied; overlay not started.");
+        } else if (requestCode == WAKE_WORD_MIC_REQUEST) {
+            if (grants.length > 0 && grants[0] == PackageManager.PERMISSION_GRANTED) enableWakeWord();
+            else status("Microphone permission denied. Wake word stays off.");
         }
     }
 

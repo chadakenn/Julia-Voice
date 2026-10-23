@@ -53,6 +53,10 @@
         <service android:name=".VoiceOverlayService"
             android:exported="false"
             android:foregroundServiceType="microphone" />
+        <!-- Opt-in Okay Nabu listener. Settings starts it. Boot and app update do not. -->
+        <service android:name=".WakeWordService"
+            android:exported="false"
+            android:foregroundServiceType="microphone" />
         <!-- Opt-in foreground TV alert receiver: never accesses the microphone. -->
         <service android:name=".TvEventsService"
             android:exported="false"

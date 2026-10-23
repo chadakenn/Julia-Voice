@@ -45,6 +45,7 @@ public final class OverlayPreferences {
     private static final String KEY_DEVICE = "ha_device_id";
     private static final String KEY_HA_MANAGE = "ha_manage_layout";
     private static final String KEY_TV_EVENTS = "tv_events_enabled";
+    private static final String KEY_WAKE = "wake_word";
     private static final String KEY_WEATHER_POSITION = "weather_position";
     private static final String KEY_WEATHER_SIZE = "weather_size";
     private static final String KEY_WEATHER_SECONDS = "weather_seconds";
@@ -191,6 +192,15 @@ public final class OverlayPreferences {
 
     public void setTvEvents(boolean enabled) {
         preferences.edit().putBoolean(KEY_TV_EVENTS, enabled).apply();
+    }
+
+    /** On-device Okay Nabu listener. Off until the TV settings screen turns it on. */
+    public boolean wakeWord() {
+        return preferences.getBoolean(KEY_WAKE, false);
+    }
+
+    public void setWakeWord(boolean enabled) {
+        preferences.edit().putBoolean(KEY_WAKE, enabled).apply();
     }
 
     public String deviceId() {

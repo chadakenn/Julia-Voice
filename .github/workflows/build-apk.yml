@@ -23,7 +23,7 @@ permissions:
 jobs:
   signed-release:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -37,7 +37,7 @@ jobs:
         with:
           packages: platform-tools
       - name: Install Android SDK 35
-        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'ndk;27.2.12479018' 'cmake;3.22.1'
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
@@ -63,7 +63,7 @@ jobs:
       - name: Test Android and Home Assistant before public release
         if: (github.event_name == 'workflow_dispatch' && inputs.publish_release == true) || (github.event_name == 'push' && contains(github.event.head_commit.message, '[publish-v0.16.3]'))
         run: |
-          gradle --no-daemon :app:testDebugUnitTest
+          gradle --no-daemon -PskipWakeNative=true :app:testDebugUnitTest
           python3 -m compileall -q custom_components/kellies_voice
           python3 -m unittest discover -s tests -p 'test_kellies_voice_events.py' -v
 
