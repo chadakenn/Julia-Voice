@@ -9,7 +9,8 @@
   "iot_class": "local_push",
   "version": "0.16.4",
   "dependencies": [
-    "zeroconf"
+    "zeroconf",
+    "websocket_api"
   ],
   "zeroconf": [
     "_kellies-voice._tcp.local."

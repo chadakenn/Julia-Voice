@@ -64,8 +64,9 @@ class ScopedPayloadTests(unittest.TestCase):
     def test_invalid_and_oversized_data_dropped(self):
         self.assertIsNone(transport.sanitize_event("evil", {}, self.TV))
         self.assertIsNone(transport.sanitize_event(const.EVENT_FORECAST, {"days": [{}]*8}, self.TV))
-        self.assertIsNone(transport.sanitize_event(const.EVENT_ANNOUNCEMENT,
-                           {"text": "🚀" * 10000}, self.TV) if transport.MAX_BYTES < 500 else None)
+        self.assertLessEqual(len(transport.sanitize_event(
+            const.EVENT_ANNOUNCEMENT, {"text": "🚀" * 10000}, self.TV
+        )["text"]), transport.STRING_LIMITS["text"])
         self.assertIsNone(transport.sanitize_event("kellies_voice_timer",
                            {"ends_at_ms": "wrong"}, self.TV))
 

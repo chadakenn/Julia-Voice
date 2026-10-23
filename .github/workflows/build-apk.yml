@@ -65,7 +65,7 @@ jobs:
         run: |
           gradle --no-daemon :app:testDebugUnitTest
           python3 -m compileall -q custom_components/kellies_voice
-          python3 -m unittest discover -s tests -p 'test_kellies_voice_events.py' -v
+          python3 -m unittest discover -s tests -p 'test_*.py' -v
 
       - name: Build signed release APK
         env:
