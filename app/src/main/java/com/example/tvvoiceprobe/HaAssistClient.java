@@ -45,6 +45,11 @@ public final class HaAssistClient {
         default void haLayout(String setting) { }
         default void localSilence() { }
         default void runEnded() { }
+        /**
+         * The reply so far, while a streaming conversation agent is still
+         * writing it. The final answer() always follows and replaces it.
+         */
+        default void answerPartial(String textSoFar) { }
         /** Unexpected socket loss; in-progress Assist run has been reset. */
         default void connectionLost() { }
     }
@@ -64,6 +69,10 @@ public final class HaAssistClient {
     private volatile boolean captureStarted;
     private volatile boolean autoEndSpeech;
     private volatile String roomNoise = OverlayPreferences.NOISE_NORMAL;
+    private final AnswerStream answerStream = new AnswerStream();
+    // Pause mode keeps audio focus for the whole question and answer, so a
+    // paused video does not resume while a local model is still thinking.
+    private volatile boolean holdFocusThroughRun;
     private final AtomicBoolean recording = new AtomicBoolean(false);
     private final AtomicBoolean ended = new AtomicBoolean(false);
     private volatile String conversationId;
@@ -324,6 +333,22 @@ public final class HaAssistClient {
             case "intent-start":
                 events.status("Home Assistant is responding...");
                 break;
+            case "intent-progress":
+                // Streaming agents send the reply a few words at a time.
+                // Other agents never send this, and nothing changes for them.
+                JSONObject delta = data.optJSONObject("chat_log_delta");
+                if (delta != null) {
+                    String role = delta.isNull("role") ? "" : delta.optString("role", "");
+                    // Only the assistant's own words are shown. Tool calls,
+                    // tool results and reasoning text are ignored.
+                    if (role.isEmpty() || "assistant".equals(role)) {
+                        String piece = delta.isNull("content")
+                                ? "" : delta.optString("content", "");
+                        String shown = answerStream.append("assistant".equals(role), piece);
+                        if (shown != null && !shown.trim().isEmpty()) events.answerPartial(shown);
+                    }
+                }
+                break;
             case "intent-end":
                 JSONObject out = data.optJSONObject("intent_output");
                 if (out != null) {
@@ -410,11 +435,15 @@ public final class HaAssistClient {
             autoEndSpeech = autoStopOnSilence;
             ended.set(false);
             currentRunId = id;
-            // Duck YouTube before the Assist server replies and before opening
-            // the microphone. The automatic fade needs a head start.
-            listeningFocus.acquire();
+            answerStream.reset();
+            // Duck (or pause) YouTube before the Assist server replies and
+            // before opening the microphone. The automatic fade needs a head start.
+            boolean pauseMedia = new OverlayPreferences(context).pauseMedia();
+            holdFocusThroughRun = pauseMedia;
+            listeningFocus.acquire(pauseMedia);
             if (!socket.send(request.toString())) {
                 currentRunId = -1;
+                holdFocusThroughRun = false;
                 listeningFocus.release();
                 events.status("Couldn't send Assist request.");
                 return false;
@@ -423,10 +452,21 @@ public final class HaAssistClient {
             return true;
         } catch (Exception e) {
             currentRunId = -1;
+            holdFocusThroughRun = false;
             listeningFocus.release();
             events.status("Couldn't start Assist pipeline.");
             return false;
         }
+    }
+
+    /**
+     * Drops the current run so a new question can start while the last answer
+     * is still being spoken. Home Assistant finishes the old run on its side.
+     * Its remaining events carry the old run id and are ignored.
+     */
+    public synchronized void abandonRun() {
+        if (currentRunId == -1) return;
+        stopForRunEnd();
     }
 
     public void finishTalking() {
@@ -559,7 +599,7 @@ public final class HaAssistClient {
                 if (noise != null) noise.release();
                 if (recorder != null) recorder.release();
                 // A stale capture thread must never release a newer run's focus.
-                if (runId == currentRunId) listeningFocus.release();
+                if (runId == currentRunId && !holdFocusThroughRun) listeningFocus.release();
                 sendEndOfAudio(runId);
             }
         }, "ha-assist-audio").start();
@@ -573,7 +613,10 @@ public final class HaAssistClient {
 
     private void stopForRunEnd() {
         recording.set(false);
-        listeningFocus.release();
+        if (holdFocusThroughRun) listeningFocus.releaseSoon(SpeechFocus.HANDOFF_MS);
+        else listeningFocus.release();
+        holdFocusThroughRun = false;
+        answerStream.reset();
         handlerId = -1;
         currentRunId = -1;
         captureStarted = false;
@@ -699,6 +742,7 @@ public final class HaAssistClient {
         layoutStatesId = -1;
         layoutEntities.clear();
         stopForRunEnd();
+        listeningFocus.release(); // Give media back now, not after the hand-off delay.
         WebSocket ws = socket;
         socket = null;
         if (ws != null) ws.close(1000, "leaving");
