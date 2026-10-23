@@ -1,8 +1,10 @@
 # Voice timers (development draft)
 
+**Name clarification:** Julia is the maintainer's nickname for their Home Assistant conversation assistant, **not** an included assistant or wake word. Other users can use any Assist conversation agent and do **not** need to say "Julia" to start timers once the voice input is active. Timer scripts and sentence routing must be configured for your own Home Assistant pipeline; see the [naming explanation](../README.md#kellies-voice-vs-julia-whats-the-difference).
+
 Named TV timers show small countdown pills over the current app. At completion: one chime, a 180 ms gap, a second chime, the optional configured phrase, then a 500 ms pause before the next pair. **Alerts repeat until dismissed, with no automatic cutoff.** Multiple completed timers share one audio sequence; dismiss the current timer to hear the next. Back dismisses every ringing timer, leaving running timers alone. The completion window has D-pad buttons; countdowns do not take remote focus.
 
-The bundled chime plays locally. Optional speech uses the TV's Android text-to-speech engine, not the microphone or HA voice agent; it may sound different from Julia. If speech is unavailable, chimes continue. A stalled utterance is stopped after 15 seconds so the pair sequence can resume. The phrase is configured per timer and limited to 140 characters.
+The bundled chime plays locally. Optional speech uses the TV's Android text-to-speech engine, not the microphone or HA voice agent; it may sound different from your Home Assistant voice assistant. If speech is unavailable, chimes continue. A stalled utterance is stopped after 15 seconds so the pair sequence can resume. The phrase is configured per timer and limited to 140 characters.
 
 This branch is based on Aurora Glass and the weather fixes. It does not include PR #46 microphone changes. No release, version change, deployment or installation has been performed.
 

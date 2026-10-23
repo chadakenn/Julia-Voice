@@ -36,6 +36,12 @@ If a *later signed update* conflicts again, **stop and investigate the keystore/
 5. Use the Google TV smartphone remote/keyboard to make entering credentials easier; clipboard paste support varies. QR-code pairing has **not yet been implemented**.
 6. Expect **Connected and authenticated** before talking.
 
+## Your assistant's name (optional)
+
+In project examples, **Julia** is the name the maintainer gave their own Home Assistant voice assistant. It is not built into Kellie's Voice, and you do not need to call yours Julia. **Kellie's Voice** is the TV client; **Home Assistant Assist** and your chosen conversation agent process the spoken request. You may use the built-in Assist agent or a configured third-party agent such as Ollama.
+
+There is **no required wake word or assistant-name prefix** for the usual TALK/remote-shortcut workflow. Activate listening, then say something natural such as "What's the weather?" A future optional wake word is separate from the name of your conversation agent. See [the naming explanation](../README.md#kellies-voice-vs-julia-whats-the-difference).
+
 ## First conversation test
 
 Use the normal remote's D-pad and OK (not its Google Assistant microphone button):

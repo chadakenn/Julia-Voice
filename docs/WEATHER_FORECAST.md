@@ -17,7 +17,9 @@ On the Kellie's Voice device page, set **Forecast source** to your weather entit
 
 **Forecast position**, **Forecast size**, and **Forecast duration** move only the weather card. The usual place is bottom center for 20 seconds. They do not move camera popups. Home Assistant layout must be ON on the TV before those three selects are adopted. Changing them does not show a forecast by itself.
 
-## Script for Julia
+## Script for your Home Assistant assistant
+
+*Julia* is the maintainer's example name for their own Home Assistant voice assistant, not a required name or wake word. Use your configured Assist conversation agent. With listening activated, you can simply say the phrases below without saying "Julia".
 
 Home Assistant → **Settings → Automations & scenes → Scripts → Create script → Edit in YAML**. Paste this, then replace the weather entity if you did not set Forecast source:
 
