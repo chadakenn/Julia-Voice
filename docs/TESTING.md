@@ -1,6 +1,8 @@
 # Field testing and verified milestones
 
-Updated: **2026-10-20**. Device: user's **onn 4K Pro / Google TV**, with the Android app built through GitHub Actions.
+**Current public-release tester status (October 23, 2026):** Android/HACS **v0.16.4** is released. Verified on the maintainer's onn 4K Pro: voice/TTS, live driveway and doorbell video, weather popup, timer countdown/chimes and Back dismissal, plus named timer voice start/stop with custom HA automations. **Unverified or known issues:** timer Dismiss via OK, main-app-wide theme sync, native Assist generic timer routing, other TV hardware, follow-up/wake-word features and action buttons from draft PRs. For an accurate first-time setup, see **[Install and test Kellie's Voice v0.16.4](INSTALL.md)**. **The milestones below are historical and may refer to earlier versions; they are not the current release checklist.**
+
+Updated historical milestone: **2026-10-20**. Device: maintainer's **onn 4K Pro / Google TV**, with Android builds through GitHub Actions.
 
 Distinguish what has actually worked on hardware from compiled features. A green build is **not** proof of behavior on a TV.
 
@@ -15,8 +17,6 @@ The floating Julia overlay already correctly reflects the Home Assistant style s
 - [ ] Test the optional transparent overlay launcher: no forced full-screen app, theme change does not start mic, voice still works.
 - [ ] Diagnostics screen follows the saved theme when opened; welcome splash preserves approved brand portrait and changes to blue/violet for Aurora.
 - [ ] Run Android unit tests and compile the Android debug APK. Green CI alone is insufficient; this requires new physical onn QA before any release.
-
-
 
 ## v0.13 Home Assistant disconnection recovery (pending TV test)
 
