@@ -1,23 +1,47 @@
-# Controlled community QA preview, issues #67–#71
+# v0.16.5 community test checklist (issues #67–#71)
 
-**This is not a release.** Install only with the owner's permission on test hardware. Preview application ID is `com.example.tvvoiceprobe`, versionCode is unchanged at **21**, and versionName is `0.16.4-community-qa1`.
+**Public early test release.** The user-approved community update is published
+through the normal GitHub Releases channel so installed televisions can use
+**Settings → Check for app updates**. Its APK retains the release signing key,
+uses versionCode 22 (from v0.16.4's code 21), and has versionName 0.16.5.
 
-## Obtaining the Android test build
-Pull-request CI automatically builds a separate **debug APK** named `Kellies-Voice-test-apk`. It uses a different `.debug` application ID and does **not** replace the release-signed TV app.
+### Install Android + matching HACS
 
-For a release-key **in-place** preview, an authorized maintainer should open [GitHub Actions → Build Kellie's Voice Signed APK](https://github.com/chadakenn/Kellies-Voice/actions/workflows/build-apk.yml), select branch `test/community-67-71-qa1`, choose `publish_release=false`, and run the workflow. If the private signing secrets are configured and signature verification succeeds, the result is the private workflow artifact `kellies-voice-signed` containing `app-release.apk`. The workflow must not publish any GitHub Release from this branch. **Never share signing keys or tokens**.
+1. In the existing TV app, open **Settings → Check for app updates**.
+   The signed GitHub Release must contain both `app-release.apk` and
+   `update.json` for the verified in-app update to work.
+   Approve the Android installer without uninstalling the previous app.
+2. In **HACS → Kellie's Voice**, update the integration to **0.16.5**
+   and restart Home Assistant. The TV's **non-admin alert subscription**
+   and **new snapshot options** require the corresponding HACS code.
+   If HACS hasn't indexed the release yet, use the manual installation
+   steps in [INSTALL.md](INSTALL.md). Always back up the config first.
+3. Home Assistant and Android may need a reconnect; on the TV check
+   that **TV announcements & cameras** are enabled.
 
-Back up the existing app APK and HACS files first. Do **not** uninstall the signed app to install a test build; that would discard TV credentials/preferences. If the preview cannot install in place, stop and investigate signatures/version codes. Restoring a signed v0.16.4 APK with equal versionCode may require additional device-specific validation; do not promise a seamless rollback.
+### Report the following device tests
 
-## Matching HACS component
-This test branch includes modified `custom_components/kellies_voice` files. HACS **does not automatically install a preview branch**. Back up the original integration folder, then deliberately copy the matching test-branch component on a non-production HA instance and restart. The public v0.16.4 integration is **not** the matching preview for non-admin alerts or snapshot display controls.
+- #67: Philips/Google TV HDMI video stays visible while camera popups open,
+  software H.264 live mode works if supported, snapshot fallback is honest.
+- #68: A dedicated non-admin HA token with read permission for the TV's
+  alert position entity can receive announcements, cameras, forecast and timer.
+- #69: Configured mistyped pairing IDs stay OFF/never in
+  **TV alert receiver connected**; correct connected receivers report ON.
+  A successful HA service event isn't yet proof that a popup rendered.
+- #70: Headerless snapshot (`show_header:false`), full-frame fit
+  (`image_fit:fit`) and in-place refreshing (`refresh_seconds:3`).
+- #71: No accessible Philips microphone should show a useful error
+  instead of sending silence. Test a compatible USB microphone if available.
+- onn 4K Pro regression: existing TALK/STOP, STT/TTS, timers, camera
+  snapshots, live driveway/doorbell, forecast and D-pad navigation.
 
-## Test checklist
-- **#67 Philips HDMI**: show live camera above HDMI and Netflix/TiviMate, confirm video moves where a software H.264 decoder exists and underlying picture remains visible during/after popup; snapshot fallback must be honest. Repeat hide/timeout.
-- **#68 HA permissions**: use a dedicated non-admin HA account with read access to the TV's **TV alert position** entity. Check announce/camera/forecast/timer/hide through the scoped receiver, then revoke and confirm denial.
-- **#69 pairing**: typo UUID should remain unverified, binary sensor off, last_seen=never. Correct ID + authenticated receiver turns on, disconnect turns off. This does **not** guarantee rendering of any popup.
-- **#70 snapshots**: `kellies_voice.show_camera` with `show_header:false`, `image_fit:fit`, `refresh_seconds:3`, 4:3 image. No cropping, no flicker on repeated events; refresh stops after hide.
-- **#71 microphone**: Philips with remote-submix-only input should get actionable error instead of bogus STT; connect USB mic to retest. onn 4K Pro must retain working built-in mic/STT/TTS.
-- **Regression:** repeat with onn streaming video, timers, forecasts, announcements, TV alert enable/disable, reconnection, and multiple TVs. Do not activate unrelated wake-word/follow-up prototypes.
+Use [the issue tracker](https://github.com/chadakenn/Kellies-Voice/issues)
+to report device model, firmware, APK/HACS versions and redacted errors.
+Do not post Home Assistant tokens, signed camera URLs or private recordings.
 
-Share only redacted device model, firmware, APK version, HA version and concise symptoms. Keep all issues open until hardware QA passes.
+### Earlier branch previews
+
+The old `test/community-67-71-qa1` signed APK is an **archived test build**,
+not the in-app release. The standard updater only considers stable releases
+with a strictly higher versionCode. Don't install a `.debug` APK over
+the release-signed package.

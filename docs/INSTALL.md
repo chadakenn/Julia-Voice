@@ -22,7 +22,7 @@ Welcome! **Kellie's Voice** turns an Android TV / Google TV into a voice compani
 
 ## Step 1: Install the signed Android TV APK
 
-1. Open the **[latest public Kellie's Voice release](https://github.com/chadakenn/Kellies-Voice/releases/latest)**. The current release is **v0.16.4**.
+1. Open the **[latest public Kellie's Voice release](https://github.com/chadakenn/Kellies-Voice/releases/latest)**. The current release is **v0.16.5** (early community test release).
 2. Download the release asset **`app-release.apk`**. Do **not** download a PR's `app-debug.apk` or GitHub Actions test artifact for a first installation.
 3. Transfer it to the TV. Options include a USB stick, a TV-compatible file manager, **Send Files to TV** on your phone and TV, or ADB (`adb install -r app-release.apk`).
 4. On the TV, open the APK and grant **Install unknown apps** to the installer/file manager if Android asks. Complete the installer.
@@ -41,7 +41,7 @@ Welcome! **Kellie's Voice** turns an Android TV / Google TV into a voice compani
 5. Wait for **LISTENING**, speak a simple question such as **“What time is it?”**, and select **STOP** if needed. Verify that your words appear on-screen, the Home Assistant answer appears, and audio plays through the TV speakers if TTS is configured.
 6. If connection or audio fails, open [Troubleshooting](TROUBLESHOOTING.md) and check the HA Assist pipeline, URL, TV sound, and on-screen error first.
 
-**Important:** The standard Google Assistant microphone button on the physical remote may still launch **Google**, not Kellie's Voice. On the tested onn 4K Pro, voice input uses the TV device's built-in microphone. A remote's Bluetooth mic is **not guaranteed accessible** to third-party apps. You do not need to say “Julia” to start a command, and a hands-free wake word is **not** part of public v0.16.4.
+**Important:** The standard Google Assistant microphone button on the physical remote may still launch **Google**, not Kellie's Voice. On the tested onn 4K Pro, voice input uses the TV device's built-in microphone. A remote's Bluetooth mic is **not guaranteed accessible** to third-party apps. You do not need to say “Julia” to start a command, and a hands-free wake word is **not** part of public v0.16.5.
 
 **Tip:** The Google TV/Google Home phone remote can make URL and token entry easier; keyboard/clipboard behavior varies. There is no QR-code pairing flow yet.
 
@@ -88,13 +88,13 @@ data:
 
 This is a **still image**, not live video.
 
-**Live-camera compatibility (#67, draft fix only, NOT in public v0.16.4):** In TV Settings, choose **Live camera**: *Safe software (default)*, *Snapshots only*, or *Hardware (advanced)*. Safe software only selects software video decoders so an integrated TV's hardware decoder stays free for HDMI, Netflix or TiviMate. Use a lower-resolution H.264 camera/substream for best results; if software decoding is unavailable the popup stays on the snapshot and does **not** claim moving video. Hardware is opt-in and potentially disrupts HDMI on integrated TVs. Test on real TV hardware before shipping this change.
+**Live-camera compatibility (#67, in v0.16.5 for testing):** In TV Settings, choose **Live camera**: *Safe software (default)*, *Snapshots only*, or *Hardware (advanced)*. Safe software only selects software video decoders so an integrated TV's hardware decoder stays free for HDMI, Netflix or TiviMate. Use a lower-resolution H.264 camera/substream for best results; if software decoding is unavailable the popup stays on the snapshot and does **not** claim moving video. Hardware is opt-in and potentially disrupts HDMI on integrated TVs. Please test on real TV hardware and report compatibility results.
 
 For an on-demand **muted live HLS camera**, see [Voice camera scripts](VOICE_CAMERA_SCRIPTS.md) and [TV events](TV_EVENTS.md). The TV must receive events over its active HA connection, and a camera must support the relevant HA snapshot/stream functionality.
 
-**Snapshot display improvements (#70 draft, not public v0.16.4):** `kellies_voice.show_camera` can optionally use `show_header: false` (hide title/caption), `image_fit: fit` (show full uncropped 4:3 frame), and `refresh_seconds: 2..30` (in-place periodic snapshots; `0` turns auto-refresh off). Repeated calls to the same camera with the same layout update the image without tearing down the window. No new camera URLs or background microphone permissions are required. This is a separate test PR based on #67 and still needs Philips hardware verification.
+**Snapshot display improvements (#70, in v0.16.5):** `kellies_voice.show_camera` can optionally use `show_header: false` (hide title/caption), `image_fit: fit` (show full uncropped 4:3 frame), and `refresh_seconds: 2..30` (in-place periodic snapshots; `0` turns auto-refresh off). Repeated calls to the same camera with the same layout update the image without tearing down the window. No new camera URLs or background microphone permissions are required. This is a community test feature and still needs Philips hardware verification.
 
-**Community combined test (draft only):** This preview integrates Philips HDMI-safe live decoder, full-frame in-place snapshots, non-admin scoped TV alert WebSocket, per-TV alert receiver connectivity, and safe microphone route diagnostics. Matching **test APK and HACS files** are needed for end-to-end testing; see [the controlled QA guide](COMMUNITY_QA.md). v0.16.4 public release remains unchanged.
+**v0.16.5 community test release:** The update integrates Philips HDMI-safe live decoder, full-frame in-place snapshots, non-admin scoped TV alert WebSocket, per-TV alert receiver connectivity, and safe microphone route diagnostics. Install the matching **v0.16.5 Android APK and v0.16.5 HACS integration** to test new scoped alerts and snapshot options; see [the community test guide](COMMUNITY_QA.md). The fixes are released for public testing and still need hardware feedback.
 
 **Multiple TVs:** leaving the optional `device_id` out of announcement/camera actions targets every configured Kellie's Voice TV. Add the **specific TV pairing ID** to target one. Timers require a targeted TV and are not broadcast by default.
 
@@ -121,7 +121,7 @@ data:
   speak_alert: false
 ```
 
-The timer should display a countdown pill; after expiry, chimes repeat until dismissed. **Back** worked on the tested onn 4K Pro. In the public v0.16.4 build, **D-pad OK on Dismiss is a known bug**; the fix is in [PR #55](https://github.com/chadakenn/Kellies-Voice/pull/55) and needs another signed-device test. To prevent the alert before it rings, run `kellies_voice.cancel_timer` with the same ID and name.
+The timer should display a countdown pill; after expiry, chimes repeat until dismissed. **Back** worked on the tested onn 4K Pro. In the public v0.16.5 build, **D-pad OK on Dismiss is a known bug**; the fix is in [PR #55](https://github.com/chadakenn/Kellies-Voice/pull/55) and needs another signed-device test. To prevent the alert before it rings, run `kellies_voice.cancel_timer` with the same ID and name.
 
 The maintainer has also confirmed **starting and stopping named timers through their TV microphone** after configuring custom Home Assistant voice automations. Those automations are **home-specific**, not automatically installed for new users. If “Set a timer” answers *“Sorry, timers are not supported on this device”*, HA's **native** timer handler was invoked instead of the Kellie's Voice action. Follow the [timer setup guide](VOICE_TIMERS.md) or explore the [name-free timer automation draft](https://github.com/chadakenn/Kellies-Voice/blob/docs/voice-timers-llm-scripts-v0164/docs/VOICE_TIMERS_PLAIN_SPEECH.md) only if you're comfortable configuring and testing HA sentence triggers. Be especially cautious in homes with other Assist satellites because unscoped triggers can catch their commands too.
 
@@ -152,7 +152,7 @@ Please start with these quick, low-risk checks before experimenting with locks, 
 - [ ] Reboot, resume from standby, interrupt Wi-Fi briefly, and check whether the app/event receiver reconnects without unnecessary mic activation.
 - [ ] Check whether your device's built-in or remote microphone is accessible. **Do not assume the physical remote's Google Assistant button will launch this app.**
 
-**Report results:** open a [GitHub issue](https://github.com/chadakenn/Kellies-Voice/issues), with a short title, device/OS version, app/HACS versions, exact steps, exact non-sensitive on-screen error or transcript, expected versus actual behavior, and optionally **redacted** photos/video. Mark whether the test was with the **public v0.16.4 release** or an explicitly labeled preview. Report partial successes too: e.g. “snapshot loads but live frames don't move,” or “Back dismisses timer but OK doesn't.”
+**Report results (include version v0.16.5):** open a [GitHub issue](https://github.com/chadakenn/Kellies-Voice/issues), with a short title, device/OS version, app/HACS versions, exact steps, exact non-sensitive on-screen error or transcript, expected versus actual behavior, and optionally **redacted** photos/video. Mark whether the test was with the **public v0.16.5 release** or an explicitly labeled preview. Report partial successes too: e.g. “snapshot loads but live frames don't move,” or “Back dismisses timer but OK doesn't.”
 
 Further information: [Troubleshooting](TROUBLESHOOTING.md) · [Camera scripts](VOICE_CAMERA_SCRIPTS.md) · [Weather setup](WEATHER_FORECAST.md) · [Timer setup](VOICE_TIMERS.md) · [Signed app updates](UPDATES.md) · [Testing history](TESTING.md) · [Security](../SECURITY.md).
 
